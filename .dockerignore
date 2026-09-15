@@ -1,0 +1,11 @@
+.git
+.github
+.husky
+.idea
+.next
+coverage
+node_modules
+playwright-report
+test-results
+.env*
+!.env.example
