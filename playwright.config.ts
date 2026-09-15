@@ -17,7 +17,11 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "pnpm exec next dev --port 3100",
+    command: "pnpm start",
+    env: {
+      HOSTNAME: "127.0.0.1",
+      PORT: "3100",
+    },
     reuseExistingServer: !process.env.CI,
     url: "http://localhost:3100",
   },

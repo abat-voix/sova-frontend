@@ -1,8 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import { motion, MotionConfig } from "motion/react";
 
-import { SovaMark } from "@/components/sova-mark";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -33,11 +33,18 @@ export function SovaShell() {
         >
           <motion.div
             animate={{ rotate: 0, scale: 1 }}
-            className="mx-auto mb-8 flex size-28 items-center justify-center rounded-[2rem] border border-white/70 bg-white/65 shadow-[0_18px_50px_-24px_color-mix(in_oklab,var(--primary)_70%,transparent)] backdrop-blur dark:border-white/10 dark:bg-white/5"
+            className="mx-auto mb-8 flex min-h-40 w-full items-center justify-center"
             initial={{ rotate: -6, scale: 0.88 }}
             transition={{ delay: 0.12, duration: 0.8, ease }}
           >
-            <SovaMark />
+            <Image
+              alt="Логотип СОВА"
+              className="h-auto w-full max-w-md object-contain drop-shadow-[0_22px_28px_color-mix(in_oklab,var(--primary)_22%,transparent)]"
+              height={887}
+              priority
+              src="/sova-ai.png"
+              width={1774}
+            />
           </motion.div>
 
           <motion.div
@@ -45,16 +52,10 @@ export function SovaShell() {
             initial={{ opacity: 0 }}
             transition={{ delay: 0.28, duration: 0.6 }}
           >
-            <p className="text-primary mb-3 text-xs font-semibold tracking-[0.28em] uppercase">
-              ИТ Школа Ростелекома
-            </p>
-            <h1
-              className="font-heading text-foreground text-5xl font-extrabold tracking-[-0.055em] sm:text-7xl"
-              id="sova-title"
-            >
+            <h1 className="sr-only" id="sova-title">
               СОВА
             </h1>
-            <p className="text-muted-foreground mx-auto mt-5 max-w-lg text-base leading-7 text-balance sm:text-lg sm:leading-8">
+            <p className="text-muted-foreground mx-auto mt-4 max-w-lg text-base leading-7 text-balance sm:text-lg sm:leading-8">
               Система организации взаимодействия с академической средой
             </p>
           </motion.div>

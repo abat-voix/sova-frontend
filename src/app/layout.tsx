@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import "@fontsource-variable/inter";
-import "@fontsource-variable/manrope";
+import "@fontsource-variable/onest";
 
 import { AppProviders } from "@/providers/app-providers";
 
@@ -9,6 +8,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "СОВА",
   description: "Система организации взаимодействия с академической средой",
+  icons: {
+    icon: "/sova.png",
+    shortcut: "/sova.png",
+    apple: "/sova.png",
+  },
 };
 
 export default function RootLayout({
