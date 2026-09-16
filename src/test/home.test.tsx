@@ -15,5 +15,9 @@ describe("Home", () => {
         "Система организации взаимодействия с академической средой",
       ),
     ).toBeInTheDocument();
+    expect(screen.getByText("ИТ Школа Ростелекома")).toBeInTheDocument();
+    expect(
+      screen.getByText("Базовая платформа готова к развитию"),
+    ).toBeInTheDocument();
   });
 });

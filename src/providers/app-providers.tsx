@@ -1,9 +1,21 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ThemeProvider } from "next-themes";
+import { ThemeProvider, useTheme } from "next-themes";
 import { useState } from "react";
 import { Toaster } from "sonner";
+
+function ThemedToaster() {
+  const { resolvedTheme } = useTheme();
+
+  return (
+    <Toaster
+      closeButton
+      richColors
+      theme={resolvedTheme === "light" ? "light" : "dark"}
+    />
+  );
+}
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -22,13 +34,17 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider
       attribute="class"
-      defaultTheme="system"
+      defaultTheme="light"
       disableTransitionOnChange
       enableSystem
+      value={{
+        dark: "Theme_root_rtk_default_dark",
+        light: "Theme_root_rtk_default_light",
+      }}
     >
       <QueryClientProvider client={queryClient}>
         {children}
-        <Toaster closeButton richColors theme="system" />
+        <ThemedToaster />
       </QueryClientProvider>
     </ThemeProvider>
   );
