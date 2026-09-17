@@ -1,11 +1,32 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import Home from "@/app/page";
+import { AppProviders } from "@/providers/app-providers";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("Home", () => {
-  it("renders the branded SOVA shell", () => {
-    render(<Home />);
+  it("renders the branded SOVA shell and unauthenticated action", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(
+            JSON.stringify({ authenticated: false, csrfToken: "csrf-token" }),
+            { headers: { "content-type": "application/json" }, status: 200 },
+          ),
+        ),
+    );
+
+    render(
+      <AppProviders>
+        <Home />
+      </AppProviders>,
+    );
 
     expect(
       screen.getByRole("heading", { level: 1, name: "СОВА" }),
@@ -19,5 +40,9 @@ describe("Home", () => {
     expect(
       screen.getByText("Базовая платформа готова к развитию"),
     ).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: /Войти/ })).toHaveAttribute(
+      "href",
+      "/api/auth/oidc/authenticate/?next=/",
+    );
   });
 });

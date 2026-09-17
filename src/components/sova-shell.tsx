@@ -1,14 +1,19 @@
 "use client";
 
 import Image from "next/image";
+import { LogIn, LogOut, UserRound } from "lucide-react";
 import { motion, MotionConfig } from "motion/react";
 
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/providers/auth-provider";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 export function SovaShell() {
+  const auth = useAuth();
+
   return (
     <MotionConfig reducedMotion="user">
       <main className="bg-background relative isolate flex min-h-svh items-center justify-center overflow-hidden px-5 py-20 sm:px-8">
@@ -21,7 +26,42 @@ export function SovaShell() {
           className="absolute inset-0 -z-10 [background-image:linear-gradient(to_right,currentColor_1px,transparent_1px),linear-gradient(to_bottom,currentColor_1px,transparent_1px)] [background-size:40px_40px] opacity-[0.025] dark:opacity-[0.04]"
         />
 
-        <div className="absolute top-5 right-5 z-10 sm:top-8 sm:right-8">
+        <div className="absolute top-5 right-5 z-10 flex items-center gap-2 sm:top-8 sm:right-8">
+          {auth.isLoading ? (
+            <Button disabled size="m" variant="outline">
+              Проверяем вход…
+            </Button>
+          ) : auth.user ? (
+            <>
+              <Badge className="hidden sm:inline-flex" variant="neutral">
+                <UserRound aria-hidden="true" className="size-4" />
+                {auth.user.displayName}
+              </Badge>
+              <form action={auth.logoutUrl} method="post">
+                <input
+                  name="csrfmiddlewaretoken"
+                  type="hidden"
+                  value={auth.csrfToken}
+                />
+                <Button
+                  aria-label="Выйти"
+                  colorScheme="neutral"
+                  size="icon"
+                  type="submit"
+                  variant="outline"
+                >
+                  <LogOut aria-hidden="true" className="size-4" />
+                </Button>
+              </form>
+            </>
+          ) : (
+            <Button asChild size="m">
+              <a href={auth.loginUrl}>
+                <LogIn aria-hidden="true" className="size-4" />
+                Войти
+              </a>
+            </Button>
+          )}
           <ThemeToggle />
         </div>
 

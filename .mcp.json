@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "Atomaro": {
+      "url": "https://design.rt.ru/react-mcp",
+      "type": "http"
+    }
+  }
+}

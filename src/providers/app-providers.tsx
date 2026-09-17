@@ -5,6 +5,8 @@ import { ThemeProvider, useTheme } from "next-themes";
 import { useState } from "react";
 import { Toaster } from "sonner";
 
+import { AuthProvider } from "@/providers/auth-provider";
+
 function ThemedToaster() {
   const { resolvedTheme } = useTheme();
 
@@ -43,7 +45,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       }}
     >
       <QueryClientProvider client={queryClient}>
-        {children}
+        <AuthProvider>{children}</AuthProvider>
         <ThemedToaster />
       </QueryClientProvider>
     </ThemeProvider>
