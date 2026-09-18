@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 
-type AuthenticatedUser = {
+export type AuthenticatedUser = {
   id: number;
   email: string;
   firstName: string;

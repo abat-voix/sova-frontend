@@ -1,4 +1,10 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import Home from "@/app/page";
@@ -38,7 +44,6 @@ describe("Home", () => {
         "Система организации взаимодействия с академической средой",
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText("ИТ Школа Ростелекома")).toBeInTheDocument();
     expect(
       screen.getByText("Базовая платформа готова к развитию"),
     ).toBeInTheDocument();
@@ -83,5 +88,54 @@ describe("Home", () => {
     ).toBeInTheDocument();
     expect(document.documentElement).toHaveAttribute("lang", "en");
     expect(window.localStorage.getItem("sova-locale")).toBe("en");
+  });
+
+  it("shows the CRM workspace for an authenticated user", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            authenticated: true,
+            csrfToken: "csrf-token",
+            user: {
+              id: 1,
+              email: "owl@example.com",
+              firstName: "Сова",
+              lastName: "",
+              displayName: "Сова",
+              isStaff: false,
+              roles: [],
+            },
+          }),
+          { headers: { "content-type": "application/json" }, status: 200 },
+        ),
+      ),
+    );
+
+    render(
+      <AppProviders>
+        <Home />
+      </AppProviders>,
+    );
+
+    expect(
+      await screen.findByRole("heading", {
+        level: 1,
+        name: "Добро пожаловать, Сова",
+      }),
+    ).toBeInTheDocument();
+
+    const navigation = screen.getByRole("navigation", {
+      name: "Основная навигация",
+    });
+    expect(
+      within(navigation).getByRole("link", { name: "Главная" }),
+    ).toHaveAttribute("aria-current", "page");
+    expect(screen.getByAltText("Логотип СОВА")).toHaveAttribute(
+      "src",
+      expect.stringContaining("sova.png"),
+    );
+    expect(screen.getByRole("button", { name: "Выйти" })).toBeInTheDocument();
   });
 });

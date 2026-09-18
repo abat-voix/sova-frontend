@@ -1,11 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { LogIn, LogOut, UserRound } from "lucide-react";
+import { LogIn } from "lucide-react";
 import { motion, MotionConfig } from "motion/react";
 
-import { ThemeToggle } from "@/components/theme-toggle";
+import { CrmShell } from "@/components/crm/crm-shell";
+import type { CrmSection } from "@/components/crm/crm-navigation";
 import { LanguageToggle } from "@/components/language-toggle";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/providers/auth-provider";
@@ -13,9 +15,20 @@ import { useLocale } from "@/providers/locale-provider";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-export function SovaShell() {
+export function SovaShell({ section = "home" }: { section?: CrmSection }) {
   const auth = useAuth();
   const { t } = useLocale();
+
+  if (auth.user) {
+    return (
+      <CrmShell
+        activeSection={section}
+        csrfToken={auth.csrfToken}
+        logoutUrl={auth.logoutUrl}
+        user={auth.user}
+      />
+    );
+  }
 
   return (
     <MotionConfig reducedMotion="user">
@@ -34,29 +47,6 @@ export function SovaShell() {
             <Button disabled size="m" variant="outline">
               {t("authChecking")}
             </Button>
-          ) : auth.user ? (
-            <>
-              <Badge className="hidden sm:inline-flex" variant="neutral">
-                <UserRound aria-hidden="true" className="size-4" />
-                {auth.user.displayName}
-              </Badge>
-              <form action={auth.logoutUrl} method="post">
-                <input
-                  name="csrfmiddlewaretoken"
-                  type="hidden"
-                  value={auth.csrfToken}
-                />
-                <Button
-                  aria-label={t("logOut")}
-                  colorScheme="neutral"
-                  size="icon"
-                  type="submit"
-                  variant="outline"
-                >
-                  <LogOut aria-hidden="true" className="size-4" />
-                </Button>
-              </form>
-            </>
           ) : (
             <Button asChild size="m">
               <a href={auth.loginUrl}>
@@ -80,10 +70,6 @@ export function SovaShell() {
             aria-hidden="true"
             className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,var(--atmr-accent-primary),var(--atmr-brand-orange))]"
           />
-
-          <Badge className="mb-8 uppercase" variant="secondary">
-            ИТ Школа Ростелекома
-          </Badge>
 
           <motion.div
             animate={{ rotate: 0, scale: 1 }}
