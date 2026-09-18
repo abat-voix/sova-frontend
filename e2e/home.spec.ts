@@ -24,4 +24,14 @@ test("shows the SOVA application shell", async ({ page }) => {
 
   await themeToggle.click();
   await expect(page.locator("html")).toHaveClass(/Theme_root_rtk_default_dark/);
+
+  await page
+    .getByRole("button", { name: "Переключить язык на английский" })
+    .click();
+  await expect(
+    page.getByText(
+      "System for organizing collaboration with the academic community",
+    ),
+  ).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
 });

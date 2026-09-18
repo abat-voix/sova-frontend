@@ -1,10 +1,12 @@
-import { render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import Home from "@/app/page";
 import { AppProviders } from "@/providers/app-providers";
 
 afterEach(() => {
+  cleanup();
+  window.localStorage.clear();
   vi.unstubAllGlobals();
 });
 
@@ -44,5 +46,42 @@ describe("Home", () => {
       "href",
       "/api/auth/oidc/authenticate/?next=/",
     );
+  });
+
+  it("switches the interface to English and saves the locale", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(
+            JSON.stringify({ authenticated: false, csrfToken: "csrf-token" }),
+            { headers: { "content-type": "application/json" }, status: 200 },
+          ),
+        ),
+    );
+
+    render(
+      <AppProviders>
+        <Home />
+      </AppProviders>,
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Переключить язык на английский",
+      }),
+    );
+
+    expect(
+      screen.getByText(
+        "System for organizing collaboration with the academic community",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole("link", { name: /Sign in/ }),
+    ).toBeInTheDocument();
+    expect(document.documentElement).toHaveAttribute("lang", "en");
+    expect(window.localStorage.getItem("sova-locale")).toBe("en");
   });
 });

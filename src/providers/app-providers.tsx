@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Toaster } from "sonner";
 
 import { AuthProvider } from "@/providers/auth-provider";
+import { LocaleProvider } from "@/providers/locale-provider";
 
 function ThemedToaster() {
   const { resolvedTheme } = useTheme();
@@ -45,7 +46,9 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       }}
     >
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>{children}</AuthProvider>
+        <LocaleProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </LocaleProvider>
         <ThemedToaster />
       </QueryClientProvider>
     </ThemeProvider>

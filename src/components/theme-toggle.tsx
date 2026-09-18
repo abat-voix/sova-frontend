@@ -4,16 +4,18 @@ import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
+import { useLocale } from "@/providers/locale-provider";
 
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
+  const { t } = useLocale();
 
   return (
     <Button
-      aria-label="Переключить тему"
+      aria-label={t("switchTheme")}
       onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
       size="icon"
-      title="Переключить тему"
+      title={t("switchTheme")}
       type="button"
       variant="outline"
       colorScheme="neutral"

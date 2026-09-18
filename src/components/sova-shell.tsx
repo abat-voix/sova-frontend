@@ -5,14 +5,17 @@ import { LogIn, LogOut, UserRound } from "lucide-react";
 import { motion, MotionConfig } from "motion/react";
 
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LanguageToggle } from "@/components/language-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/providers/auth-provider";
+import { useLocale } from "@/providers/locale-provider";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 export function SovaShell() {
   const auth = useAuth();
+  const { t } = useLocale();
 
   return (
     <MotionConfig reducedMotion="user">
@@ -29,7 +32,7 @@ export function SovaShell() {
         <div className="absolute top-5 right-5 z-10 flex items-center gap-2 sm:top-8 sm:right-8">
           {auth.isLoading ? (
             <Button disabled size="m" variant="outline">
-              Проверяем вход…
+              {t("authChecking")}
             </Button>
           ) : auth.user ? (
             <>
@@ -44,7 +47,7 @@ export function SovaShell() {
                   value={auth.csrfToken}
                 />
                 <Button
-                  aria-label="Выйти"
+                  aria-label={t("logOut")}
                   colorScheme="neutral"
                   size="icon"
                   type="submit"
@@ -58,10 +61,11 @@ export function SovaShell() {
             <Button asChild size="m">
               <a href={auth.loginUrl}>
                 <LogIn aria-hidden="true" className="size-4" />
-                Войти
+                {t("logIn")}
               </a>
             </Button>
           )}
+          <LanguageToggle />
           <ThemeToggle />
         </div>
 
@@ -88,7 +92,7 @@ export function SovaShell() {
             transition={{ delay: 0.12, duration: 0.8, ease }}
           >
             <Image
-              alt="Логотип СОВА"
+              alt={t("logoAlt")}
               className="h-auto w-full max-w-md object-contain drop-shadow-[0_18px_30px_color-mix(in_oklab,var(--atmr-accent-primary)_20%,transparent)]"
               height={887}
               priority
@@ -106,10 +110,10 @@ export function SovaShell() {
               className="mt-4 text-4xl font-medium tracking-[-0.02em] sm:text-5xl"
               id="sova-title"
             >
-              СОВА
+              {t("productName")}
             </h1>
             <p className="text-muted-foreground mx-auto mt-4 max-w-xl text-base leading-7 text-balance sm:text-lg sm:leading-8">
-              Система организации взаимодействия с академической средой
+              {t("productDescription")}
             </p>
           </motion.div>
 
@@ -124,7 +128,7 @@ export function SovaShell() {
                 aria-hidden="true"
                 className="size-2 rounded-full bg-[var(--atmr-positive)] shadow-[0_0_0_4px_color-mix(in_oklab,var(--atmr-positive)_14%,transparent)]"
               />
-              Базовая платформа готова к развитию
+              {t("platformStatus")}
             </Badge>
           </motion.div>
         </motion.section>
