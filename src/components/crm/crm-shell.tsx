@@ -21,6 +21,7 @@ import {
 } from "@/components/crm/crm-navigation";
 import { InteractionsWorkspace } from "@/components/interactions/interactions-workspace";
 import { LanguageToggle } from "@/components/language-toggle";
+import { OrganizationsWorkspace } from "@/components/organizations/organizations-workspace";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -415,6 +416,8 @@ export function CrmShell(props: CrmShellProps) {
             <DashboardHome user={user} />
           ) : activeSection === "interactions" ? (
             <InteractionsWorkspace />
+          ) : activeSection === "organizations" ? (
+            <OrganizationsWorkspace />
           ) : (
             <SectionPlaceholder section={currentSection} />
           )}

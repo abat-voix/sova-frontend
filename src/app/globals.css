@@ -1,5 +1,8 @@
 @import "tailwindcss";
 @import "dhtmlx-gantt/codebase/dhtmlxgantt.css";
+@import "leaflet/dist/leaflet.css";
+@import "leaflet.markercluster/dist/MarkerCluster.css";
+@import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 
 @custom-variant dark (&:where(.Theme_root_rtk_default_dark, .Theme_root_rtk_default_dark *));
 

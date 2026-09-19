@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title>МГУ имени М. В. Ломоносова</title>
+  <rect width="64" height="64" rx="14" fill="#8a1538"/>
+  <path d="M30 12h4v8l4 5v23H26V25l4-5zm-10 17h6v19H16V35zm18 0h6l4 6v13H38z" fill="#fff"/>
+  <path d="m32 9 2 4-2 4-2-4z" fill="#ffd166"/>
+</svg>
