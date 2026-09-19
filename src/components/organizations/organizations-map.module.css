@@ -1,5 +1,10 @@
 .root {
+  position: relative;
   min-height: 32rem;
+  /* Leaflet gives its panes and controls z-index 400…1000. Without a local
+     stacking context they outrank the app header and the mobile navigation
+     drawer and paint over them. */
+  isolation: isolate;
   overflow: hidden;
   border-radius: var(--radius-xl);
   background: var(--atmr-background-secondary);

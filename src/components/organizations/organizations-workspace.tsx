@@ -1,24 +1,29 @@
 "use client";
 
 import Image from "next/image";
-import {
-  Building2,
-  GraduationCap,
-  List,
-  Map as MapIcon,
-  MapPin,
-  Workflow,
-} from "lucide-react";
-import { useMemo, useState } from "react";
+import { Building2, List, Map as MapIcon, MapPin } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
 
 import {
   getOrganizations,
   type OrganizationMapItem,
 } from "@/components/organizations/organization-data";
+import {
+  OrganizationDetails,
+  OrganizationMetrics,
+  type OrganizationMetricLabels,
+} from "@/components/organizations/organization-details";
+import { OrganizationSheet } from "@/components/organizations/organization-sheet";
 import { OrganizationsMap } from "@/components/organizations/organizations-map";
 import { Button } from "@/components/ui/button";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/providers/locale-provider";
+
+// Below `lg` the map takes the full width and the details open in a sheet.
+const compactViewportQuery = "(max-width: 1023.98px)";
+const panelHeadingId = "organization-panel-title";
+const sheetHeadingId = "organization-sheet-title";
 
 type ViewMode = "list" | "map";
 
@@ -39,6 +44,7 @@ const copy = {
     selectMarkerDescription:
       "Здесь появится краткая информация об организации и текущей работе с ней.",
     demoNotice: "Демонстрационные данные",
+    close: "Закрыть",
   },
   en: {
     title: "Organizations",
@@ -56,39 +62,9 @@ const copy = {
     selectMarkerDescription:
       "A short organization summary and its current activity will appear here.",
     demoNotice: "Demo data",
+    close: "Close",
   },
 } as const;
-
-function OrganizationMetrics({
-  organization,
-  labels,
-}: {
-  organization: OrganizationMapItem;
-  labels: { interactions: string; programs: string };
-}) {
-  return (
-    <div className="mt-5 grid grid-cols-2 gap-3">
-      <div className="bg-secondary/55 rounded-lg p-3">
-        <span className="text-muted-foreground flex items-center gap-2 text-xs">
-          <Workflow aria-hidden="true" className="size-4" />
-          {labels.interactions}
-        </span>
-        <strong className="mt-1 block text-xl font-medium">
-          {organization.interactions}
-        </strong>
-      </div>
-      <div className="bg-secondary/55 rounded-lg p-3">
-        <span className="text-muted-foreground flex items-center gap-2 text-xs">
-          <GraduationCap aria-hidden="true" className="size-4" />
-          {labels.programs}
-        </span>
-        <strong className="mt-1 block text-xl font-medium">
-          {organization.programs}
-        </strong>
-      </div>
-    </div>
-  );
-}
 
 function OrganizationCard({
   organization,
@@ -97,7 +73,7 @@ function OrganizationCard({
 }: {
   organization: OrganizationMapItem;
   statusLabel: string;
-  labels: { interactions: string; programs: string };
+  labels: OrganizationMetricLabels;
 }) {
   return (
     <article className="bg-card rounded-xl border p-5 shadow-sm">
@@ -147,6 +123,7 @@ export function OrganizationsWorkspace() {
   const organizations = useMemo(() => getOrganizations(locale), [locale]);
   const [view, setView] = useState<ViewMode>("list");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const isCompactViewport = useMediaQuery(compactViewportQuery);
   const selectedOrganization =
     organizations.find((organization) => organization.id === selectedId) ??
     null;
@@ -154,6 +131,7 @@ export function OrganizationsWorkspace() {
     interactions: text.interactions,
     programs: text.programs,
   };
+  const clearSelection = useCallback(() => setSelectedId(null), []);
 
   return (
     <div className="space-y-5">
@@ -218,41 +196,24 @@ export function OrganizationsWorkspace() {
           ))}
         </div>
       ) : (
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <OrganizationsMap
             onSelect={setSelectedId}
             organizations={organizations}
             selectedId={selectedId}
           />
 
-          <aside className="bg-card rounded-xl border p-5 shadow-sm">
+          <aside
+            aria-label={text.selectedOrganization}
+            className="bg-card hidden rounded-xl border p-5 shadow-sm lg:block"
+          >
             {selectedOrganization ? (
               <>
-                <p className="text-muted-foreground text-xs font-medium tracking-[0.08em] uppercase">
+                <p className="text-muted-foreground mb-5 text-xs font-medium tracking-[0.08em] uppercase">
                   {text.selectedOrganization}
                 </p>
-                <Image
-                  alt=""
-                  className="mt-5 size-20 rounded-2xl bg-white object-cover ring-1 ring-black/5"
-                  height={80}
-                  src={selectedOrganization.logoUrl}
-                  width={80}
-                />
-                <p className="text-muted-foreground mt-4 text-sm font-medium">
-                  {selectedOrganization.shortName}
-                </p>
-                <h2 className="mt-1 text-xl leading-6 font-medium">
-                  {selectedOrganization.name}
-                </h2>
-                <p className="text-muted-foreground mt-4 flex gap-2 text-sm leading-6">
-                  <MapPin aria-hidden="true" className="mt-1 size-4 shrink-0" />
-                  <span>
-                    {selectedOrganization.city}
-                    <br />
-                    {selectedOrganization.address}
-                  </span>
-                </p>
-                <OrganizationMetrics
+                <OrganizationDetails
+                  headingId={panelHeadingId}
                   labels={metricLabels}
                   organization={selectedOrganization}
                 />
@@ -269,6 +230,20 @@ export function OrganizationsWorkspace() {
               </div>
             )}
           </aside>
+
+          {isCompactViewport && selectedOrganization ? (
+            <OrganizationSheet
+              closeLabel={text.close}
+              labelledBy={sheetHeadingId}
+              onClose={clearSelection}
+            >
+              <OrganizationDetails
+                headingId={sheetHeadingId}
+                labels={metricLabels}
+                organization={selectedOrganization}
+              />
+            </OrganizationSheet>
+          ) : null}
         </div>
       )}
     </div>
