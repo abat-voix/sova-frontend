@@ -137,5 +137,19 @@ describe("Home", () => {
       expect.stringContaining("sova.png"),
     );
     expect(screen.getByRole("button", { name: "Выйти" })).toBeInTheDocument();
+
+    const collapseSidebar = screen.getByRole("button", {
+      name: "Свернуть боковую панель",
+    });
+    expect(collapseSidebar).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.click(collapseSidebar);
+
+    expect(
+      screen.getByRole("button", { name: "Развернуть боковую панель" }),
+    ).toHaveAttribute("aria-expanded", "false");
+    expect(
+      within(navigation).getByRole("link", { name: "Главная" }),
+    ).toHaveAttribute("aria-current", "page");
   });
 });

@@ -2,7 +2,15 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, CircleDot, LogOut, Menu, X } from "lucide-react";
+import {
+  ArrowRight,
+  CircleDot,
+  LogOut,
+  Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
+  X,
+} from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -11,6 +19,7 @@ import {
   type CrmNavigationItem,
   type CrmSection,
 } from "@/components/crm/crm-navigation";
+import { InteractionsWorkspace } from "@/components/interactions/interactions-workspace";
 import { LanguageToggle } from "@/components/language-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -26,6 +35,7 @@ type CrmShellProps = {
 };
 
 type SidebarProps = CrmShellProps & {
+  collapsed?: boolean;
   onNavigate?: () => void;
 };
 
@@ -37,6 +47,7 @@ const dashboardSections = new Set<CrmSection>([
 
 function Sidebar({
   activeSection,
+  collapsed = false,
   csrfToken,
   logoutUrl,
   onNavigate,
@@ -46,7 +57,12 @@ function Sidebar({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex h-20 shrink-0 items-center gap-3 border-b pr-14 pl-5 lg:pr-5">
+      <div
+        className={cn(
+          "flex h-20 shrink-0 items-center border-b",
+          collapsed ? "justify-center px-2" : "gap-3 pr-14 pl-5 lg:pr-5",
+        )}
+      >
         <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/5">
           <Image
             alt={t("logoAlt")}
@@ -57,7 +73,7 @@ function Sidebar({
             width={48}
           />
         </div>
-        <div className="min-w-0">
+        <div className={cn("min-w-0", collapsed && "sr-only")}>
           <p className="truncate text-xl font-bold tracking-[-0.03em]">
             {t("productName")}
           </p>
@@ -69,15 +85,23 @@ function Sidebar({
 
       <nav
         aria-label={t("mainNavigation")}
-        className="min-h-0 flex-1 overflow-y-auto px-3 py-5"
+        className={cn(
+          "min-h-0 flex-1 overflow-y-auto py-5",
+          collapsed ? "px-2" : "px-3",
+        )}
       >
-        <div className="space-y-6">
+        <div className={cn(collapsed ? "space-y-4" : "space-y-6")}>
           {crmNavigation.map((group) => {
             if (group.staffOnly && !user.isStaff) return null;
 
             return (
               <div key={group.labelKey}>
-                <p className="text-muted-foreground mb-2 px-3 text-[0.6875rem] font-bold tracking-[0.12em] uppercase">
+                <p
+                  className={cn(
+                    "text-muted-foreground mb-2 px-3 text-[0.6875rem] font-bold tracking-[0.12em] uppercase",
+                    collapsed && "sr-only",
+                  )}
+                >
                   {t(group.labelKey)}
                 </p>
                 <div className="space-y-1">
@@ -87,9 +111,11 @@ function Sidebar({
 
                     return (
                       <Link
+                        aria-label={collapsed ? t(item.labelKey) : undefined}
                         aria-current={isActive ? "page" : undefined}
                         className={cn(
                           "group flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors",
+                          collapsed && "justify-center px-0",
                           isActive
                             ? "bg-[var(--atmr-background-accent-soft)] text-[var(--atmr-accent-primary)]"
                             : "text-muted-foreground hover:bg-secondary hover:text-foreground",
@@ -97,12 +123,21 @@ function Sidebar({
                         href={item.href}
                         key={item.id}
                         onClick={onNavigate}
+                        title={collapsed ? t(item.labelKey) : undefined}
                       >
-                        <Icon aria-hidden="true" className="size-[1.125rem]" />
-                        <span className="min-w-0 flex-1 truncate">
+                        <Icon
+                          aria-hidden="true"
+                          className="size-[1.125rem] shrink-0"
+                        />
+                        <span
+                          className={cn(
+                            "min-w-0 flex-1 truncate",
+                            collapsed && "sr-only",
+                          )}
+                        >
                           {t(item.labelKey)}
                         </span>
-                        {isActive ? (
+                        {isActive && !collapsed ? (
                           <span
                             aria-hidden="true"
                             className="size-1.5 rounded-full bg-current"
@@ -119,11 +154,21 @@ function Sidebar({
       </nav>
 
       <div className="shrink-0 border-t p-3">
-        <div className="mb-3 flex items-center gap-3 rounded-lg px-2 py-2">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--atmr-background-accent-soft)] text-sm font-bold text-[var(--atmr-accent-primary)]">
+        <div
+          className={cn(
+            "mb-3 flex rounded-lg py-2",
+            collapsed
+              ? "flex-col items-center gap-2 px-0"
+              : "items-center gap-3 px-2",
+          )}
+        >
+          <span
+            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[var(--atmr-background-accent-soft)] text-sm font-bold text-[var(--atmr-accent-primary)]"
+            title={collapsed ? user.displayName : undefined}
+          >
             {user.displayName.trim().charAt(0).toUpperCase() || "S"}
           </span>
-          <div className="min-w-0 flex-1">
+          <div className={cn("min-w-0 flex-1", collapsed && "sr-only")}>
             <p className="truncate text-sm font-medium">{user.displayName}</p>
             <p className="text-muted-foreground truncate text-xs">
               {user.email}
@@ -143,7 +188,12 @@ function Sidebar({
             </Button>
           </form>
         </div>
-        <div className="flex items-center gap-2 px-2">
+        <div
+          className={cn(
+            "flex items-center gap-2",
+            collapsed ? "flex-col px-0" : "px-2",
+          )}
+        >
           <LanguageToggle />
           <ThemeToggle />
         </div>
@@ -253,6 +303,8 @@ function SectionPlaceholder({ section }: { section: CrmNavigationItem }) {
 }
 
 export function CrmShell(props: CrmShellProps) {
+  const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] =
+    useState(false);
   const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState(false);
   const { activeSection, user } = props;
   const { t } = useLocale();
@@ -261,9 +313,47 @@ export function CrmShell(props: CrmShellProps) {
     crmNavigationItems[0];
 
   return (
-    <div className="bg-background min-h-svh lg:grid lg:grid-cols-[17.5rem_minmax(0,1fr)]">
-      <aside className="bg-card hidden min-h-svh border-r lg:sticky lg:top-0 lg:flex lg:h-svh lg:flex-col">
-        <Sidebar {...props} />
+    <div
+      className={cn(
+        "bg-background min-h-svh lg:grid lg:transition-[grid-template-columns] lg:duration-200",
+        isDesktopSidebarCollapsed
+          ? "lg:grid-cols-[5rem_minmax(0,1fr)]"
+          : "lg:grid-cols-[17.5rem_minmax(0,1fr)]",
+      )}
+    >
+      <aside
+        className="bg-card relative z-40 hidden min-h-svh border-r lg:sticky lg:top-0 lg:flex lg:h-svh lg:flex-col"
+        id="desktop-sidebar-navigation"
+      >
+        <Button
+          aria-controls="desktop-sidebar-navigation"
+          aria-expanded={!isDesktopSidebarCollapsed}
+          aria-label={
+            isDesktopSidebarCollapsed
+              ? t("expandSidebar")
+              : t("collapseSidebar")
+          }
+          className="bg-card absolute top-6 right-0 z-10 translate-x-1/2 rounded-full shadow-sm"
+          colorScheme="neutral"
+          onClick={() =>
+            setIsDesktopSidebarCollapsed((isCollapsed) => !isCollapsed)
+          }
+          size="icon"
+          title={
+            isDesktopSidebarCollapsed
+              ? t("expandSidebar")
+              : t("collapseSidebar")
+          }
+          type="button"
+          variant="outline"
+        >
+          {isDesktopSidebarCollapsed ? (
+            <PanelLeftOpen aria-hidden="true" className="size-4" />
+          ) : (
+            <PanelLeftClose aria-hidden="true" className="size-4" />
+          )}
+        </Button>
+        <Sidebar {...props} collapsed={isDesktopSidebarCollapsed} />
       </aside>
 
       {isMobileNavigationOpen ? (
@@ -323,6 +413,8 @@ export function CrmShell(props: CrmShellProps) {
         <main className="mx-auto w-full max-w-[100rem] p-4 sm:p-6 lg:p-8">
           {activeSection === "home" ? (
             <DashboardHome user={user} />
+          ) : activeSection === "interactions" ? (
+            <InteractionsWorkspace />
           ) : (
             <SectionPlaceholder section={currentSection} />
           )}

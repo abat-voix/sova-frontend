@@ -10,9 +10,9 @@ export const translations = {
     platformStatus: "Базовая платформа готова к развитию",
     switchLanguage: "Переключить язык на английский",
     switchTheme: "Переключить тему",
-    crmWorkspace: "Рабочее пространство CRM",
+    crmWorkspace: "Личная Единая Среда (ЛЕС)",
     mainNavigation: "Основная навигация",
-    navWork: "Работа",
+    navWork: "Мой ЛЕС",
     navDirectory: "Справочники",
     navAdministration: "Администрирование",
     home: "Главная",
@@ -20,6 +20,9 @@ export const translations = {
       "Управляйте взаимодействием с организациями и следите за ходом договорных процессов в едином пространстве.",
     contracts: "Договоры",
     contractsDescription: "Договоры и связанные с ними процессы.",
+    interactions: "Взаимодействия",
+    interactionsDescription:
+      "Взаимодействия с вузами и выполнение связанных workflow.",
     processes: "Процессы",
     processesDescription: "Ход работ, этапы и контроль сроков.",
     organizations: "Организации",
@@ -39,6 +42,8 @@ export const translations = {
       "Содержимое появится после проектирования сценариев и подключения API.",
     openNavigation: "Открыть навигацию",
     closeNavigation: "Закрыть навигацию",
+    collapseSidebar: "Свернуть боковую панель",
+    expandSidebar: "Развернуть боковую панель",
   },
   en: {
     authChecking: "Checking sign-in…",
@@ -61,6 +66,9 @@ export const translations = {
       "Manage relationships with organizations and follow contract processes in one workspace.",
     contracts: "Contracts",
     contractsDescription: "Contracts and their related processes.",
+    interactions: "Interactions",
+    interactionsDescription:
+      "University interactions and their related workflows.",
     processes: "Processes",
     processesDescription: "Work progress, stages, and deadline control.",
     organizations: "Organizations",
@@ -80,6 +88,8 @@ export const translations = {
       "Content will appear after its workflows are designed and the API is connected.",
     openNavigation: "Open navigation",
     closeNavigation: "Close navigation",
+    collapseSidebar: "Collapse sidebar",
+    expandSidebar: "Expand sidebar",
   },
 } as const;
 

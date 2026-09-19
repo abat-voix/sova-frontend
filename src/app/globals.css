@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "dhtmlx-gantt/codebase/dhtmlxgantt.css";
 
 @custom-variant dark (&:where(.Theme_root_rtk_default_dark, .Theme_root_rtk_default_dark *));
 

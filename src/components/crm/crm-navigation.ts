@@ -2,6 +2,7 @@ import {
   Building2,
   ContactRound,
   FileText,
+  Handshake,
   House,
   Settings2,
   Workflow,
@@ -13,6 +14,7 @@ import type { TranslationKey } from "@/i18n/translations";
 export type CrmSection =
   | "home"
   | "contracts"
+  | "interactions"
   | "processes"
   | "organizations"
   | "contacts"
@@ -49,6 +51,13 @@ export const crmNavigation: CrmNavigationGroup[] = [
         descriptionKey: "contractsDescription",
         href: "/contracts",
         icon: FileText,
+      },
+      {
+        id: "interactions",
+        labelKey: "interactions",
+        descriptionKey: "interactionsDescription",
+        href: "/interactions",
+        icon: Handshake,
       },
       {
         id: "processes",

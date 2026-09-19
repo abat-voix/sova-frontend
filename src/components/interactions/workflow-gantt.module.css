@@ -1,0 +1,150 @@
+.root {
+  --dhx-gantt-base-colors-hover-color: var(--atmr-background-accent-soft);
+  --dhx-gantt-base-colors-select: var(--atmr-background-accent-soft);
+  --dhx-gantt-task-row-background: var(--atmr-background-elevated);
+  --dhx-gantt-task-row-background--odd: color-mix(
+    in oklab,
+    var(--atmr-background-secondary) 20%,
+    var(--atmr-background-elevated)
+  );
+  --gantt-grid-border: var(--atmr-border-subtle);
+  --gantt-row-border: color-mix(
+    in oklab,
+    var(--atmr-border-subtle) 78%,
+    transparent
+  );
+  min-width: 0;
+}
+
+.root :global(.gantt_container),
+.root :global(.gantt_layout),
+.root :global(.gantt_layout_cell),
+.root :global(.gantt_grid),
+.root :global(.gantt_task),
+.root :global(.gantt_grid_data),
+.root :global(.gantt_task_bg) {
+  background: var(--atmr-background-elevated);
+  color: var(--atmr-text-primary);
+  font-family: var(--atmr-font-family-primary);
+}
+
+.root :global(.gantt_grid_scale),
+.root :global(.gantt_task_scale) {
+  border-color: var(--gantt-grid-border);
+  background: color-mix(
+    in oklab,
+    var(--atmr-background-secondary) 42%,
+    var(--atmr-background-elevated)
+  );
+  color: var(--atmr-text-primary);
+}
+
+.root :global(.gantt_grid_head_cell),
+.root :global(.gantt_scale_cell),
+.root :global(.gantt_row),
+.root :global(.gantt_task_row),
+.root :global(.gantt_cell),
+.root :global(.gantt_task_cell) {
+  border-color: var(--gantt-row-border);
+}
+
+.root :global(.gantt_grid_data .gantt_row) {
+  cursor: pointer;
+}
+
+.root :global(.gantt_row:hover),
+.root :global(.gantt_task_row:hover) {
+  background: color-mix(
+    in oklab,
+    var(--atmr-background-accent-soft) 38%,
+    transparent
+  );
+}
+
+.root :global(.sova-gantt-project-row) {
+  background: color-mix(
+    in oklab,
+    var(--atmr-background-accent-soft) 24%,
+    var(--atmr-background-elevated)
+  );
+  font-weight: 500;
+}
+
+.root :global(.gantt_task_line) {
+  border: 0;
+  border-radius: 0.45rem;
+  box-shadow: none;
+}
+
+.root :global(.gantt_project) {
+  background: color-mix(in oklab, var(--atmr-accent-primary) 24%, white);
+  color: var(--atmr-text-primary);
+}
+
+.root :global(.gantt_task_line.sova-gantt-task--completed) {
+  background: color-mix(in oklab, var(--atmr-positive) 32%, white);
+  color: #075d27;
+}
+
+.root :global(.gantt_task_line.sova-gantt-task--active) {
+  background: color-mix(in oklab, #2878ff 28%, white);
+  color: #123d8b;
+}
+
+.root :global(.gantt_task_line.sova-gantt-task--planned) {
+  background: color-mix(in oklab, var(--atmr-background-secondary) 82%, white);
+  color: var(--atmr-text-secondary);
+}
+
+.root :global(.gantt_task_progress) {
+  background: color-mix(in oklab, currentColor 22%, transparent);
+  opacity: 0.65;
+}
+
+.root :global(.gantt_link_line_right),
+.root :global(.gantt_link_line_left),
+.root :global(.gantt_link_line_up),
+.root :global(.gantt_link_line_down) {
+  border-color: color-mix(
+    in oklab,
+    var(--atmr-accent-primary) 70%,
+    var(--atmr-text-primary)
+  );
+}
+
+.root :global(.gantt_link_arrow_right) {
+  border-left-color: var(--atmr-accent-primary);
+}
+
+.root :global(.sova-gantt-status) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.root :global(.sova-gantt-status--completed) {
+  background: color-mix(in oklab, var(--atmr-positive) 18%, transparent);
+  color: color-mix(in oklab, var(--atmr-positive) 76%, black);
+}
+
+.root :global(.sova-gantt-status--active) {
+  background: color-mix(in oklab, #2878ff 15%, transparent);
+  color: #1d5fcf;
+}
+
+.root :global(.sova-gantt-status--planned) {
+  background: var(--atmr-background-secondary);
+  color: var(--atmr-text-secondary);
+}
+
+@media (max-width: 64rem) {
+  .root :global(.gantt_grid) {
+    max-width: 22rem;
+  }
+}

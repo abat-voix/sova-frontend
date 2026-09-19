@@ -20,6 +20,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      dhtmlx-gantt:
+        specifier: ^10.0.3
+        version: 10.0.3
       lucide-react:
         specifier: ^1.46.0
         version: 1.46.0(react@19.2.8)
@@ -1327,6 +1330,9 @@ packages:
   detect-libc@2.1.2:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
     engines: {node: '>=8'}
+
+  dhtmlx-gantt@10.0.3:
+    resolution: {integrity: sha512-oCWlKyDmrR72cwcvuHlauPI2w8vBixeS7S9yWP7kpReqJsCokvfr0Iyth99BxibEGASSWIgz8aMtclXZX1Rb1A==}
 
   doctrine@2.1.0:
     resolution: {integrity: sha512-35mSku4ZXK0vfCuHEDAwt55dg2jNajHZ1odvF+8SSr82EsZY4QmXfuWso8oEd8zRhVObSN18aM0CjSdoBX7zIw==}
@@ -3944,6 +3950,8 @@ snapshots:
   dequal@2.0.3: {}
 
   detect-libc@2.1.2: {}
+
+  dhtmlx-gantt@10.0.3: {}
 
   doctrine@2.1.0:
     dependencies:
