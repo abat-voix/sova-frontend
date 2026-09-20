@@ -19,22 +19,21 @@
   font-family: var(--atmr-font-family-primary);
 }
 
-.markerImage {
+.marker {
   box-sizing: border-box;
   cursor: pointer;
   border: 3px solid white;
-  border-radius: 1rem;
-  background: white;
+  border-radius: 50%;
+  background: var(--atmr-accent-primary);
   box-shadow: 0 8px 24px rgb(15 23 42 / 24%);
-  object-fit: cover;
   transition:
     border-color 150ms ease,
     box-shadow 150ms ease,
     filter 150ms ease;
 }
 
-.markerImage:hover {
-  border-color: var(--atmr-accent-primary);
+.marker:hover {
+  border-color: var(--atmr-text-on-accent);
   box-shadow: 0 10px 28px rgb(15 23 42 / 32%);
   filter: brightness(1.05);
 }

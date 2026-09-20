@@ -22,6 +22,113 @@ async function mockAuthenticatedUser(page: Page) {
   });
 }
 
+const universities = [
+  {
+    id: "bmstu",
+    name: "МГТУ им. Н. Э. Баумана",
+    inn: null,
+    external_code: null,
+    email: "",
+    phone: "",
+    is_active: true,
+    created_at: "2026-09-20T17:18:08.681266+03:00",
+    updated_at: "2026-09-20T17:18:08.681272+03:00",
+    lat: "55.765900",
+    lon: "37.684800",
+    city: "Москва",
+  },
+  {
+    id: "msu",
+    name: "МГУ имени М. В. Ломоносова",
+    inn: null,
+    external_code: null,
+    email: "",
+    phone: "",
+    is_active: true,
+    created_at: "2026-09-20T17:18:08.681266+03:00",
+    updated_at: "2026-09-20T17:18:08.681272+03:00",
+    lat: "55.703300",
+    lon: "37.530700",
+    city: "Москва",
+  },
+  {
+    id: "hse",
+    name: "Национальный исследовательский университет ВШЭ",
+    inn: null,
+    external_code: null,
+    email: "",
+    phone: "",
+    is_active: false,
+    created_at: "2026-09-20T17:18:08.681266+03:00",
+    updated_at: "2026-09-20T17:18:08.681272+03:00",
+    lat: "55.761800",
+    lon: "37.633600",
+    city: "Москва",
+  },
+  {
+    id: "itmo",
+    name: "Университет ИТМО",
+    inn: null,
+    external_code: "https://ror.org/01gfvk061",
+    email: "info@itmo.ru",
+    phone: "",
+    is_active: true,
+    created_at: "2026-09-20T17:18:08.681266+03:00",
+    updated_at: "2026-09-20T17:18:08.681272+03:00",
+    lat: "59.956100",
+    lon: "30.309000",
+    city: "Санкт-Петербург",
+  },
+];
+
+async function mockUniversitiesApi(page: Page) {
+  await page.route("**/api/catalog/universities/**", async (route) => {
+    const url = new URL(route.request().url());
+
+    if (url.pathname.endsWith("/map/")) {
+      const search = url.searchParams.get("search")?.toLocaleLowerCase("ru");
+      const filteredUniversities = search
+        ? universities.filter((university) =>
+            [
+              university.name,
+              university.inn,
+              university.external_code,
+              university.email,
+            ].some((value) => value?.toLocaleLowerCase("ru").includes(search)),
+          )
+        : universities;
+      await route.fulfill({
+        contentType: "application/json",
+        json: filteredUniversities.map(({ id, lat, lon }) => ({
+          id,
+          lat,
+          lon,
+        })),
+      });
+      return;
+    }
+
+    const id = url.pathname.match(/\/universities\/([^/]+)\/$/)?.[1];
+    if (id) {
+      await route.fulfill({
+        contentType: "application/json",
+        json: universities.find((university) => university.id === id),
+      });
+      return;
+    }
+
+    await route.fulfill({
+      contentType: "application/json",
+      json: {
+        count: universities.length,
+        next: null,
+        previous: null,
+        results: universities,
+      },
+    });
+  });
+}
+
 // Solid magenta tiles keep the map opaque without reaching the tile server, and
 // make map pixels trivially recognisable: only tiles have a zero green channel.
 async function stubMapTiles(page: Page) {
@@ -73,12 +180,13 @@ test("switches organizations from the list to the university map", async ({
   page,
 }) => {
   await mockAuthenticatedUser(page);
+  await mockUniversitiesApi(page);
 
   await page.goto("/organizations");
   await expect(
     page.getByRole("heading", { level: 1, name: "Организации" }),
   ).toBeVisible();
-  await expect(page.getByText("4 организации")).toBeVisible();
+  await expect(page.getByText("4 организаций")).toBeVisible();
 
   await page.getByRole("button", { name: "Карта" }).click();
 
@@ -86,7 +194,20 @@ test("switches organizations from the list to the university map", async ({
   await expect(page.locator(".leaflet-marker-icon").first()).toBeVisible();
   await expect(page.locator(".leaflet-attribution-flag")).toHaveCount(0);
 
-  await page.getByAltText("Университет ИТМО").click();
+  const filteredMapRequest = page.waitForRequest((request) => {
+    const url = new URL(request.url());
+    return (
+      url.pathname.endsWith("/api/catalog/universities/map/") &&
+      url.searchParams.get("search") === "ИТМО"
+    );
+  });
+  await page
+    .getByRole("searchbox", { name: "Поиск университетов" })
+    .fill("ИТМО");
+  await filteredMapRequest;
+  await expect(page.locator(".leaflet-marker-icon")).toHaveCount(1);
+
+  await page.getByRole("button", { name: "Организация itmo" }).click();
   await expect(
     page.getByRole("heading", {
       level: 2,
@@ -101,6 +222,7 @@ test.describe("mobile", () => {
 
   test("keeps the navigation drawer above the map", async ({ page }) => {
     await mockAuthenticatedUser(page);
+    await mockUniversitiesApi(page);
     await stubMapTiles(page);
     await openMapView(page);
 
@@ -124,18 +246,19 @@ test.describe("mobile", () => {
 
   test("opens the selected organization in a sheet", async ({ page }) => {
     await mockAuthenticatedUser(page);
+    await mockUniversitiesApi(page);
     await openMapView(page);
 
     await expect(
       page.getByRole("complementary", { name: "Выбранный вуз" }),
     ).toBeHidden();
 
-    await page.getByAltText("Университет ИТМО").click();
+    await page.getByRole("button", { name: "Организация itmo" }).click();
 
     const sheet = page.getByRole("dialog", { name: "Университет ИТМО" });
     await expect(sheet).toBeVisible();
     await expect(sheet.getByText("Санкт-Петербург")).toBeVisible();
-    await expect(sheet.getByText("Взаимодействия")).toBeVisible();
+    await expect(sheet.getByText("info@itmo.ru")).toBeVisible();
 
     await page.keyboard.press("Escape");
     await expect(sheet).toBeHidden();

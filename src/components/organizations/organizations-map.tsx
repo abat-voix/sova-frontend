@@ -3,12 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import type { Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
 
-import type { OrganizationMapItem } from "@/components/organizations/organization-data";
 import styles from "@/components/organizations/organizations-map.module.css";
 import { useLocale } from "@/providers/locale-provider";
+import type { UniversityMapPoint } from "@/types/university";
 
 type OrganizationsMapProps = {
-  organizations: OrganizationMapItem[];
+  organizations: UniversityMapPoint[];
   onSelect: (organizationId: string | null) => void;
   selectedId: string | null;
 };
@@ -83,32 +83,31 @@ export function OrganizationsMap({
         }).addTo(map);
 
         organizations.forEach((organization) => {
-          const icon = L.icon({
-            className: styles.markerImage,
-            iconAnchor: [26, 26],
-            iconSize: [52, 52],
-            iconUrl: organization.logoUrl,
+          const latitude = Number(organization.lat);
+          const longitude = Number(organization.lon);
+          if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+          const markerLabel = `${locale === "ru" ? "Организация" : "Organization"} ${organization.id}`;
+
+          const icon = L.divIcon({
+            className: styles.marker,
+            html: '<span aria-hidden="true"></span>',
+            iconAnchor: [14, 14],
+            iconSize: [28, 28],
           });
-          const marker = L.marker(
-            [organization.latitude, organization.longitude],
-            {
-              alt: organization.name,
-              icon,
-              keyboard: true,
-              title: organization.name,
-            },
-          ).addTo(markerCluster);
+          const marker = L.marker([latitude, longitude], {
+            icon,
+            keyboard: true,
+            title: markerLabel,
+          }).addTo(markerCluster);
 
           marker.on("click", () => {
             onSelectRef.current(organization.id);
-            map?.flyTo(
-              [organization.latitude, organization.longitude],
-              Math.max(map.getZoom(), 8),
-              { duration: 0.65 },
-            );
+            map?.flyTo([latitude, longitude], Math.max(map.getZoom(), 8), {
+              duration: 0.65,
+            });
           });
           markers.set(organization.id, marker);
-          bounds.extend([organization.latitude, organization.longitude]);
+          bounds.extend([latitude, longitude]);
         });
 
         map.on("click", () => onSelectRef.current(null));
@@ -129,7 +128,7 @@ export function OrganizationsMap({
       mapRef.current = null;
       map?.remove();
     };
-  }, [organizations]);
+  }, [locale, organizations]);
 
   useEffect(() => {
     markersRef.current.forEach((marker, organizationId) => {
