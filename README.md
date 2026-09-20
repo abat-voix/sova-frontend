@@ -89,6 +89,10 @@ docker build -t sova-frontend .
 docker run --rm -p 3000:3000 sova-frontend
 ```
 
+CI передаёт в Docker-сборку `NEXT_PUBLIC_BUILD_VERSION` в формате
+`0.1.<github.run_number>` и `NEXT_PUBLIC_BUILD_SHA`. Для локальной сборки
+версия по умолчанию отображается как `dev`.
+
 Production-образ использует standalone-сборку Next.js и непривилегированного
 пользователя.
 

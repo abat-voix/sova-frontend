@@ -23,6 +23,7 @@ import { InteractionsWorkspace } from "@/components/interactions/interactions-wo
 import { LanguageToggle } from "@/components/language-toggle";
 import { OrganizationsWorkspace } from "@/components/organizations/organizations-workspace";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { BuildVersion } from "@/components/build-version";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { AuthenticatedUser } from "@/providers/auth-provider";
@@ -197,6 +198,7 @@ function Sidebar({
         >
           <LanguageToggle />
           <ThemeToggle />
+          <BuildVersion />
         </div>
       </div>
     </div>

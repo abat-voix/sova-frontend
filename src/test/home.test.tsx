@@ -137,6 +137,7 @@ describe("Home", () => {
       expect.stringContaining("sova.png"),
     );
     expect(screen.getByRole("button", { name: "Выйти" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Версия сборки dev")).toHaveTextContent("dev");
 
     const collapseSidebar = screen.getByRole("button", {
       name: "Свернуть боковую панель",
