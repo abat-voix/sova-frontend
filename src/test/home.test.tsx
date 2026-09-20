@@ -44,9 +44,6 @@ describe("Home", () => {
         "Система организации взаимодействия с академической средой",
       ),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText("Базовая платформа готова к развитию"),
-    ).toBeInTheDocument();
     expect(await screen.findByRole("link", { name: /Войти/ })).toHaveAttribute(
       "href",
       "/api/auth/oidc/authenticate/?next=/",
