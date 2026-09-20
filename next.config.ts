@@ -8,6 +8,18 @@ const nextConfig: NextConfig = {
   // флага Next редиректит /api/foo/ на /api/foo, Django редиректит обратно,
   // и запрос зацикливается.
   skipTrailingSlashRedirect: true,
+  webpack(config) {
+    config.module.rules.push({
+      dependency: "url",
+      generator: {
+        filename: "static/media/[name][ext]",
+      },
+      test: /maplibre-gl-(?:worker|shared)\.mjs$/,
+      type: "asset/resource",
+    });
+
+    return config;
+  },
   async rewrites() {
     const apiProxyTarget = (
       process.env.API_PROXY_TARGET ?? "http://localhost:8000"

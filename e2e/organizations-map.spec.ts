@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 
 async function mockAuthenticatedUser(page: Page) {
   await page.route("**/api/auth/me/", async (route) => {
@@ -129,13 +130,13 @@ async function mockUniversitiesApi(page: Page) {
   });
 }
 
-// Solid magenta tiles keep the map opaque without reaching the tile server, and
-// make map pixels trivially recognisable: only tiles have a zero green channel.
+// A local PNG keeps the map opaque without reaching the tile server.
 async function stubMapTiles(page: Page) {
+  const tile = await readFile("public/sova.png");
   await page.route("**/tile.openstreetmap.org/**", async (route) => {
     await route.fulfill({
-      body: '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#ff00ff"/></svg>',
-      contentType: "image/svg+xml",
+      body: tile,
+      contentType: "image/png",
     });
   });
 }
@@ -173,7 +174,15 @@ async function openMapView(page: Page) {
   await page.getByRole("button", { name: "Карта" }).click();
 
   await expect(page.getByRole("region", { name: "Карта вузов" })).toBeVisible();
-  await expect(page.locator(".leaflet-marker-icon").first()).toBeVisible();
+  await expect(page.locator(".maplibregl-canvas")).toBeVisible();
+}
+
+async function clickMapCenter(page: Page) {
+  const canvas = page.locator(".maplibregl-canvas");
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error("Map canvas is not visible");
+
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 }
 
 test("switches organizations from the list to the university map", async ({
@@ -181,6 +190,7 @@ test("switches organizations from the list to the university map", async ({
 }) => {
   await mockAuthenticatedUser(page);
   await mockUniversitiesApi(page);
+  await stubMapTiles(page);
 
   await page.goto("/organizations");
   await expect(
@@ -191,8 +201,7 @@ test("switches organizations from the list to the university map", async ({
   await page.getByRole("button", { name: "Карта" }).click();
 
   await expect(page.getByRole("region", { name: "Карта вузов" })).toBeVisible();
-  await expect(page.locator(".leaflet-marker-icon").first()).toBeVisible();
-  await expect(page.locator(".leaflet-attribution-flag")).toHaveCount(0);
+  await expect(page.locator(".maplibregl-canvas")).toBeVisible();
 
   const filteredMapRequest = page.waitForRequest((request) => {
     const url = new URL(request.url());
@@ -205,9 +214,12 @@ test("switches organizations from the list to the university map", async ({
     .getByRole("searchbox", { name: "Поиск университетов" })
     .fill("ИТМО");
   await filteredMapRequest;
-  await expect(page.locator(".leaflet-marker-icon")).toHaveCount(1);
+  await expect(
+    page.getByRole("region", { name: "Карта вузов" }),
+  ).toHaveAttribute("data-points-count", "1");
+  await page.waitForTimeout(700);
 
-  await page.getByRole("button", { name: "Организация itmo" }).click();
+  await clickMapCenter(page);
   await expect(
     page.getByRole("heading", {
       level: 2,
@@ -247,13 +259,29 @@ test.describe("mobile", () => {
   test("opens the selected organization in a sheet", async ({ page }) => {
     await mockAuthenticatedUser(page);
     await mockUniversitiesApi(page);
+    await stubMapTiles(page);
     await openMapView(page);
 
     await expect(
       page.getByRole("complementary", { name: "Выбранный вуз" }),
     ).toBeHidden();
 
-    await page.getByRole("button", { name: "Организация itmo" }).click();
+    const filteredMapRequest = page.waitForRequest((request) => {
+      const url = new URL(request.url());
+      return (
+        url.pathname.endsWith("/api/catalog/universities/map/") &&
+        url.searchParams.get("search") === "ИТМО"
+      );
+    });
+    await page
+      .getByRole("searchbox", { name: "Поиск университетов" })
+      .fill("ИТМО");
+    await filteredMapRequest;
+    await expect(
+      page.getByRole("region", { name: "Карта вузов" }),
+    ).toHaveAttribute("data-points-count", "1");
+    await page.waitForTimeout(700);
+    await clickMapCenter(page);
 
     const sheet = page.getByRole("dialog", { name: "Университет ИТМО" });
     await expect(sheet).toBeVisible();

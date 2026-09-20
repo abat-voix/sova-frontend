@@ -1,7 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import type { Map as LeafletMap, Marker as LeafletMarker } from "leaflet";
+import { useTheme } from "next-themes";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { setWorkerUrl, type GeoJSONSource } from "maplibre-gl";
+import Map, {
+  AttributionControl,
+  Layer,
+  NavigationControl,
+  Source,
+  type CircleLayerSpecification,
+  type MapMouseEvent,
+  type MapRef,
+  type StyleSpecification,
+  type SymbolLayerSpecification,
+} from "react-map-gl/maplibre";
 
 import styles from "@/components/organizations/organizations-map.module.css";
 import { useLocale } from "@/providers/locale-provider";
@@ -13,22 +25,58 @@ type OrganizationsMapProps = {
   selectedId: string | null;
 };
 
+type PointFeature = {
+  type: "Feature";
+  properties: { id: string };
+  geometry: { type: "Point"; coordinates: [number, number] };
+};
+
+type PointsGeoJson = {
+  type: "FeatureCollection";
+  features: PointFeature[];
+};
+
 const defaultTileUrl = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
-const attributionPrefix =
-  '<a href="https://leafletjs.com" title="A JavaScript library for interactive maps">Leaflet</a>';
+const pointsSourceId = "universities";
+const clustersLayerId = "university-clusters";
+const clusterCountLayerId = "university-cluster-count";
+const pointsLayerId = "university-points";
 
-type LeafletModule = typeof import("leaflet");
+const initialViewState = {
+  latitude: 61,
+  longitude: 70,
+  zoom: 2.5,
+};
 
-// leaflet и leaflet.markercluster публикуются как CJS: плагин дописывает
-// markerClusterGroup в module.exports библиотеки. Turbopack отдаёт из
-// `await import("leaflet")` снимок namespace-объекта, в котором этой мутации
-// уже не видно, поэтому работаем с самим module.exports через `default`.
-async function loadLeaflet() {
-  const leafletModule = await import("leaflet");
-  const L = ((leafletModule as { default?: LeafletModule }).default ??
-    leafletModule) as LeafletModule;
-  await import("leaflet.markercluster");
-  return L;
+setWorkerUrl(
+  new URL(
+    "maplibre-gl/dist/maplibre-gl-worker.mjs",
+    import.meta.url,
+  ).toString(),
+);
+// The worker imports this sibling module by its original filename. Referencing
+// it here makes Next.js emit both runtime files together.
+void new URL(
+  "maplibre-gl/dist/maplibre-gl-shared.mjs",
+  import.meta.url,
+).toString();
+
+const clusterCountLayer: SymbolLayerSpecification = {
+  id: clusterCountLayerId,
+  type: "symbol",
+  source: pointsSourceId,
+  filter: ["has", "point_count"],
+  layout: {
+    "text-field": ["get", "point_count_abbreviated"],
+    "text-size": 12,
+  },
+  paint: {
+    "text-color": "#ffffff",
+  },
+};
+
+function getCoordinates(feature: { geometry: unknown }) {
+  return (feature.geometry as PointFeature["geometry"]).coordinates;
 }
 
 export function OrganizationsMap({
@@ -36,129 +84,216 @@ export function OrganizationsMap({
   onSelect,
   selectedId,
 }: OrganizationsMapProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<LeafletMap | null>(null);
-  const markersRef = useRef(new Map<string, LeafletMarker>());
-  const onSelectRef = useRef(onSelect);
-  const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const mapRef = useRef<MapRef>(null);
+  const [isReady, setIsReady] = useState(false);
+  const [cursor, setCursor] = useState<"grab" | "pointer">("grab");
   const { locale } = useLocale();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
 
-  useEffect(() => {
-    onSelectRef.current = onSelect;
-  }, [onSelect]);
+  const mapStyle = useMemo<StyleSpecification>(
+    () => ({
+      version: 8,
+      sources: {
+        "base-map": {
+          type: "raster",
+          tiles: [
+            process.env.NEXT_PUBLIC_MAP_TILE_URL?.trim() || defaultTileUrl,
+          ],
+          tileSize: 256,
+          maxzoom: 19,
+          attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
+        },
+      },
+      layers: [
+        {
+          id: "base-map",
+          type: "raster",
+          source: "base-map",
+          paint: isDark
+            ? {
+                "raster-brightness-max": 0.68,
+                "raster-contrast": 0.12,
+                "raster-saturation": -0.28,
+              }
+            : {},
+        },
+      ],
+    }),
+    [isDark],
+  );
 
-  useEffect(() => {
-    let active = true;
-    let map: LeafletMap | null = null;
-    const markers = markersRef.current;
+  const points = useMemo<PointsGeoJson>(
+    () => ({
+      type: "FeatureCollection",
+      features: organizations.flatMap((organization) => {
+        const latitude = Number(organization.lat);
+        const longitude = Number(organization.lon);
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude))
+          return [];
 
-    async function initialize() {
-      try {
-        const L = await loadLeaflet();
-        if (!active || !containerRef.current) return;
-
-        map = L.map(containerRef.current, {
-          attributionControl: true,
-          zoomControl: false,
-        });
-        mapRef.current = map;
-        map.attributionControl.setPrefix(attributionPrefix);
-        L.control.zoom({ position: "topright" }).addTo(map);
-
-        L.tileLayer(
-          process.env.NEXT_PUBLIC_MAP_TILE_URL?.trim() || defaultTileUrl,
+        return [
           {
-            attribution:
-              '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
-            maxZoom: 19,
+            type: "Feature" as const,
+            properties: { id: organization.id },
+            geometry: {
+              type: "Point" as const,
+              coordinates: [longitude, latitude] as [number, number],
+            },
           },
-        ).addTo(map);
+        ];
+      }),
+    }),
+    [organizations],
+  );
 
-        const bounds = L.latLngBounds([]);
-        const markerCluster = L.markerClusterGroup({
-          chunkedLoading: true,
-          maxClusterRadius: 58,
-          showCoverageOnHover: false,
-          spiderfyOnMaxZoom: true,
-        }).addTo(map);
+  const clustersLayer = useMemo<CircleLayerSpecification>(
+    () => ({
+      id: clustersLayerId,
+      type: "circle",
+      source: pointsSourceId,
+      filter: ["has", "point_count"],
+      paint: {
+        "circle-color": isDark ? "#a866ff" : "#7700ff",
+        "circle-radius": ["step", ["get", "point_count"], 18, 20, 23, 100, 28],
+        "circle-stroke-color": "#ffffff",
+        "circle-stroke-width": 2,
+      },
+    }),
+    [isDark],
+  );
 
-        organizations.forEach((organization) => {
-          const latitude = Number(organization.lat);
-          const longitude = Number(organization.lon);
-          if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
-          const markerLabel = `${locale === "ru" ? "Организация" : "Organization"} ${organization.id}`;
+  const pointsLayer = useMemo<CircleLayerSpecification>(
+    () => ({
+      id: pointsLayerId,
+      type: "circle",
+      source: pointsSourceId,
+      filter: ["!", ["has", "point_count"]],
+      paint: {
+        "circle-color": isDark ? "#a866ff" : "#7700ff",
+        "circle-radius": 10,
+        "circle-stroke-color": [
+          "case",
+          ["==", ["get", "id"], selectedId ?? ""],
+          isDark ? "#ff8054" : "#ff4f12",
+          "#ffffff",
+        ],
+        "circle-stroke-width": [
+          "case",
+          ["==", ["get", "id"], selectedId ?? ""],
+          5,
+          3,
+        ],
+      },
+    }),
+    [isDark, selectedId],
+  );
 
-          const icon = L.divIcon({
-            className: styles.marker,
-            html: '<span aria-hidden="true"></span>',
-            iconAnchor: [14, 14],
-            iconSize: [28, 28],
-          });
-          const marker = L.marker([latitude, longitude], {
-            icon,
-            keyboard: true,
-            title: markerLabel,
-          }).addTo(markerCluster);
+  useEffect(() => {
+    if (!isReady || points.features.length === 0) return;
 
-          marker.on("click", () => {
-            onSelectRef.current(organization.id);
-            map?.flyTo([latitude, longitude], Math.max(map.getZoom(), 8), {
-              duration: 0.65,
-            });
-          });
-          markers.set(organization.id, marker);
-          bounds.extend([latitude, longitude]);
-        });
-
-        map.on("click", () => onSelectRef.current(null));
-        if (bounds.isValid()) {
-          map.fitBounds(bounds, { maxZoom: 6, padding: [52, 52] });
-        }
-        if (active) setState("ready");
-      } catch {
-        if (active) setState("error");
-      }
+    if (points.features.length === 1) {
+      const [longitude, latitude] = points.features[0].geometry.coordinates;
+      mapRef.current?.flyTo({
+        center: [longitude, latitude],
+        duration: 500,
+        zoom: 8,
+      });
+      return;
     }
 
-    void initialize();
+    const longitudes = points.features.map(
+      (feature) => feature.geometry.coordinates[0],
+    );
+    const latitudes = points.features.map(
+      (feature) => feature.geometry.coordinates[1],
+    );
+    mapRef.current?.fitBounds(
+      [
+        [Math.min(...longitudes), Math.min(...latitudes)],
+        [Math.max(...longitudes), Math.max(...latitudes)],
+      ],
+      { duration: 500, maxZoom: 6, padding: 52 },
+    );
+  }, [isReady, points]);
 
-    return () => {
-      active = false;
-      markers.clear();
-      mapRef.current = null;
-      map?.remove();
-    };
-  }, [locale, organizations]);
+  const handleClick = useCallback(
+    (event: MapMouseEvent) => {
+      const feature = event.features?.[0];
+      if (!feature) {
+        onSelect(null);
+        return;
+      }
 
-  useEffect(() => {
-    markersRef.current.forEach((marker, organizationId) => {
-      marker
-        .getElement()
-        ?.classList.toggle(
-          styles.markerSelected,
-          organizationId === selectedId,
-        );
-    });
-  }, [selectedId, state]);
+      const [longitude, latitude] = getCoordinates(feature);
+      if (feature.layer.id === clustersLayerId) {
+        const clusterId = Number(feature.properties?.cluster_id);
+        const source = mapRef.current?.getSource(
+          pointsSourceId,
+        ) as GeoJSONSource | null;
+        if (!source || !Number.isFinite(clusterId)) return;
+
+        void source.getClusterExpansionZoom(clusterId).then((zoom) => {
+          mapRef.current?.easeTo({ center: [longitude, latitude], zoom });
+        });
+        return;
+      }
+
+      const organizationId = String(feature.properties?.id ?? "");
+      if (!organizationId) return;
+      onSelect(organizationId);
+      mapRef.current?.flyTo({
+        center: [longitude, latitude],
+        duration: 500,
+        zoom: Math.max(mapRef.current.getZoom(), 8),
+      });
+    },
+    [onSelect],
+  );
 
   const loadingText = locale === "ru" ? "Загружаем карту…" : "Loading map…";
-  const errorText =
-    locale === "ru"
-      ? "Не удалось загрузить карту."
-      : "The map could not be loaded.";
-
   return (
     <section
-      aria-busy={state === "loading"}
+      aria-busy={!isReady}
       aria-label={locale === "ru" ? "Карта вузов" : "University map"}
       className={`${styles.root} relative border shadow-sm`}
+      data-points-count={points.features.length}
     >
-      {state !== "ready" ? (
-        <div className="text-muted-foreground bg-card absolute inset-0 z-[500] flex items-center justify-center text-sm">
-          {state === "error" ? errorText : loadingText}
+      {!isReady ? (
+        <div className="text-muted-foreground bg-card absolute inset-0 z-10 flex items-center justify-center text-sm">
+          {loadingText}
         </div>
       ) : null}
-      <div className="h-full min-h-[32rem] w-full" ref={containerRef} />
+      <Map
+        attributionControl={false}
+        cursor={cursor}
+        initialViewState={initialViewState}
+        interactiveLayerIds={[clustersLayerId, pointsLayerId]}
+        mapStyle={mapStyle}
+        maxZoom={19}
+        onClick={handleClick}
+        onLoad={() => setIsReady(true)}
+        onMouseEnter={() => setCursor("pointer")}
+        onMouseLeave={() => setCursor("grab")}
+        onStyleData={() => setIsReady(true)}
+        ref={mapRef}
+      >
+        <NavigationControl position="top-right" showCompass={false} />
+        <AttributionControl compact position="bottom-right" />
+        <Source
+          cluster
+          clusterMaxZoom={14}
+          clusterRadius={58}
+          data={points}
+          id={pointsSourceId}
+          type="geojson"
+        >
+          <Layer {...clustersLayer} />
+          <Layer {...clusterCountLayer} />
+          <Layer {...pointsLayer} />
+        </Source>
+      </Map>
     </section>
   );
 }

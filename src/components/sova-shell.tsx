@@ -102,21 +102,6 @@ export function SovaShell({ section = "home" }: { section?: CrmSection }) {
               {t("productDescription")}
             </p>
           </motion.div>
-
-          <motion.div
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-9"
-            initial={{ opacity: 0, y: 8 }}
-            transition={{ delay: 0.46, duration: 0.55, ease }}
-          >
-            <Badge variant="neutral">
-              <span
-                aria-hidden="true"
-                className="size-2 rounded-full bg-[var(--atmr-positive)] shadow-[0_0_0_4px_color-mix(in_oklab,var(--atmr-positive)_14%,transparent)]"
-              />
-              {t("platformStatus")}
-            </Badge>
-          </motion.div>
         </motion.section>
       </main>
     </MotionConfig>

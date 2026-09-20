@@ -1,9 +1,13 @@
 import {
+  BadgeCheck,
   Building2,
   ContactRound,
+  Factory,
   FileText,
   Handshake,
   House,
+  Layers,
+  ListChecks,
   Settings2,
   Workflow,
   type LucideIcon,
@@ -13,11 +17,15 @@ import type { TranslationKey } from "@/i18n/translations";
 
 export type CrmSection =
   | "home"
+  | "myTasks"
   | "contracts"
+  | "licenses"
   | "interactions"
   | "processes"
   | "organizations"
   | "contacts"
+  | "itCatalog"
+  | "vendors"
   | "workflowTemplates";
 
 export type CrmNavigationItem = {
@@ -46,11 +54,11 @@ export const crmNavigation: CrmNavigationGroup[] = [
         icon: House,
       },
       {
-        id: "contracts",
-        labelKey: "contracts",
-        descriptionKey: "contractsDescription",
-        href: "/contracts",
-        icon: FileText,
+        id: "myTasks",
+        labelKey: "myTasks",
+        descriptionKey: "myTasksDescription",
+        href: "/tasks",
+        icon: ListChecks,
       },
       {
         id: "interactions",
@@ -69,7 +77,26 @@ export const crmNavigation: CrmNavigationGroup[] = [
     ],
   },
   {
-    labelKey: "navDirectory",
+    labelKey: "navDocuments",
+    items: [
+      {
+        id: "contracts",
+        labelKey: "contracts",
+        descriptionKey: "contractsDescription",
+        href: "/contracts",
+        icon: FileText,
+      },
+      {
+        id: "licenses",
+        labelKey: "licenses",
+        descriptionKey: "licensesDescription",
+        href: "/licenses",
+        icon: BadgeCheck,
+      },
+    ],
+  },
+  {
+    labelKey: "navClients",
     items: [
       {
         id: "organizations",
@@ -84,6 +111,25 @@ export const crmNavigation: CrmNavigationGroup[] = [
         descriptionKey: "contactsDescription",
         href: "/contacts",
         icon: ContactRound,
+      },
+    ],
+  },
+  {
+    labelKey: "navCatalog",
+    items: [
+      {
+        id: "itCatalog",
+        labelKey: "itCatalog",
+        descriptionKey: "itCatalogDescription",
+        href: "/catalog/it",
+        icon: Layers,
+      },
+      {
+        id: "vendors",
+        labelKey: "vendors",
+        descriptionKey: "vendorsDescription",
+        href: "/catalog/vendors",
+        icon: Factory,
       },
     ],
   },
