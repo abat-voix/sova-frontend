@@ -42,6 +42,7 @@ export const apiEndpoints = {
     actionInstances: {
       complete: (id: string) =>
         `/api/processes/action-instances/${id}/complete/`,
+      list: "/api/processes/action-instances/",
     },
     stageInstances: {
       cancel: (id: string) => `/api/processes/stage-instances/${id}/cancel/`,

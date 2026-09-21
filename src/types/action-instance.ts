@@ -1,5 +1,8 @@
 import type {
   ActionInstanceStatus,
+  BoardOutcome,
+  BoardResult,
+  InteractionShort,
   UserShort,
   WorkflowActionShort,
 } from "./workflow-board";
@@ -28,8 +31,27 @@ export type ActionInstance = {
   triggered_at: string | null;
   /** Номер исполнения; > 1 при повторном выполнении после возврата. */
   execution_no: number;
+  /** Не мешает закрыть этап и остаётся доступным после его закрытия. */
+  is_optional: boolean;
+  /** Запускается переходом по исходу другого действия, а не вместе с этапом. */
+  is_trigger_only: boolean;
+  is_triggered: boolean;
+  /** Считает бэкенд: не выполнено и плановое окончание прошло. */
+  is_overdue: boolean;
+  attachments_count: number;
   stage_instance: string;
+  /**
+   * Название этапа из определения workflow. Именно текущее: слепка названия
+   * у этапа нет, в отличие от действия.
+   */
+  stage_name_snapshot: string;
+  workflow_instance: string;
+  interaction: InteractionShort;
   action: WorkflowActionShort;
   /** Исполнитель действия; null, если не назначен. */
   responsible: UserShort | null;
+  /** Пусто, пока действие не выполнено. */
+  result: BoardResult | null;
+  /** Активные исходы; пусто, если действие не в работе. */
+  available_outcomes: BoardOutcome[];
 };
