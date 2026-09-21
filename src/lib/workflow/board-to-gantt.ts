@@ -32,6 +32,13 @@ export type BoardTask = Task & {
   rowKind: BoardRowKind;
   /** Состояние для подписи и цвета строки. */
   state: ActionState | StageState;
+  /**
+   * Фактический интервал действия, если оно запускалось.
+   *
+   * Отдельно от `start_date`/`end_date`, потому что полоса строки — плановая:
+   * факт рисуется накладкой поверх неё и может выходить за её правый край.
+   */
+  actual?: { start: Date; end: Date };
   /** Исходные данные действия — их показывает панель деталей. */
   boardAction?: BoardAction;
   /** Этап, к которому относится строка; по нему отменяют этап. */
@@ -116,27 +123,42 @@ function toDate(value: string | null) {
 type Interval = { start: Date; end: Date } | null;
 
 /**
- * Интервал для полосы действия.
+ * Интервал полосы действия — плановый.
  *
- * Факт приоритетнее плана: план у доски привязан к моменту запуска
- * (`planned_end = planned_start + длительность`), поэтому у действия, которое
- * ещё не запускали, дат нет вовсе — такая строка уходит в `unscheduled`.
+ * План задаёт ширину строки, чтобы действие, выполненное за час, не сжималось
+ * в невидимую чёрточку. Факт подставляется только когда плана нет вовсе:
+ * план у доски привязан к моменту запуска (`planned_end = planned_start +
+ * длительность`), так что у не запускавшегося действия дат нет и строка уходит
+ * в `unscheduled`.
  */
-function resolveInterval(action: BoardAction, now: Date): Interval {
+function resolvePlannedInterval(action: BoardAction, now: Date): Interval {
   const actualStart = toDate(action.actual_start);
   const actualEnd = toDate(action.actual_end);
   const plannedStart = toDate(action.planned_start);
   const plannedEnd = toDate(action.planned_end);
 
-  if (actualStart) {
-    return { end: actualEnd ?? plannedEnd ?? now, start: actualStart };
+  if (plannedStart) {
+    return { end: plannedEnd ?? actualEnd ?? now, start: plannedStart };
   }
 
-  if (plannedStart) {
-    return { end: plannedEnd ?? now, start: plannedStart };
+  if (actualStart) {
+    return { end: actualEnd ?? now, start: actualStart };
   }
 
   return null;
+}
+
+/**
+ * Фактический интервал — накладка поверх плановой полосы.
+ *
+ * У незапущенного действия факта нет: накладку не рисуем, строка остаётся
+ * пустой плановой полосой. Незакрытое действие тянется до текущего момента.
+ */
+function resolveActualInterval(action: BoardAction, now: Date): Interval {
+  const actualStart = toDate(action.actual_start);
+  if (!actualStart) return null;
+
+  return { end: toDate(action.actual_end) ?? now, start: actualStart };
 }
 
 function buildActionRow(
@@ -145,28 +167,56 @@ function buildActionRow(
   now: Date,
 ): BoardTask {
   const state = resolveActionState(action);
-  const interval = resolveInterval(action, now);
+  const planned = resolvePlannedInterval(action, now);
+  const actual = resolveActualInterval(action, now);
   const row: BoardTask = {
     boardAction: action,
     id: action.id,
     parent,
-    progress: action.status === "completed" ? 1 : 0,
+    // Выполнение показывает накладка факта, а не заливка прогресса: иначе
+    // завершённое действие заливало бы всю плановую полосу.
+    progress: 0,
     rowKind: "action",
     state,
     text: action.name,
   };
 
-  if (!interval) {
+  if (actual) row.actual = actual;
+
+  if (!planned) {
     row.unscheduled = true;
 
     return row;
   }
 
-  row.start_date = interval.start;
+  row.start_date = planned.start;
   row.end_date =
-    interval.end > interval.start ? interval.end : new Date(interval.start);
+    planned.end > planned.start ? planned.end : new Date(planned.start);
 
   return row;
+}
+
+/**
+ * Геометрия полосы факта внутри плановой — доли её ширины, в процентах.
+ *
+ * Проценты, а не пиксели: ширина полосы на диаграмме и есть плановый интервал,
+ * поэтому масштаб шкалы считать не нужно. Сверху не ограничиваем — у
+ * просроченного действия факт выходит за правый край плана, и это как раз то,
+ * что показывает просрочку.
+ */
+export function actualBarGeometry(row: BoardTask) {
+  if (!row.actual || !row.start_date || !row.end_date) return null;
+
+  const planned = row.end_date.getTime() - row.start_date.getTime();
+  if (planned <= 0) return null;
+
+  const offset = row.actual.start.getTime() - row.start_date.getTime();
+  const length = row.actual.end.getTime() - row.actual.start.getTime();
+
+  return {
+    left: (Math.max(offset, 0) / planned) * 100,
+    width: (length / planned) * 100,
+  };
 }
 
 function stageProgress(actions: BoardAction[]) {

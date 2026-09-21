@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  actualBarGeometry,
   buildGanttData,
   findBoardSelection,
   resolveActionState,
+  type BoardTask,
 } from "@/lib/workflow/board-to-gantt";
 import type {
   BoardAction,
@@ -77,7 +79,106 @@ describe("buildGanttData", () => {
     expect(action?.start_date).toBeUndefined();
   });
 
-  it("uses actual dates for a finished action", () => {
+  it("sizes a finished action by the plan and keeps the fact as a separate interval", () => {
+    const board = makeBoard({
+      interaction_stages: [
+        makeStage({
+          actions: [
+            makeAction({
+              actual_end: "2026-09-09T15:00:00Z",
+              actual_start: "2026-09-07T09:00:00Z",
+              planned_end: "2026-09-17T09:00:00Z",
+              planned_start: "2026-09-07T09:00:00Z",
+              status: "completed",
+            }),
+          ],
+        }),
+      ],
+    });
+
+    const { data } = buildGanttData(board, now);
+    const action = data.find((task) => task.id === "exec-1");
+
+    expect(action?.unscheduled).toBeUndefined();
+    expect(action?.start_date).toEqual(new Date("2026-09-07T09:00:00Z"));
+    expect(action?.end_date).toEqual(new Date("2026-09-17T09:00:00Z"));
+    expect(action?.actual).toEqual({
+      end: new Date("2026-09-09T15:00:00Z"),
+      start: new Date("2026-09-07T09:00:00Z"),
+    });
+  });
+
+  it("keeps the fact of an overdue action outside the planned bar", () => {
+    const board = makeBoard({
+      interaction_stages: [
+        makeStage({
+          actions: [
+            makeAction({
+              actual_end: "2026-09-20T18:00:00Z",
+              actual_start: "2026-09-07T09:00:00Z",
+              is_overdue: true,
+              planned_end: "2026-09-10T09:00:00Z",
+              planned_start: "2026-09-07T09:00:00Z",
+              status: "completed",
+            }),
+          ],
+        }),
+      ],
+    });
+
+    const { data } = buildGanttData(board, now);
+    const action = data.find((task) => task.id === "exec-1");
+
+    expect(action?.end_date).toEqual(new Date("2026-09-10T09:00:00Z"));
+    expect(action?.actual?.end).toEqual(new Date("2026-09-20T18:00:00Z"));
+  });
+
+  it("stretches the fact of an action in progress up to the current moment", () => {
+    const board = makeBoard({
+      interaction_stages: [
+        makeStage({
+          actions: [
+            makeAction({
+              actual_start: "2026-09-18T09:00:00Z",
+              planned_end: "2026-10-05T09:00:00Z",
+              planned_start: "2026-09-18T09:00:00Z",
+              status: "in_progress",
+            }),
+          ],
+        }),
+      ],
+    });
+
+    const { data } = buildGanttData(board, now);
+    const action = data.find((task) => task.id === "exec-1");
+
+    expect(action?.end_date).toEqual(new Date("2026-10-05T09:00:00Z"));
+    expect(action?.actual).toEqual({
+      end: now,
+      start: new Date("2026-09-18T09:00:00Z"),
+    });
+  });
+
+  it("leaves an action that has not started without a fact interval", () => {
+    const board = makeBoard({
+      interaction_stages: [
+        makeStage({
+          actions: [
+            makeAction({
+              planned_end: "2026-10-05T09:00:00Z",
+              planned_start: "2026-09-21T09:00:00Z",
+            }),
+          ],
+        }),
+      ],
+    });
+
+    const { data } = buildGanttData(board, now);
+
+    expect(data.find((task) => task.id === "exec-1")?.actual).toBeUndefined();
+  });
+
+  it("draws the bar by the fact when the action has no plan at all", () => {
     const board = makeBoard({
       interaction_stages: [
         makeStage({
@@ -95,20 +196,21 @@ describe("buildGanttData", () => {
     const { data } = buildGanttData(board, now);
     const action = data.find((task) => task.id === "exec-1");
 
-    expect(action?.unscheduled).toBeUndefined();
     expect(action?.start_date).toEqual(new Date("2026-09-07T09:00:00Z"));
     expect(action?.end_date).toEqual(new Date("2026-09-09T15:00:00Z"));
-    expect(action?.progress).toBe(1);
+    expect(action?.actual?.end).toEqual(new Date("2026-09-09T15:00:00Z"));
   });
 
-  it("stretches an action in progress up to the current moment", () => {
+  it("closes an open-ended plan by the fact instead of the current moment", () => {
     const board = makeBoard({
       interaction_stages: [
         makeStage({
           actions: [
             makeAction({
-              actual_start: "2026-09-18T09:00:00Z",
-              status: "in_progress",
+              actual_end: "2026-09-09T15:00:00Z",
+              actual_start: "2026-09-07T09:00:00Z",
+              planned_start: "2026-09-07T09:00:00Z",
+              status: "completed",
             }),
           ],
         }),
@@ -116,9 +218,32 @@ describe("buildGanttData", () => {
     });
 
     const { data } = buildGanttData(board, now);
-    const action = data.find((task) => task.id === "exec-1");
 
-    expect(action?.end_date).toEqual(now);
+    expect(data.find((task) => task.id === "exec-1")?.end_date).toEqual(
+      new Date("2026-09-09T15:00:00Z"),
+    );
+  });
+
+  it("does not fill the planned bar with progress — the fact bar shows it", () => {
+    const board = makeBoard({
+      interaction_stages: [
+        makeStage({
+          actions: [
+            makeAction({
+              actual_end: "2026-09-09T15:00:00Z",
+              actual_start: "2026-09-07T09:00:00Z",
+              planned_end: "2026-09-17T09:00:00Z",
+              planned_start: "2026-09-07T09:00:00Z",
+              status: "completed",
+            }),
+          ],
+        }),
+      ],
+    });
+
+    const { data } = buildGanttData(board, now);
+
+    expect(data.find((task) => task.id === "exec-1")?.progress).toBe(0);
   });
 
   it("falls back to the planned interval when the action has not started", () => {
@@ -262,6 +387,107 @@ describe("buildGanttData", () => {
     );
 
     expect(mainIndex).toBeLessThan(groupIndex);
+  });
+});
+
+describe("actualBarGeometry", () => {
+  function makeRow(overrides: Partial<BoardTask> = {}): BoardTask {
+    return {
+      end_date: new Date("2026-09-11T00:00:00Z"),
+      id: "exec-1",
+      rowKind: "action",
+      start_date: new Date("2026-09-01T00:00:00Z"),
+      state: "completed",
+      text: "Провести встречу",
+      ...overrides,
+    };
+  }
+
+  it("measures the fact as a share of the planned bar", () => {
+    const box = actualBarGeometry(
+      makeRow({
+        actual: {
+          end: new Date("2026-09-06T00:00:00Z"),
+          start: new Date("2026-09-03T00:00:00Z"),
+        },
+      }),
+    );
+
+    expect(box).toEqual({ left: 20, width: 30 });
+  });
+
+  it("lets an overdue fact run past the right edge of the plan", () => {
+    const box = actualBarGeometry(
+      makeRow({
+        actual: {
+          end: new Date("2026-09-16T00:00:00Z"),
+          start: new Date("2026-09-01T00:00:00Z"),
+        },
+      }),
+    );
+
+    expect(box).toEqual({ left: 0, width: 150 });
+  });
+
+  it("clamps a fact that started before the plan to the left edge", () => {
+    const box = actualBarGeometry(
+      makeRow({
+        actual: {
+          end: new Date("2026-09-02T00:00:00Z"),
+          start: new Date("2026-08-30T00:00:00Z"),
+        },
+      }),
+    );
+
+    expect(box?.left).toBe(0);
+  });
+
+  it("keeps a nearly instant fact measurable instead of negative", () => {
+    const box = actualBarGeometry(
+      makeRow({
+        actual: {
+          end: new Date("2026-09-03T00:10:00Z"),
+          start: new Date("2026-09-03T00:00:00Z"),
+        },
+      }),
+    );
+
+    expect(box?.width).toBeGreaterThan(0);
+    expect(box?.width).toBeLessThan(1);
+  });
+
+  it("has nothing to draw for an action that has not started", () => {
+    expect(actualBarGeometry(makeRow())).toBeNull();
+  });
+
+  it("has nothing to draw for an unscheduled row", () => {
+    expect(
+      actualBarGeometry(
+        makeRow({
+          actual: {
+            end: new Date("2026-09-06T00:00:00Z"),
+            start: new Date("2026-09-03T00:00:00Z"),
+          },
+          end_date: undefined,
+          start_date: undefined,
+          unscheduled: true,
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  it("has nothing to draw when the plan collapses to a single moment", () => {
+    expect(
+      actualBarGeometry(
+        makeRow({
+          actual: {
+            end: new Date("2026-09-01T00:00:00Z"),
+            start: new Date("2026-09-01T00:00:00Z"),
+          },
+          end_date: new Date("2026-09-01T00:00:00Z"),
+        }),
+      ),
+    ).toBeNull();
   });
 });
 

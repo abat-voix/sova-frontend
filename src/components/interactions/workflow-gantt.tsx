@@ -5,6 +5,7 @@ import type { GanttStatic, Task } from "dhtmlx-gantt";
 
 import styles from "@/components/interactions/workflow-gantt.module.css";
 import {
+  actualBarGeometry,
   buildGanttData,
   type ActionState,
   type BoardSelection,
@@ -54,13 +55,41 @@ type WorkflowGanttProps = {
 
 const dayMs = 24 * 60 * 60 * 1000;
 
-/** Окно по умолчанию, когда ни у одного действия ещё нет дат. */
+/** Высота полосы: подпись сверху, полоса факта — снизу (высота задана в CSS). */
+const barHeight = 30;
+
+const escapes: Record<string, string> = {
+  '"': "&quot;",
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+};
+
+function escapeHtml(value: string) {
+  return value.replace(/["&<>]/g, (char) => escapes[char]);
+}
+
+function actualBarHtml(row: BoardTask) {
+  const box = actualBarGeometry(row);
+  if (!box) return "";
+
+  return `<div class="sova-gantt-actual sova-gantt-actual--${row.state}" style="left:${box.left}%;width:${box.width}%"></div>`;
+}
+
+/**
+ * Окно по умолчанию, когда ни у одного действия ещё нет дат.
+ *
+ * Факт учитывается наравне с планом: у просроченного действия он выходит за
+ * правый край плановой полосы и иначе оказался бы за границей шкалы.
+ */
 function resolveRange(tasks: BoardTask[], now: Date) {
-  const dates = tasks.flatMap((task) =>
-    task.unscheduled || !task.start_date
-      ? []
-      : [task.start_date, task.end_date ?? task.start_date],
-  );
+  const dates = tasks.flatMap((task) => {
+    const actual = task.actual ? [task.actual.start, task.actual.end] : [];
+
+    return task.unscheduled || !task.start_date
+      ? actual
+      : [task.start_date, task.end_date ?? task.start_date, ...actual];
+  });
 
   if (dates.length === 0) {
     return {
@@ -119,7 +148,7 @@ export function WorkflowGantt({ board, onSelect }: WorkflowGanttProps) {
         gantt.config.show_unscheduled = true;
         gantt.config.grid_width = 430;
         gantt.config.row_height = 44;
-        gantt.config.bar_height = 24;
+        gantt.config.bar_height = barHeight;
         gantt.config.scale_height = 56;
         gantt.config.min_column_width = 44;
         gantt.config.start_date = range.start;
@@ -155,7 +184,19 @@ export function WorkflowGantt({ board, onSelect }: WorkflowGanttProps) {
         gantt.templates.task_class = (_start, _end, task) => {
           const row = task as BoardTask;
 
-          return `sova-gantt-task--${row.state}`;
+          return `sova-gantt-task--${row.rowKind} sova-gantt-task--${row.state}`;
+        };
+
+        // Подпись и полоса факта живут внутри полосы плана. Слой
+        // `addTaskLayer` не годится: в dhtmlx-gantt 10 метод удаляется с
+        // инстанса (`src/core/data_task_layers.js`), хотя типы его объявляют.
+        gantt.templates.task_text = (_start, _end, task) => {
+          const row = task as BoardTask;
+          const label = escapeHtml(String(row.text ?? ""));
+
+          return row.rowKind === "action"
+            ? `${label}${actualBarHtml(row)}`
+            : label;
         };
         gantt.templates.grid_row_class = (_start, _end, task) => {
           const row = task as BoardTask;
