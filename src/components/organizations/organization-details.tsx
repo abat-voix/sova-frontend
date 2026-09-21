@@ -1,12 +1,15 @@
 import { Building2, ExternalLink, Mail, MapPin, Phone } from "lucide-react";
 
+import { StatusChip } from "@/components/organizations/status-chip";
 import type { University } from "@/types/university";
 
 export type OrganizationDetailsLabels = {
   active: string;
+  hasInteractions: string;
   inactive: string;
   inn: string;
   noContacts: string;
+  noInteractions: string;
 };
 
 /**
@@ -32,8 +35,15 @@ export function OrganizationDetails({
       <h2 className="mt-1 text-xl leading-6 font-medium" id={headingId}>
         {organization.name}
       </h2>
-      <span className="bg-secondary text-muted-foreground mt-3 inline-flex rounded-full px-2.5 py-1 text-xs font-medium">
-        {organization.is_active ? labels.active : labels.inactive}
+      <span className="mt-3 flex flex-wrap gap-2">
+        <StatusChip tone={organization.is_active ? "positive" : "neutral"}>
+          {organization.is_active ? labels.active : labels.inactive}
+        </StatusChip>
+        <StatusChip tone={organization.has_interactions ? "accent" : "neutral"}>
+          {organization.has_interactions
+            ? labels.hasInteractions
+            : labels.noInteractions}
+        </StatusChip>
       </span>
       {organization.city ? (
         <p className="text-muted-foreground mt-4 flex gap-2 text-sm leading-6">

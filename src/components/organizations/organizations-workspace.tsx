@@ -16,6 +16,7 @@ import {
 } from "@/components/organizations/organization-details";
 import { OrganizationSheet } from "@/components/organizations/organization-sheet";
 import { OrganizationsMap } from "@/components/organizations/organizations-map";
+import { StatusChip } from "@/components/organizations/status-chip";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { useMediaQuery } from "@/hooks/use-media-query";
@@ -24,15 +25,23 @@ import {
   getUniversity,
   getUniversityMapPoints,
 } from "@/lib/api/catalog/universities";
-import { cn } from "@/lib/utils";
 import { useLocale } from "@/providers/locale-provider";
-import type { University } from "@/types/university";
+import type { InteractionsFilter, University } from "@/types/university";
 
 const compactViewportQuery = "(max-width: 1023.98px)";
 const panelHeadingId = "organization-panel-title";
 const sheetHeadingId = "organization-sheet-title";
 
 type ViewMode = "list" | "map";
+
+const interactionsFilters = [
+  { labelKey: "interactionsFilterAll", value: "all" },
+  { labelKey: "interactionsFilterWith", value: "with" },
+  { labelKey: "interactionsFilterWithout", value: "without" },
+] as const satisfies readonly {
+  labelKey: string;
+  value: InteractionsFilter;
+}[];
 
 const copy = {
   ru: {
@@ -43,8 +52,14 @@ const copy = {
     map: "Карта",
     organizationsCount: "организаций",
     active: "Активно",
+    hasInteractions: "Есть взаимодействия",
     inactive: "Неактивно",
+    interactionsFilter: "Взаимодействия",
+    interactionsFilterAll: "Все",
+    interactionsFilterWith: "Есть",
+    interactionsFilterWithout: "Нет",
     inn: "ИНН",
+    noInteractions: "Без взаимодействий",
     noContacts: "Контакты не указаны",
     selectedOrganization: "Выбранный вуз",
     selectMarker: "Выберите маркер на карте",
@@ -72,8 +87,14 @@ const copy = {
     map: "Map",
     organizationsCount: "organizations",
     active: "Active",
+    hasInteractions: "Has interactions",
     inactive: "Inactive",
+    interactionsFilter: "Interactions",
+    interactionsFilterAll: "All",
+    interactionsFilterWith: "Yes",
+    interactionsFilterWithout: "No",
     inn: "Tax ID",
+    noInteractions: "No interactions",
     noContacts: "No contacts provided",
     selectedOrganization: "Selected university",
     selectMarker: "Select a marker on the map",
@@ -97,14 +118,10 @@ const copy = {
 
 function OrganizationCard({
   organization,
-  activeLabel,
-  inactiveLabel,
-  innLabel,
+  labels,
 }: {
   organization: University;
-  activeLabel: string;
-  inactiveLabel: string;
-  innLabel: string;
+  labels: OrganizationDetailsLabels;
 }) {
   return (
     <article className="bg-card rounded-xl border p-5 shadow-sm">
@@ -115,15 +132,19 @@ function OrganizationCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <h2 className="leading-5 font-medium">{organization.name}</h2>
-            <span
-              className={cn(
-                "rounded-full px-2.5 py-1 text-xs font-medium",
-                organization.is_active
-                  ? "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300"
-                  : "bg-secondary text-muted-foreground",
-              )}
-            >
-              {organization.is_active ? activeLabel : inactiveLabel}
+            <span className="flex flex-wrap gap-2">
+              <StatusChip
+                tone={organization.has_interactions ? "accent" : "neutral"}
+              >
+                {organization.has_interactions
+                  ? labels.hasInteractions
+                  : labels.noInteractions}
+              </StatusChip>
+              <StatusChip
+                tone={organization.is_active ? "positive" : "neutral"}
+              >
+                {organization.is_active ? labels.active : labels.inactive}
+              </StatusChip>
             </span>
           </div>
           {organization.city ? (
@@ -134,7 +155,7 @@ function OrganizationCard({
           ) : null}
           {organization.inn ? (
             <p className="text-muted-foreground mt-2 text-xs">
-              {innLabel}: {organization.inn}
+              {labels.inn}: {organization.inn}
             </p>
           ) : null}
         </div>
@@ -177,6 +198,7 @@ export function OrganizationsWorkspace() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [interactions, setInteractions] = useState<InteractionsFilter>("all");
   const isCompactViewport = useMediaQuery(compactViewportQuery);
 
   useEffect(() => {
@@ -188,15 +210,25 @@ export function OrganizationsWorkspace() {
   }, [search]);
 
   const universitiesQuery = useInfiniteQuery({
-    queryKey: ["catalog", "universities", { search: debouncedSearch }],
-    queryFn: ({ pageParam }) => getUniversities(pageParam, debouncedSearch),
+    queryKey: [
+      "catalog",
+      "universities",
+      { interactions, search: debouncedSearch },
+    ],
+    queryFn: ({ pageParam }) =>
+      getUniversities(pageParam, debouncedSearch, interactions),
     initialPageParam: 1,
     getNextPageParam: (lastPage, pages) =>
       lastPage.next ? pages.length + 1 : undefined,
   });
   const mapQuery = useQuery({
-    queryKey: ["catalog", "universities", "map", { search: debouncedSearch }],
-    queryFn: () => getUniversityMapPoints(debouncedSearch),
+    queryKey: [
+      "catalog",
+      "universities",
+      "map",
+      { interactions, search: debouncedSearch },
+    ],
+    queryFn: () => getUniversityMapPoints(debouncedSearch, interactions),
     enabled: view === "map",
   });
   const selectedUniversityQuery = useQuery({
@@ -212,13 +244,21 @@ export function OrganizationsWorkspace() {
   const total = universitiesQuery.data?.pages[0]?.count;
   const detailLabels: OrganizationDetailsLabels = {
     active: text.active,
+    hasInteractions: text.hasInteractions,
     inactive: text.inactive,
     inn: text.inn,
     noContacts: text.noContacts,
+    noInteractions: text.noInteractions,
   };
   const clearSelection = useCallback(() => setSelectedId(null), []);
   const handleSearchChange = useCallback((value: string) => {
     setSearch(value);
+    setSelectedId(null);
+  }, []);
+  // Выбранный вуз может не пройти новый отбор — его карточка осталась бы
+  // открытой в отрыве от карты.
+  const handleInteractionsChange = useCallback((value: InteractionsFilter) => {
+    setInteractions(value);
     setSelectedId(null);
   }, []);
 
@@ -283,14 +323,36 @@ export function OrganizationsWorkspace() {
         </div>
       </div>
 
-      <SearchInput
-        aria-label={text.searchLabel}
-        className="max-w-2xl"
-        clearLabel={text.clearSearch}
-        onChange={handleSearchChange}
-        placeholder={text.searchPlaceholder}
-        value={search}
-      />
+      <div className="flex flex-wrap items-center gap-3">
+        <SearchInput
+          aria-label={text.searchLabel}
+          className="w-full max-w-2xl min-w-64 flex-1"
+          clearLabel={text.clearSearch}
+          onChange={handleSearchChange}
+          placeholder={text.searchPlaceholder}
+          value={search}
+        />
+
+        <div
+          aria-label={text.interactionsFilter}
+          className="bg-card flex w-fit items-center gap-1 rounded-xl border p-1 shadow-sm"
+          role="group"
+        >
+          {interactionsFilters.map(({ labelKey, value }) => (
+            <Button
+              aria-pressed={interactions === value}
+              colorScheme={interactions === value ? "accent" : "neutral"}
+              key={value}
+              onClick={() => handleInteractionsChange(value)}
+              size="m"
+              type="button"
+              variant={interactions === value ? "secondary" : "ghost"}
+            >
+              {text[labelKey]}
+            </Button>
+          ))}
+        </div>
+      </div>
 
       {total !== undefined ? (
         <p className="text-muted-foreground text-sm">
@@ -314,10 +376,8 @@ export function OrganizationsWorkspace() {
             <div className="grid gap-4 lg:grid-cols-2">
               {organizations.map((organization) => (
                 <OrganizationCard
-                  activeLabel={text.active}
-                  inactiveLabel={text.inactive}
-                  innLabel={text.inn}
                   key={organization.id}
+                  labels={detailLabels}
                   organization={organization}
                 />
               ))}

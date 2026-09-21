@@ -138,6 +138,17 @@
   line-height: 1.2;
 }
 
+/*
+ * Не поместившееся название обрывается многоточием, а не посередине буквы.
+ * Целиком его показывает подсказка при наведении.
+ */
+.root :global(.sova-gantt-label) {
+  display: block;
+  overflow: hidden;
+  padding: 0 0.25rem;
+  text-overflow: ellipsis;
+}
+
 /* Смещение и ширину задаёт шаблон — в процентах от планового интервала. */
 .root :global(.sova-gantt-actual) {
   position: absolute;

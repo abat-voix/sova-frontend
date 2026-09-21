@@ -27,7 +27,7 @@ type OrganizationsMapProps = {
 
 type PointFeature = {
   type: "Feature";
-  properties: { id: string };
+  properties: { has_interactions: boolean; id: string };
   geometry: { type: "Point"; coordinates: [number, number] };
 };
 
@@ -46,6 +46,16 @@ const initialViewState = {
   latitude: 61,
   longitude: 70,
   zoom: 2.5,
+};
+
+/**
+ * Вуз, по которому идёт работа, красится акцентным цветом, остальные —
+ * нейтральным. Оранжевый остаётся за обводкой выбранной метки, иначе выбор
+ * смешался бы с признаком.
+ */
+const pointColors = {
+  dark: { neutral: "#7c879b", withInteractions: "#a866ff" },
+  light: { neutral: "#64748b", withInteractions: "#7700ff" },
 };
 
 setWorkerUrl(
@@ -90,6 +100,7 @@ export function OrganizationsMap({
   const { locale } = useLocale();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
+  const palette = isDark ? pointColors.dark : pointColors.light;
 
   const mapStyle = useMemo<StyleSpecification>(
     () => ({
@@ -136,7 +147,10 @@ export function OrganizationsMap({
         return [
           {
             type: "Feature" as const,
-            properties: { id: organization.id },
+            properties: {
+              has_interactions: Boolean(organization.has_interactions),
+              id: organization.id,
+            },
             geometry: {
               type: "Point" as const,
               coordinates: [longitude, latitude] as [number, number],
@@ -171,7 +185,14 @@ export function OrganizationsMap({
       source: pointsSourceId,
       filter: ["!", ["has", "point_count"]],
       paint: {
-        "circle-color": isDark ? "#a866ff" : "#7700ff",
+        // Сравнение, а не просто `get`: условие в `case` должно быть boolean,
+        // а `get` для валидатора выражений возвращает `value`.
+        "circle-color": [
+          "case",
+          ["==", ["get", "has_interactions"], true],
+          palette.withInteractions,
+          palette.neutral,
+        ],
         "circle-radius": 10,
         "circle-stroke-color": [
           "case",
@@ -187,7 +208,7 @@ export function OrganizationsMap({
         ],
       },
     }),
-    [isDark, selectedId],
+    [palette, selectedId, isDark],
   );
 
   useEffect(() => {
@@ -253,6 +274,14 @@ export function OrganizationsMap({
   );
 
   const loadingText = locale === "ru" ? "Загружаем карту…" : "Loading map…";
+  const legend =
+    locale === "ru"
+      ? {
+          title: "Взаимодействия",
+          withInteractions: "есть",
+          without: "нет",
+        }
+      : { title: "Interactions", withInteractions: "yes", without: "no" };
   return (
     <section
       aria-busy={!isReady}
@@ -294,6 +323,29 @@ export function OrganizationsMap({
           <Layer {...pointsLayer} />
         </Source>
       </Map>
+
+      {isReady ? (
+        <dl className="bg-card/90 text-muted-foreground absolute bottom-3 left-3 z-10 rounded-lg border px-3 py-2 text-xs shadow-sm backdrop-blur-sm">
+          <dt className="text-foreground mb-1 font-medium">{legend.title}</dt>
+          <dd className="flex items-center gap-4">
+            {(
+              [
+                [palette.withInteractions, legend.withInteractions],
+                [palette.neutral, legend.without],
+              ] as const
+            ).map(([color, label]) => (
+              <span className="flex items-center gap-1.5" key={label}>
+                <span
+                  aria-hidden="true"
+                  className="size-2.5 rounded-full"
+                  style={{ background: color }}
+                />
+                {label}
+              </span>
+            ))}
+          </dd>
+        </dl>
+      ) : null}
     </section>
   );
 }

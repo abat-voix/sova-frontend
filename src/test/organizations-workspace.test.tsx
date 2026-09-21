@@ -17,6 +17,7 @@ const university = (id: string, name: string): University => ({
   name,
   inn: null,
   external_code: null,
+  has_interactions: false,
   email: "",
   phone: "",
   is_active: true,
@@ -131,6 +132,44 @@ describe("OrganizationsWorkspace", () => {
     await waitFor(() =>
       expect(fetchMock).toHaveBeenLastCalledWith(
         "/api/catalog/universities/?page=1&page_size=20&search=%D0%A2%D1%8E%D0%BC%D0%B5%D0%BD%D1%8C",
+        expect.objectContaining({ credentials: "include" }),
+      ),
+    );
+  });
+
+  it("asks the endpoint for universities with interactions", async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            count: 1,
+            next: null,
+            previous: null,
+            results: [university("1", "Первый университет")],
+          }),
+          { headers: { "content-type": "application/json" }, status: 200 },
+        ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <LocaleProvider>
+          <OrganizationsWorkspace />
+        </LocaleProvider>
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText("Первый университет")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Есть" }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        "/api/catalog/universities/?has_interactions=true&page=1&page_size=20",
         expect.objectContaining({ credentials: "include" }),
       ),
     );

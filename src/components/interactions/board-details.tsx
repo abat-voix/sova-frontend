@@ -17,6 +17,7 @@ import {
   resolveActionState,
   type BoardSelection,
 } from "@/lib/workflow/board-to-gantt";
+import { formatMoment, formatRange } from "@/lib/workflow/format-moment";
 import { useLocale } from "@/providers/locale-provider";
 import type {
   BoardAction,
@@ -120,33 +121,6 @@ const copy = {
 } as const;
 
 type Locale = keyof typeof copy;
-
-function formatMoment(value: string | null, locale: Locale) {
-  if (!value) return null;
-
-  return new Date(value).toLocaleString(locale === "ru" ? "ru-RU" : "en-GB", {
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    month: "short",
-  });
-}
-
-function formatRange(
-  from: string | null,
-  to: string | null,
-  locale: Locale,
-  fallback: string,
-) {
-  const start = formatMoment(from, locale);
-  const end = formatMoment(to, locale);
-
-  if (!start && !end) return fallback;
-  if (start && !end) return `${start} → …`;
-  if (!start && end) return `… → ${end}`;
-
-  return `${start} → ${end}`;
-}
 
 /** Код ошибки бэкенда → текст. Правила исхода проверяет бэкенд, не интерфейс. */
 function resolveErrorMessage(error: unknown, locale: Locale) {

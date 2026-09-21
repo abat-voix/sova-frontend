@@ -149,6 +149,43 @@ button {
   background: color-mix(in oklab, var(--primary) 24%, transparent);
 }
 
+/*
+ * Подсказка диаграммы Ганта. Живёт не в модуле `workflow-gantt.module.css`:
+ * dhtmlx вешает её на `document.body`, вне контейнера диаграммы.
+ */
+.gantt_tooltip {
+  max-width: 22rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--atmr-border-subtle);
+  border-radius: 0.625rem;
+  background: var(--atmr-background-elevated);
+  box-shadow: var(--atmr-shadow-elevated);
+  color: var(--atmr-text-primary);
+  font-family: var(--atmr-font-family-primary);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.sova-gantt-tip__title {
+  margin-bottom: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.sova-gantt-tip__row {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.sova-gantt-tip__row > span:first-child {
+  color: var(--atmr-text-secondary);
+}
+
+.sova-gantt-tip__row > span:last-child {
+  text-align: right;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

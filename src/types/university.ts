@@ -3,6 +3,7 @@ export type University = {
   name: string;
   inn: string | null;
   external_code: string | null;
+  has_interactions: boolean;
   email: string;
   phone: string;
   is_active: boolean;
@@ -13,4 +14,10 @@ export type University = {
   city: string;
 };
 
-export type UniversityMapPoint = Pick<University, "id" | "lat" | "lon">;
+export type UniversityMapPoint = Pick<
+  University,
+  "id" | "lat" | "lon" | "has_interactions"
+>;
+
+/** Отбор по наличию взаимодействий. `all` параметр не отправляет. */
+export type InteractionsFilter = "all" | "with" | "without";

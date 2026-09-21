@@ -11,6 +11,8 @@ import {
 import type { GanttStatic, Task } from "dhtmlx-gantt";
 
 import styles from "@/components/interactions/workflow-gantt.module.css";
+import type { Locale } from "@/i18n/translations";
+import { formatMoment, formatRange } from "@/lib/workflow/format-moment";
 import {
   actualBarGeometry,
   buildGanttData,
@@ -25,9 +27,16 @@ import type { WorkflowBoard } from "@/types/workflow-board";
 
 const copy = {
   ru: {
+    actual: "Факт",
     error: "Не удалось загрузить диаграмму.",
     loading: "Загружаем диаграмму…",
     name: "Наименование",
+    noDates: "нет дат",
+    optional: "необязательное",
+    plan: "План",
+    responsible: "Ответственный",
+    stageClosed: "Закрыт",
+    stageOpened: "Открыт",
     states: {
       completed: "Завершено",
       in_progress: "В работе",
@@ -37,12 +46,20 @@ const copy = {
       waiting_transition: "Ждёт перехода",
     },
     status: "Статус",
+    unassigned: "не назначен",
     undated: "без даты",
   },
   en: {
+    actual: "Actual",
     error: "The timeline could not be loaded.",
     loading: "Loading timeline…",
     name: "Name",
+    noDates: "no dates",
+    optional: "optional",
+    plan: "Plan",
+    responsible: "Responsible",
+    stageClosed: "Closed",
+    stageOpened: "Opened",
     states: {
       completed: "Completed",
       in_progress: "In progress",
@@ -52,9 +69,12 @@ const copy = {
       waiting_transition: "Awaiting transition",
     },
     status: "Status",
+    unassigned: "unassigned",
     undated: "no dates",
   },
 } as const;
+
+type Labels = (typeof copy)[keyof typeof copy];
 
 /** Масштаб шкалы времени. Управляется тулбаром рабочего стола. */
 export type GanttScale = "day" | "week" | "month";
@@ -122,6 +142,74 @@ function actualBarHtml(row: BoardTask) {
   if (!box) return "";
 
   return `<div class="sova-gantt-actual sova-gantt-actual--${row.state}" style="left:${box.left}%;width:${box.width}%"></div>`;
+}
+
+function tooltipRow(label: string, value: string) {
+  return `<div class="sova-gantt-tip__row"><span>${escapeHtml(label)}</span><span>${escapeHtml(value)}</span></div>`;
+}
+
+/**
+ * Содержимое подсказки.
+ *
+ * В короткую полосу подпись не помещается ни при каком масштабе, а колонка
+ * «Наименование» обрезает длинные названия, поэтому наведение — единственное
+ * место, где строку видно целиком.
+ */
+function tooltipHtml(row: BoardTask, labels: Labels, locale: Locale) {
+  const title = `<p class="sova-gantt-tip__title">${escapeHtml(String(row.text ?? ""))}</p>`;
+  if (row.rowKind === "group") return title;
+
+  const stateKey = row.state as ActionState | StageState;
+  const status = labels.states[stateKey] ?? labels.states.unknown;
+  const action = row.boardAction;
+
+  if (action) {
+    return [
+      title,
+      tooltipRow(
+        labels.status,
+        action.is_optional ? `${status} · ${labels.optional}` : status,
+      ),
+      tooltipRow(
+        labels.plan,
+        formatRange(
+          action.planned_start,
+          action.planned_end,
+          locale,
+          labels.noDates,
+        ),
+      ),
+      tooltipRow(
+        labels.actual,
+        formatRange(
+          action.actual_start,
+          action.actual_end,
+          locale,
+          labels.noDates,
+        ),
+      ),
+      tooltipRow(
+        labels.responsible,
+        action.responsible?.full_name ?? labels.unassigned,
+      ),
+    ].join("");
+  }
+
+  const stage = row.boardStage;
+  if (!stage) return title;
+
+  return [
+    title,
+    tooltipRow(labels.status, status),
+    tooltipRow(
+      labels.stageOpened,
+      formatMoment(stage.started_at, locale) ?? labels.noDates,
+    ),
+    tooltipRow(
+      labels.stageClosed,
+      formatMoment(stage.completed_at, locale) ?? labels.noDates,
+    ),
+  ].join("");
 }
 
 /**
@@ -241,6 +329,7 @@ export function WorkflowGantt({
         ganttRef.current = gantt;
         const labels = copy[locale];
 
+        gantt.plugins({ tooltip: true });
         gantt.i18n.setLocale(locale);
         gantt.config.readonly = true;
         gantt.config.show_unscheduled = true;
@@ -285,7 +374,10 @@ export function WorkflowGantt({
         // инстанса (`src/core/data_task_layers.js`), хотя типы его объявляют.
         gantt.templates.task_text = (_start, _end, task) => {
           const row = task as BoardTask;
-          const label = escapeHtml(String(row.text ?? ""));
+          // Подпись в своём элементе: многоточие возможно только там, где
+          // обрезка и текст лежат на одном узле, а `.gantt_task_content`
+          // обрезает заодно и полосу факта.
+          const label = `<span class="sova-gantt-label">${escapeHtml(String(row.text ?? ""))}</span>`;
 
           return row.rowKind === "action"
             ? `${label}${actualBarHtml(row)}`
@@ -298,6 +390,8 @@ export function WorkflowGantt({
         };
         gantt.templates.timeline_cell_class = (_task, date) =>
           isCurrentCell(gantt, date) ? "sova-gantt-today" : "";
+        gantt.templates.tooltip_text = (_start, _end, task) =>
+          tooltipHtml(task as BoardTask, labels, locale);
 
         gantt.attachEvent("onTaskClick", (id) => {
           const row = gantt.getTask(id) as BoardTask;
