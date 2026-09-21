@@ -1,0 +1,599 @@
+"use client";
+
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { toast } from "sonner";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ApiError } from "@/lib/api/http";
+import {
+  boardQueryKey,
+  cancelStage,
+  completeAction,
+  uploadActionAttachment,
+} from "@/lib/api/processes/board";
+import {
+  resolveActionState,
+  type BoardSelection,
+} from "@/lib/workflow/board-to-gantt";
+import { useLocale } from "@/providers/locale-provider";
+import type {
+  BoardAction,
+  BoardStage,
+  CancelStageMode,
+} from "@/types/workflow-board";
+
+const copy = {
+  ru: {
+    actual: "Факт",
+    attachButton: "Выбрать файл",
+    attachments: "Вложений",
+    attachmentRequired: "Этот исход требует вложение.",
+    cancelStage: "Отменить этап",
+    cancelStageHint:
+      "Этапы после этапа возврата снова перейдут в ожидание и будут выполнены заново.",
+    close: "Закрыть",
+    comment: "Комментарий",
+    commentRequired: "Этот исход требует комментарий.",
+    complete: "Завершить действие",
+    completing: "Завершаем…",
+    confirmReturn: "Подтвердить возврат",
+    empty: "Выберите действие или этап на диаграмме.",
+    errors: {
+      attachment_required: "Не приложен обязательный файл.",
+      comment_required: "Нужен комментарий к выбранному исходу.",
+      invalid_state: "Действие не в работе — обновите страницу.",
+      outcome_inactive: "Исход больше не активен.",
+      outcome_mismatch: "Исход не относится к этому действию.",
+      unknown: "Не удалось выполнить операцию.",
+    },
+    mode: "Как вернуть этап",
+    modes: {
+      last_only: "Только последнее обязательное действие",
+      restart: "Заново целиком",
+    },
+    noDates: "нет дат",
+    optional: "Необязательное",
+    outcome: "Результат",
+    overdue: "Просрочено",
+    plan: "План",
+    reason: "Причина",
+    reasonRequired: "Причина обязательна.",
+    responsible: "Ответственный",
+    result: "Результат",
+    returnTo: "Вернуться к этапу",
+    stageCancelled: "Этап отменён, процесс вернулся назад.",
+    stageClosed: "Закрыт",
+    stageOpened: "Открыт",
+    success: "Действие завершено.",
+    unassigned: "не назначен",
+    uploadFailed: "Не удалось загрузить файл.",
+    workflowCompleted: "Процесс завершён.",
+  },
+  en: {
+    actual: "Actual",
+    attachButton: "Choose file",
+    attachments: "Attachments",
+    attachmentRequired: "This outcome requires an attachment.",
+    cancelStage: "Cancel stage",
+    cancelStageHint:
+      "Stages after the return point go back to pending and will be done again.",
+    close: "Close",
+    comment: "Comment",
+    commentRequired: "This outcome requires a comment.",
+    complete: "Complete action",
+    completing: "Completing…",
+    confirmReturn: "Confirm return",
+    empty: "Pick an action or a stage on the chart.",
+    errors: {
+      attachment_required: "A required file is missing.",
+      comment_required: "The selected outcome needs a comment.",
+      invalid_state: "The action is not in progress — refresh the page.",
+      outcome_inactive: "This outcome is no longer active.",
+      outcome_mismatch: "The outcome does not belong to this action.",
+      unknown: "The operation failed.",
+    },
+    mode: "How to return the stage",
+    modes: {
+      last_only: "Only the last required action",
+      restart: "Restart entirely",
+    },
+    noDates: "no dates",
+    optional: "Optional",
+    outcome: "Outcome",
+    overdue: "Overdue",
+    plan: "Plan",
+    reason: "Reason",
+    reasonRequired: "A reason is required.",
+    responsible: "Responsible",
+    result: "Result",
+    returnTo: "Return to stage",
+    stageCancelled: "The stage was cancelled and the process moved back.",
+    stageClosed: "Closed",
+    stageOpened: "Opened",
+    success: "The action is complete.",
+    unassigned: "unassigned",
+    uploadFailed: "The file could not be uploaded.",
+    workflowCompleted: "The process is complete.",
+  },
+} as const;
+
+type Locale = keyof typeof copy;
+
+function formatMoment(value: string | null, locale: Locale) {
+  if (!value) return null;
+
+  return new Date(value).toLocaleString(locale === "ru" ? "ru-RU" : "en-GB", {
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "short",
+  });
+}
+
+function formatRange(
+  from: string | null,
+  to: string | null,
+  locale: Locale,
+  fallback: string,
+) {
+  const start = formatMoment(from, locale);
+  const end = formatMoment(to, locale);
+
+  if (!start && !end) return fallback;
+  if (start && !end) return `${start} → …`;
+  if (!start && end) return `… → ${end}`;
+
+  return `${start} → ${end}`;
+}
+
+/** Код ошибки бэкенда → текст. Правила исхода проверяет бэкенд, не интерфейс. */
+function resolveErrorMessage(error: unknown, locale: Locale) {
+  const messages = copy[locale].errors;
+  if (!(error instanceof ApiError)) return messages.unknown;
+
+  const code = error.code as keyof typeof messages | null;
+  if (code && code in messages) return messages[code];
+
+  return error.detail ?? messages.unknown;
+}
+
+function Field({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-muted-foreground text-xs">{label}</dt>
+      <dd className="mt-0.5 text-sm">{value}</dd>
+    </div>
+  );
+}
+
+type PanelProps = {
+  csrfToken: string;
+  workflowInstanceId: string;
+};
+
+function ActionPanel({
+  action,
+  csrfToken,
+  workflowInstanceId,
+}: PanelProps & { action: BoardAction }) {
+  const { locale } = useLocale();
+  const text = copy[locale];
+  const queryClient = useQueryClient();
+  const [outcomeId, setOutcomeId] = useState("");
+  const [comment, setComment] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const outcome = action.available_outcomes.find(
+    (candidate) => candidate.id === outcomeId,
+  );
+  const needsComment = outcome?.comment_required ?? false;
+  const needsAttachment =
+    (outcome?.attachment_required ?? false) && action.attachments_count === 0;
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      if (!outcome) return null;
+
+      // Исход с attachment_required бэкенд проверяет при завершении, поэтому
+      // файл уходит раньше команды.
+      if (needsAttachment) {
+        if (!file) throw new Error("missing-file");
+        await uploadActionAttachment(action.id, file, csrfToken);
+      }
+
+      return completeAction(
+        action.id,
+        { comment: comment.trim(), outcome: outcome.id },
+        csrfToken,
+      );
+    },
+    onError: (mutationError) => {
+      setError(
+        mutationError instanceof Error &&
+          mutationError.message === "missing-file"
+          ? text.attachmentRequired
+          : resolveErrorMessage(mutationError, locale),
+      );
+    },
+    onSuccess: (result) => {
+      setError(null);
+      toast.success(
+        result?.workflow_completed ? text.workflowCompleted : text.success,
+      );
+      // Состояние процесса пересчитывает движок — забираем доску заново,
+      // а не достраиваем цепочку у себя.
+      void queryClient.invalidateQueries({
+        queryKey: boardQueryKey(workflowInstanceId),
+      });
+    },
+  });
+
+  const state = resolveActionState(action);
+  const canSubmit =
+    Boolean(outcome) &&
+    (!needsComment || comment.trim().length > 0) &&
+    (!needsAttachment || file !== null) &&
+    !mutation.isPending;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <h3 className="text-base font-medium">{action.name}</h3>
+        {action.execution_no > 1 ? (
+          <Badge variant="neutral">
+            {locale === "ru" ? "Попытка" : "Attempt"} {action.execution_no}
+          </Badge>
+        ) : null}
+        {action.is_optional ? (
+          <Badge variant="neutral">{text.optional}</Badge>
+        ) : null}
+        {state === "overdue" ? (
+          <Badge variant="primary">{text.overdue}</Badge>
+        ) : null}
+      </div>
+
+      <dl className="grid grid-cols-2 gap-3">
+        <Field
+          label={text.responsible}
+          value={action.responsible?.full_name ?? text.unassigned}
+        />
+        <Field
+          label={text.attachments}
+          value={String(action.attachments_count)}
+        />
+        <Field
+          label={text.plan}
+          value={formatRange(
+            action.planned_start,
+            action.planned_end,
+            locale,
+            text.noDates,
+          )}
+        />
+        <Field
+          label={text.actual}
+          value={formatRange(
+            action.actual_start,
+            action.actual_end,
+            locale,
+            text.noDates,
+          )}
+        />
+      </dl>
+
+      {action.result ? (
+        <div className="bg-secondary rounded-lg p-3 text-sm">
+          <p className="font-medium">{action.result.outcome_name}</p>
+          {action.result.comment ? (
+            <p className="text-muted-foreground mt-1">
+              {action.result.comment}
+            </p>
+          ) : null}
+          <p className="text-muted-foreground mt-1 text-xs">
+            {action.result.created_by?.full_name}
+            {action.result.created_by ? " · " : ""}
+            {formatMoment(action.result.created_at, locale)}
+          </p>
+        </div>
+      ) : null}
+
+      {action.available_outcomes.length > 0 ? (
+        <form
+          className="space-y-3 border-t pt-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            mutation.mutate();
+          }}
+        >
+          <div>
+            <label
+              className="text-muted-foreground text-xs"
+              htmlFor="board-outcome"
+            >
+              {text.outcome}
+            </label>
+            <select
+              className="border-input bg-background mt-1 h-9 w-full rounded-lg border px-3 text-sm"
+              id="board-outcome"
+              onChange={(event) => setOutcomeId(event.target.value)}
+              required
+              value={outcomeId}
+            >
+              <option value="">—</option>
+              {action.available_outcomes.map((candidate) => (
+                <option key={candidate.id} value={candidate.id}>
+                  {candidate.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label
+              className="text-muted-foreground text-xs"
+              htmlFor="board-comment"
+            >
+              {text.comment}
+              {needsComment ? " *" : ""}
+            </label>
+            <textarea
+              className="border-input bg-background mt-1 w-full rounded-lg border px-3 py-2 text-sm"
+              id="board-comment"
+              onChange={(event) => setComment(event.target.value)}
+              required={needsComment}
+              rows={3}
+              value={comment}
+            />
+            {needsComment ? (
+              <p className="text-muted-foreground mt-1 text-xs">
+                {text.commentRequired}
+              </p>
+            ) : null}
+          </div>
+
+          {needsAttachment ? (
+            <div>
+              <label
+                className="text-muted-foreground text-xs"
+                htmlFor="board-file"
+              >
+                {text.attachButton} *
+              </label>
+              <input
+                accept=".png,.jpg,.jpeg,.pdf,.zip,.gz,.gzip,.rar,.doc,.docx,.xls,.xlsx"
+                className="mt-1 w-full text-sm"
+                id="board-file"
+                onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                type="file"
+              />
+              <p className="text-muted-foreground mt-1 text-xs">
+                {text.attachmentRequired}
+              </p>
+            </div>
+          ) : null}
+
+          {error ? (
+            <p className="text-sm text-[var(--atmr-brand-orange)]">{error}</p>
+          ) : null}
+
+          <Button disabled={!canSubmit} size="m" type="submit">
+            {mutation.isPending ? text.completing : text.complete}
+          </Button>
+        </form>
+      ) : null}
+    </div>
+  );
+}
+
+function StagePanel({
+  csrfToken,
+  stage,
+  workflowInstanceId,
+}: PanelProps & { stage: BoardStage }) {
+  const { locale } = useLocale();
+  const text = copy[locale];
+  const queryClient = useQueryClient();
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [mode, setMode] = useState<CancelStageMode>("restart");
+  const [reason, setReason] = useState("");
+  const [returnTo, setReturnTo] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      cancelStage(
+        stage.id,
+        {
+          mode,
+          reason: reason.trim(),
+          return_to: returnTo || (stage.return_options[0]?.id ?? null),
+        },
+        csrfToken,
+      ),
+    onError: (mutationError) =>
+      setError(resolveErrorMessage(mutationError, locale)),
+    onSuccess: () => {
+      setError(null);
+      setIsCancelling(false);
+      toast.success(text.stageCancelled);
+      void queryClient.invalidateQueries({
+        queryKey: boardQueryKey(workflowInstanceId),
+      });
+    },
+  });
+
+  const canReturn = stage.return_options.length > 0;
+  const needsChoice = stage.return_options.length > 1;
+  const canSubmit =
+    reason.trim().length > 0 &&
+    (!needsChoice || returnTo !== "") &&
+    !mutation.isPending;
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-base font-medium">{stage.stage.name}</h3>
+
+      <dl className="grid grid-cols-2 gap-3">
+        <Field
+          label={text.stageOpened}
+          value={formatMoment(stage.started_at, locale) ?? text.noDates}
+        />
+        <Field
+          label={text.stageClosed}
+          value={formatMoment(stage.completed_at, locale) ?? text.noDates}
+        />
+      </dl>
+
+      {canReturn ? (
+        <div className="space-y-3 border-t pt-4">
+          {isCancelling ? (
+            <form
+              className="space-y-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                mutation.mutate();
+              }}
+            >
+              <p className="text-muted-foreground text-xs">
+                {text.cancelStageHint}
+              </p>
+
+              {needsChoice ? (
+                <div>
+                  <label
+                    className="text-muted-foreground text-xs"
+                    htmlFor="stage-return-to"
+                  >
+                    {text.returnTo} *
+                  </label>
+                  <select
+                    className="border-input bg-background mt-1 h-9 w-full rounded-lg border px-3 text-sm"
+                    id="stage-return-to"
+                    onChange={(event) => setReturnTo(event.target.value)}
+                    required
+                    value={returnTo}
+                  >
+                    <option value="">—</option>
+                    {stage.return_options.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.stage_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
+
+              <fieldset>
+                <legend className="text-muted-foreground text-xs">
+                  {text.mode}
+                </legend>
+                {(["restart", "last_only"] as const).map((value) => (
+                  <label
+                    className="mt-1 flex items-center gap-2 text-sm"
+                    key={value}
+                  >
+                    <input
+                      checked={mode === value}
+                      name="stage-mode"
+                      onChange={() => setMode(value)}
+                      type="radio"
+                      value={value}
+                    />
+                    {text.modes[value]}
+                  </label>
+                ))}
+              </fieldset>
+
+              <div>
+                <label
+                  className="text-muted-foreground text-xs"
+                  htmlFor="stage-reason"
+                >
+                  {text.reason} *
+                </label>
+                <textarea
+                  className="border-input bg-background mt-1 w-full rounded-lg border px-3 py-2 text-sm"
+                  id="stage-reason"
+                  onChange={(event) => setReason(event.target.value)}
+                  required
+                  rows={2}
+                  value={reason}
+                />
+              </div>
+
+              {error ? (
+                <p className="text-sm text-[var(--atmr-brand-orange)]">
+                  {error}
+                </p>
+              ) : null}
+
+              <div className="flex gap-2">
+                <Button disabled={!canSubmit} size="m" type="submit">
+                  {text.confirmReturn}
+                </Button>
+                <Button
+                  colorScheme="neutral"
+                  onClick={() => setIsCancelling(false)}
+                  size="m"
+                  type="button"
+                  variant="ghost"
+                >
+                  {text.close}
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <Button
+              colorScheme="neutral"
+              onClick={() => setIsCancelling(true)}
+              size="m"
+              type="button"
+              variant="outline"
+            >
+              {text.cancelStage}
+            </Button>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function BoardDetails({
+  csrfToken,
+  selection,
+  workflowInstanceId,
+}: PanelProps & { selection: BoardSelection | null }) {
+  const { locale } = useLocale();
+
+  if (!selection) {
+    return (
+      <p className="text-muted-foreground text-sm">{copy[locale].empty}</p>
+    );
+  }
+
+  // key сбрасывает форму при переходе к другой строке: выбранный исход и
+  // комментарий не должны перетекать с одного действия на другое.
+  if (selection.kind === "action") {
+    return (
+      <ActionPanel
+        action={selection.action}
+        csrfToken={csrfToken}
+        key={selection.action.id}
+        workflowInstanceId={workflowInstanceId}
+      />
+    );
+  }
+
+  return (
+    <StagePanel
+      csrfToken={csrfToken}
+      key={selection.stage.id}
+      stage={selection.stage}
+      workflowInstanceId={workflowInstanceId}
+    />
+  );
+}

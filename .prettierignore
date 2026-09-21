@@ -4,3 +4,7 @@ node_modules
 playwright-report
 test-results
 pnpm-lock.yaml
+
+# Справочные материалы и служебные файлы: их формат задаём не мы.
+.claude
+docs

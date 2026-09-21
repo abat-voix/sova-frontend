@@ -20,7 +20,7 @@ describe("universities API", () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/catalog/universities/map/?search=%D0%9C%D0%BE%D1%81%D0%BA%D0%BE%D0%B2%D1%81%D0%BA%D0%B8%D0%B9",
-      expect.objectContaining({ credentials: "same-origin" }),
+      expect.objectContaining({ credentials: "include" }),
     );
   });
 });
