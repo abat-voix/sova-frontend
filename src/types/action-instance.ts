@@ -1,11 +1,11 @@
 import type {
-  ActionResult,
+  ActionInstanceStatus,
   UserShort,
   WorkflowActionShort,
 } from "./workflow-board";
 
 /**
- * Экземпляр действия этапа — по схемам `ActionInstance` из
+ * Экземпляр действия этапа — по схеме `ActionInstance` из
  * `docs/SOVA API.yaml`.
  *
  * Создаёт и меняет экземпляры только движок: действия появляются при запуске
@@ -33,6 +33,3 @@ export type ActionInstance = {
   /** Исполнитель действия; null, если не назначен. */
   responsible: UserShort | null;
 };
-
-/** `ActionInstanceStatus` — см. `workflow-board.ts`. */
-import type { ActionInstanceStatus } from "./workflow-board";

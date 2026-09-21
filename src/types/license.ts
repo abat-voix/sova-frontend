@@ -1,5 +1,3 @@
-// license.ts
-
 import type { ContractShort } from "./contract";
 import type { InteractionProductShort, UserShort } from "./workflow-board";
 
@@ -15,9 +13,7 @@ import type { InteractionProductShort, UserShort } from "./workflow-board";
  * write-схемах не принимаются.
  */
 
-/**
- * `License` — представление для чтения (list/retrieve).
- */
+/** `License` — представление для чтения (list/retrieve). */
 export type License = {
   id: string;
   created_at: string;

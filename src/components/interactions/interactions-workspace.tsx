@@ -135,7 +135,7 @@ export function InteractionsWorkspace() {
   const [isStartingProcess, setIsStartingProcess] = useState(false);
   // Рабочий стол виден только авторизованному пользователю, а сессия приходит
   // клиентским запросом — на сервере этот компонент не рендерится.
-  const [isListCollapsed, persistListCollapsed, setIsListCollapsed] =
+  const [isListCollapsed, setIsListCollapsed] =
     usePersistedFlag(collapsedStorageKey);
   const [scale, setScale] = useState<GanttScale>("week");
   const [showGrid, setShowGrid] = useState(true);
@@ -148,8 +148,8 @@ export function InteractionsWorkspace() {
   } | null>(null);
 
   const toggleList = useCallback(
-    () => persistListCollapsed(!isListCollapsed),
-    [isListCollapsed, persistListCollapsed],
+    () => setIsListCollapsed(!isListCollapsed),
+    [isListCollapsed, setIsListCollapsed],
   );
 
   const instancesQuery = useQuery({

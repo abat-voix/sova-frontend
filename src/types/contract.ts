@@ -1,5 +1,3 @@
-// contract.ts
-
 import type { InteractionShort } from "./workflow-board";
 
 /**

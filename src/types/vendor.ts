@@ -1,5 +1,3 @@
-// vendor.ts
-
 /**
  * Вендор продукта — по схемам `Vendor`, `VendorShort`, `WriteVendor`
  * из `docs/SOVA API.yaml`.

@@ -7,7 +7,7 @@ import type {
 
 /**
  * Экземпляр этапа процесса — по схемам `StageInstance`, `StageInstanceShort`,
- * `StageRollback` из `docs/SOVA API.yaml`.
+ * `StageRollback`, `CancelStage`, `CancelStageResult` из `docs/SOVA API.yaml`.
  *
  * Экземпляры создаёт и открывает движок; пользователь может только отменить
  * этап в работе — процесс вернётся на предыдущий этап.

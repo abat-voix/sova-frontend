@@ -38,7 +38,7 @@ export type WorkflowAction = {
 /**
  * `WorkflowActionShort` — краткое представление для вложенного использования.
  *
- * Уже определён в `workflow-board.ts`; здесь реэкспорт для удобства.
+ * Определён в `workflow-board.ts`; реэкспорт для удобства.
  */
 export type { WorkflowActionShort } from "./workflow-board";
 
@@ -79,7 +79,7 @@ export type ActionOutcome = {
 /**
  * `ActionOutcomeShort` — краткое представление для вложенного использования.
  *
- * Уже определён в `workflow-board.ts`; здесь реэкспорт для удобства.
+ * Определён в `workflow-board.ts`; реэкспорт для удобства.
  */
 export type { ActionOutcomeShort } from "./workflow-board";
 
