@@ -1,147 +1,103 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import type { GanttData, GanttStatic, Link, Task } from "dhtmlx-gantt";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { GanttStatic, Task } from "dhtmlx-gantt";
 
 import styles from "@/components/interactions/workflow-gantt.module.css";
+import {
+  buildGanttData,
+  type ActionState,
+  type BoardSelection,
+  type BoardTask,
+  type StageState,
+} from "@/lib/workflow/board-to-gantt";
 import { useLocale } from "@/providers/locale-provider";
-
-type WorkflowStatus = "active" | "completed" | "planned";
-type WorkflowTask = Task & { status?: WorkflowStatus };
+import type { WorkflowBoard } from "@/types/workflow-board";
 
 const copy = {
   ru: {
-    name: "Наименование",
-    status: "Статус",
-    loading: "Загружаем диаграмму…",
     error: "Не удалось загрузить диаграмму.",
-    statuses: {
-      active: "В работе",
-      completed: "Завершён",
-      planned: "Запланирован",
+    loading: "Загружаем диаграмму…",
+    name: "Наименование",
+    states: {
+      completed: "Завершено",
+      in_progress: "В работе",
+      overdue: "Просрочено",
+      pending: "Ожидает",
+      unknown: "—",
+      waiting_transition: "Ждёт перехода",
     },
-    tasks: {
-      university: "МГТУ им. Н.Э. Баумана",
-      interaction: "Взаимодействие № В-2026-09",
-      workflow: "Workflow заключения договора",
-      preparation: "Подготовка и контакт",
-      approval: "Согласование и документы",
-      implementation: "Внедрение и обучение",
-      support: "Сопровождение",
-      milestone: "Подписание договора",
-    },
+    status: "Статус",
+    undated: "без даты",
   },
   en: {
-    name: "Name",
-    status: "Status",
-    loading: "Loading timeline…",
     error: "The timeline could not be loaded.",
-    statuses: {
-      active: "In progress",
+    loading: "Loading timeline…",
+    name: "Name",
+    states: {
       completed: "Completed",
-      planned: "Planned",
+      in_progress: "In progress",
+      overdue: "Overdue",
+      pending: "Pending",
+      unknown: "—",
+      waiting_transition: "Awaiting transition",
     },
-    tasks: {
-      university: "Bauman Moscow State Technical University",
-      interaction: "Interaction № I-2026-09",
-      workflow: "Contract workflow",
-      preparation: "Preparation and contact",
-      approval: "Approval and documents",
-      implementation: "Implementation and training",
-      support: "Support",
-      milestone: "Contract signing",
-    },
+    status: "Status",
+    undated: "no dates",
   },
 } as const;
 
-function createDemoData(locale: keyof typeof copy): GanttData {
-  const text = copy[locale].tasks;
-  const data: WorkflowTask[] = [
-    {
-      id: 1,
-      text: text.university,
-      type: "project",
-      open: true,
-      progress: 0.46,
-      status: "active",
-    },
-    {
-      id: 2,
-      parent: 1,
-      text: text.interaction,
-      type: "project",
-      open: true,
-      progress: 0.46,
-      status: "active",
-    },
-    {
-      id: 3,
-      parent: 2,
-      text: text.workflow,
-      type: "project",
-      open: true,
-      progress: 0.46,
-      status: "active",
-    },
-    {
-      id: 4,
-      parent: 3,
-      text: text.preparation,
-      start_date: new Date(2026, 8, 7),
-      duration: 14,
-      progress: 1,
-      status: "completed",
-    },
-    {
-      id: 5,
-      parent: 3,
-      text: text.approval,
-      start_date: new Date(2026, 8, 21),
-      duration: 21,
-      progress: 0.6,
-      status: "active",
-    },
-    {
-      id: 6,
-      parent: 3,
-      text: text.implementation,
-      start_date: new Date(2026, 9, 12),
-      duration: 28,
-      progress: 0.15,
-      status: "active",
-    },
-    {
-      id: 7,
-      parent: 3,
-      text: text.support,
-      start_date: new Date(2026, 10, 9),
-      duration: 35,
-      progress: 0,
-      status: "planned",
-    },
-    {
-      id: 8,
-      parent: 3,
-      text: text.milestone,
-      start_date: new Date(2026, 9, 9),
-      type: "milestone",
-      status: "planned",
-    },
-  ];
-  const links: Link[] = [
-    { id: 1, source: 4, target: 5, type: "0" },
-    { id: 2, source: 5, target: 8, type: "0" },
-    { id: 3, source: 8, target: 6, type: "0" },
-    { id: 4, source: 6, target: 7, type: "0" },
-  ];
+type WorkflowGanttProps = {
+  board: WorkflowBoard;
+  onSelect: (selection: BoardSelection) => void;
+};
 
-  return { data, links };
+const dayMs = 24 * 60 * 60 * 1000;
+
+/** Окно по умолчанию, когда ни у одного действия ещё нет дат. */
+function resolveRange(tasks: BoardTask[], now: Date) {
+  const dates = tasks.flatMap((task) =>
+    task.unscheduled || !task.start_date
+      ? []
+      : [task.start_date, task.end_date ?? task.start_date],
+  );
+
+  if (dates.length === 0) {
+    return {
+      end: new Date(now.getTime() + 42 * dayMs),
+      start: new Date(now.getTime() - 14 * dayMs),
+    };
+  }
+
+  const times = dates.map((date) => date.getTime());
+
+  return {
+    end: new Date(Math.max(...times) + 7 * dayMs),
+    start: new Date(Math.min(...times) - 7 * dayMs),
+  };
 }
 
-export function WorkflowGantt() {
+export function WorkflowGantt({ board, onSelect }: WorkflowGanttProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const ganttRef = useRef<GanttStatic | null>(null);
   const { locale } = useLocale();
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const text = copy[locale];
+
+  const ganttData = useMemo(() => buildGanttData(board), [board]);
+
+  // Обработчик клика и данные живут в ref: инстанс Gantt создаётся один раз и
+  // не должен пересоздаваться из-за новой ссылки на колбэк.
+  const dataRef = useRef(ganttData);
+  const selectRef = useRef(onSelect);
+
+  useEffect(() => {
+    dataRef.current = ganttData;
+  }, [ganttData]);
+
+  useEffect(() => {
+    selectRef.current = onSelect;
+  }, [onSelect]);
 
   useEffect(() => {
     let active = true;
@@ -154,17 +110,20 @@ export function WorkflowGantt() {
 
         const gantt = Gantt.getGanttInstance();
         instance = gantt;
-        const text = copy[locale];
+        ganttRef.current = gantt;
+        const labels = copy[locale];
+        const range = resolveRange(dataRef.current.data, new Date());
 
         gantt.i18n.setLocale(locale);
         gantt.config.readonly = true;
+        gantt.config.show_unscheduled = true;
         gantt.config.grid_width = 430;
         gantt.config.row_height = 44;
         gantt.config.bar_height = 24;
         gantt.config.scale_height = 56;
         gantt.config.min_column_width = 44;
-        gantt.config.start_date = new Date(2026, 8, 1);
-        gantt.config.end_date = new Date(2026, 11, 31);
+        gantt.config.start_date = range.start;
+        gantt.config.end_date = range.end;
         gantt.config.scales = [
           { unit: "month", step: 1, format: "%F %Y" },
           { unit: "week", step: 1, format: "%d" },
@@ -172,33 +131,52 @@ export function WorkflowGantt() {
         gantt.config.columns = [
           {
             name: "text",
-            label: text.name,
+            label: labels.name,
             tree: true,
             width: "*",
             min_width: 230,
           },
           {
             name: "status",
-            label: text.status,
+            label: labels.status,
             align: "center",
             width: 122,
             template: (task: Task) => {
-              const status = task.status as WorkflowStatus | undefined;
-              if (!status) return "";
+              const row = task as BoardTask;
+              if (row.rowKind === "group") return "";
 
-              return `<span class="sova-gantt-status sova-gantt-status--${status}">${text.statuses[status]}</span>`;
+              const stateKey = row.state as ActionState | StageState;
+              const label = labels.states[stateKey] ?? labels.states.unknown;
+
+              return `<span class="sova-gantt-status sova-gantt-status--${stateKey}">${label}</span>`;
             },
           },
         ];
         gantt.templates.task_class = (_start, _end, task) => {
-          const status = task.status as WorkflowStatus | undefined;
-          return status ? `sova-gantt-task--${status}` : "";
+          const row = task as BoardTask;
+
+          return `sova-gantt-task--${row.state}`;
         };
-        gantt.templates.grid_row_class = (_start, _end, task) =>
-          task.type === "project" ? "sova-gantt-project-row" : "";
+        gantt.templates.grid_row_class = (_start, _end, task) => {
+          const row = task as BoardTask;
+
+          return row.rowKind === "action" ? "" : "sova-gantt-project-row";
+        };
+
+        gantt.attachEvent("onTaskClick", (id) => {
+          const row = gantt.getTask(id) as BoardTask;
+          if (row.rowKind === "action" && row.boardAction) {
+            selectRef.current({ action: row.boardAction, kind: "action" });
+          }
+          if (row.rowKind === "stage" && row.boardStage) {
+            selectRef.current({ kind: "stage", stage: row.boardStage });
+          }
+
+          return true;
+        });
 
         gantt.init(containerRef.current);
-        gantt.parse(createDemoData(locale));
+        gantt.parse(dataRef.current);
         if (active) setState("ready");
       } catch {
         if (active) setState("error");
@@ -209,16 +187,26 @@ export function WorkflowGantt() {
 
     return () => {
       active = false;
+      ganttRef.current = null;
       instance?.destructor();
     };
   }, [locale]);
 
-  const text = copy[locale];
+  useEffect(() => {
+    const gantt = ganttRef.current;
+    if (!gantt) return;
+
+    const range = resolveRange(ganttData.data, new Date());
+    gantt.config.start_date = range.start;
+    gantt.config.end_date = range.end;
+    gantt.clearAll();
+    gantt.parse(ganttData);
+  }, [ganttData]);
 
   return (
     <section
       aria-busy={state === "loading"}
-      aria-label={locale === "ru" ? "План workflow" : "Workflow plan"}
+      aria-label={locale === "ru" ? "План процесса" : "Workflow plan"}
       className={`${styles.root} bg-card relative overflow-hidden rounded-xl border shadow-sm`}
     >
       {state !== "ready" ? (

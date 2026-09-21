@@ -8,7 +8,6 @@ import { CrmShell } from "@/components/crm/crm-shell";
 import type { CrmSection } from "@/components/crm/crm-navigation";
 import { LanguageToggle } from "@/components/language-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
