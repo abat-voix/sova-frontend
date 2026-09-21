@@ -25,6 +25,7 @@ import {
   type WorkflowGanttHandle,
 } from "@/components/interactions/workflow-gantt";
 import { Button } from "@/components/ui/button";
+import { usePersistedFlag } from "@/hooks/use-persisted-flag";
 import {
   boardQueryKey,
   getWorkflowBoard,
@@ -133,13 +134,9 @@ export function InteractionsWorkspace() {
   const [isCreating, setIsCreating] = useState(false);
   const [isStartingProcess, setIsStartingProcess] = useState(false);
   // Рабочий стол виден только авторизованному пользователю, а сессия приходит
-  // клиентским запросом — на сервере этот компонент не рендерится, читать
-  // localStorage при инициализации состояния безопасно.
-  const [isListCollapsed, setIsListCollapsed] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      window.localStorage.getItem(collapsedStorageKey) === "true",
-  );
+  // клиентским запросом — на сервере этот компонент не рендерится.
+  const [isListCollapsed, persistListCollapsed, setIsListCollapsed] =
+    usePersistedFlag(collapsedStorageKey);
   const [scale, setScale] = useState<GanttScale>("week");
   const [showGrid, setShowGrid] = useState(true);
   const ganttRef = useRef<WorkflowGanttHandle>(null);
@@ -150,13 +147,10 @@ export function InteractionsWorkspace() {
     kind: BoardSelection["kind"];
   } | null>(null);
 
-  const toggleList = useCallback(() => {
-    setIsListCollapsed((collapsed) => {
-      window.localStorage.setItem(collapsedStorageKey, String(!collapsed));
-
-      return !collapsed;
-    });
-  }, []);
+  const toggleList = useCallback(
+    () => persistListCollapsed(!isListCollapsed),
+    [isListCollapsed, persistListCollapsed],
+  );
 
   const instancesQuery = useQuery({
     queryKey: ["processes", "workflow-instances", selectedInteractionId],

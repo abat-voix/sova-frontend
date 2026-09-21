@@ -25,6 +25,7 @@ import { OrganizationsWorkspace } from "@/components/organizations/organizations
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BuildVersion } from "@/components/build-version";
 import { Button } from "@/components/ui/button";
+import { usePersistedFlag } from "@/hooks/use-persisted-flag";
 import { cn } from "@/lib/utils";
 import type { AuthenticatedUser } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
@@ -53,6 +54,8 @@ const dashboardSections = new Set<CrmSection>([
  * растущей страницы её не получить.
  */
 const fullHeightSections = new Set<CrmSection>(["interactions"]);
+
+const sidebarStorageKey = "sova-sidebar-collapsed";
 
 function Sidebar({
   activeSection,
@@ -313,8 +316,10 @@ function SectionPlaceholder({ section }: { section: CrmNavigationItem }) {
 }
 
 export function CrmShell(props: CrmShellProps) {
+  // Каждый раздел — отдельная страница, поэтому состояние сайдбара живёт в
+  // хранилище: иначе переход разворачивал бы его заново.
   const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] =
-    useState(false);
+    usePersistedFlag(sidebarStorageKey);
   const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState(false);
   const { activeSection, user } = props;
   const { t } = useLocale();
@@ -347,7 +352,7 @@ export function CrmShell(props: CrmShellProps) {
           className="bg-card absolute top-6 right-0 z-10 translate-x-1/2 rounded-full shadow-sm"
           colorScheme="neutral"
           onClick={() =>
-            setIsDesktopSidebarCollapsed((isCollapsed) => !isCollapsed)
+            setIsDesktopSidebarCollapsed(!isDesktopSidebarCollapsed)
           }
           size="icon"
           title={

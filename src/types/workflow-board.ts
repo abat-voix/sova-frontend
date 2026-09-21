@@ -337,3 +337,23 @@ export type WorkflowStageShort = {
   name: string;
   workflow: string;
 };
+
+/**
+ * `AudienceEnum` — аудитория шаблона workflow.
+ *
+ * Уже есть как `WorkflowAudience`, но для симметрии с OpenAPI заведу алиас.
+ */
+export type Audience = WorkflowAudience;
+
+/**
+ * `WorkflowChange` — запись журнала изменений структуры workflow.
+ */
+export type WorkflowChange = {
+  id: string;
+  change_type: string;
+  entity_type: string;
+  entity_id: string;
+  workflow: string;
+  created_by: UserShort | null;
+  created_at: string;
+};
