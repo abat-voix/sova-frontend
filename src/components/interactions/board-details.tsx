@@ -163,15 +163,16 @@ function ActionPanel({
   const outcome = action.available_outcomes.find(
     (candidate) => candidate.id === outcomeId,
   );
-  const needsComment = outcome?.comment_required ?? false;
+  const needsComment = outcome?.is_comment_required ?? false;
   const needsAttachment =
-    (outcome?.attachment_required ?? false) && action.attachments_count === 0;
+    (outcome?.is_attachment_required ?? false) &&
+    action.attachments_count === 0;
 
   const mutation = useMutation({
     mutationFn: async () => {
       if (!outcome) return null;
 
-      // Исход с attachment_required бэкенд проверяет при завершении, поэтому
+      // Исход с is_attachment_required бэкенд проверяет при завершении, поэтому
       // файл уходит раньше команды.
       if (needsAttachment) {
         if (!file) throw new Error("missing-file");

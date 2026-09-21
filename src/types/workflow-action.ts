@@ -28,8 +28,8 @@ export type WorkflowAction = {
    * Действие не стартует при открытии этапа, а запускается переходом по
    * исходу другого действия. Пока не запущено, не мешает закрытию этапа.
    */
-  starts_by_transition_only: boolean;
-  active: boolean;
+  is_trigger_only: boolean;
+  is_active: boolean;
   stage: WorkflowStageShort;
   created_at: string;
   updated_at: string;
@@ -55,8 +55,8 @@ export type WriteWorkflowAction = {
   sort_order: number;
   default_duration_days?: number | null;
   is_optional?: boolean;
-  starts_by_transition_only?: boolean;
-  active?: boolean;
+  is_trigger_only?: boolean;
+  is_active?: boolean;
   stage: string;
 };
 
@@ -68,9 +68,9 @@ export type ActionOutcome = {
   id: string;
   code: string;
   name: string;
-  active: boolean;
-  comment_required: boolean;
-  attachment_required: boolean;
+  is_active: boolean;
+  is_comment_required: boolean;
+  is_attachment_required: boolean;
   action: WorkflowActionShort;
   created_at: string;
   updated_at: string;
@@ -88,9 +88,9 @@ export type WriteActionOutcome = {
   id?: string;
   code: string;
   name: string;
-  active?: boolean;
-  comment_required?: boolean;
-  attachment_required?: boolean;
+  is_active?: boolean;
+  is_comment_required?: boolean;
+  is_attachment_required?: boolean;
   action: string;
 };
 

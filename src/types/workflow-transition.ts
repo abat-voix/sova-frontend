@@ -13,7 +13,7 @@ import type { ActionOutcomeShort, WorkflowActionShort } from "./workflow-board";
 /** `ActionDependency` — представление для чтения (list/retrieve). */
 export type ActionDependency = {
   id: string;
-  active: boolean;
+  is_active: boolean;
   action: WorkflowActionShort;
   depends_on_action: WorkflowActionShort;
   created_at: string;
@@ -23,7 +23,7 @@ export type ActionDependency = {
 /** `WriteActionDependency` — валидация входных данных (create/update). */
 export type WriteActionDependency = {
   id?: string;
-  active?: boolean;
+  is_active?: boolean;
   action: string;
   depends_on_action: string;
 };
@@ -34,7 +34,7 @@ export type PatchedWriteActionDependency = Partial<WriteActionDependency>;
 /** `ActionTransition` — представление для чтения (list/retrieve). */
 export type ActionTransition = {
   id: string;
-  active: boolean;
+  is_active: boolean;
   outcome: ActionOutcomeShort;
   target_action: WorkflowActionShort;
   created_at: string;
@@ -44,7 +44,7 @@ export type ActionTransition = {
 /** `WriteActionTransition` — валидация входных данных (create/update). */
 export type WriteActionTransition = {
   id?: string;
-  active?: boolean;
+  is_active?: boolean;
   outcome: string;
   target_action: string;
 };

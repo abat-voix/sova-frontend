@@ -106,11 +106,11 @@ function normalizeStatus(status: string): StageState {
  *
  * `overdue` и `waiting_transition` — не статусы бэкенда, а признаки поверх них:
  * просрочку считает бэкенд (`is_overdue`), а ожидание перехода выражено парой
- * `starts_by_transition_only` + `is_triggered`. Своего `BLOCKED` не вычисляем.
+ * `is_trigger_only` + `is_triggered`. Своего `BLOCKED` не вычисляем.
  */
 export function resolveActionState(action: BoardAction): ActionState {
   if (action.is_overdue) return "overdue";
-  if (action.starts_by_transition_only && !action.is_triggered)
+  if (action.is_trigger_only && !action.is_triggered)
     return "waiting_transition";
 
   return normalizeStatus(action.status);

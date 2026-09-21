@@ -31,7 +31,7 @@ function makeAction(overrides: Partial<BoardAction> = {}): BoardAction {
     planned_start: null,
     responsible: null,
     result: null,
-    starts_by_transition_only: false,
+    is_trigger_only: false,
     status: "pending",
     ...overrides,
   };
@@ -602,7 +602,7 @@ describe("resolveActionState", () => {
       resolveActionState(
         makeAction({
           is_triggered: false,
-          starts_by_transition_only: true,
+          is_trigger_only: true,
           status: "pending",
         }),
       ),
@@ -614,7 +614,7 @@ describe("resolveActionState", () => {
       resolveActionState(
         makeAction({
           is_triggered: true,
-          starts_by_transition_only: true,
+          is_trigger_only: true,
           status: "pending",
         }),
       ),

@@ -29,7 +29,7 @@ export type WorkflowStage = {
   is_initial: boolean;
   is_final: boolean;
   is_optional: boolean;
-  active: boolean;
+  is_active: boolean;
   workflow: WorkflowShort;
   created_at: string;
   updated_at: string;
@@ -52,7 +52,7 @@ export type WriteWorkflowStage = {
   is_initial?: boolean;
   is_final?: boolean;
   is_optional?: boolean;
-  active?: boolean;
+  is_active?: boolean;
   workflow: string;
 };
 
@@ -62,7 +62,7 @@ export type PatchedWriteWorkflowStage = Partial<WriteWorkflowStage>;
 /** `StageTransition` — представление для чтения (list/retrieve). */
 export type StageTransition = {
   id: string;
-  active: boolean;
+  is_active: boolean;
   from_stage: WorkflowStageShort;
   to_stage: WorkflowStageShort;
   created_at: string;
@@ -72,7 +72,7 @@ export type StageTransition = {
 /** `WriteStageTransition` — валидация входных данных (create/update). */
 export type WriteStageTransition = {
   id?: string;
-  active?: boolean;
+  is_active?: boolean;
   from_stage: string;
   to_stage: string;
 };

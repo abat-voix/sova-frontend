@@ -111,12 +111,12 @@ export function searchManagers(search: string) {
 /**
  * Шаблоны workflow, пригодные для запуска.
  *
- * `active=true` и фильтр по аудитории снимают заранее две ошибки движка —
+ * `is_active=true` и фильтр по аудитории снимают заранее две ошибки движка —
  * `workflow_inactive` и `audience_mismatch`.
  */
 export function searchWorkflows(search: string, audience: WorkflowAudience) {
   const query = buildQuery({
-    active: "true",
+    is_active: "true",
     audience,
     page: 1,
     page_size: lookupPageSize,

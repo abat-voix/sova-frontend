@@ -46,7 +46,7 @@ const action: BoardAction = {
   name: "Подписать договор",
   status: "in_progress",
   is_optional: false,
-  starts_by_transition_only: false,
+  is_trigger_only: false,
   is_triggered: true,
   execution_no: 1,
   planned_start: "2026-09-01T09:00:00+03:00",

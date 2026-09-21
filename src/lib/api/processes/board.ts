@@ -82,7 +82,7 @@ export function cancelStage(
 /**
  * Загружает файл к исполнению действия.
  *
- * Исход с `attachment_required` проверяется на бэкенде при завершении, поэтому
+ * Исход с `is_attachment_required` проверяется на бэкенде при завершении, поэтому
  * файл нужно отправить раньше, чем команду `complete`.
  */
 export function uploadActionAttachment(

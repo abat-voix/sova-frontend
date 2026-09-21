@@ -151,7 +151,7 @@ export type Workflow = {
   audience: WorkflowAudience;
   description: string;
   is_base: boolean;
-  active: boolean;
+  is_active: boolean;
   stages_count: number;
 };
 
@@ -181,8 +181,8 @@ export type BoardOutcome = {
   id: string;
   code: string;
   name: string;
-  comment_required: boolean;
-  attachment_required: boolean;
+  is_comment_required: boolean;
+  is_attachment_required: boolean;
 };
 
 export type BoardResult = {
@@ -206,7 +206,7 @@ export type BoardAction = {
   name: string;
   status: string;
   is_optional: boolean;
-  starts_by_transition_only: boolean;
+  is_trigger_only: boolean;
   is_triggered: boolean;
   execution_no: number;
   planned_start: string | null;

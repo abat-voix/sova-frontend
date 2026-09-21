@@ -127,10 +127,12 @@ describe("StartProcessDialog", () => {
 
     fireEvent.click(screen.getByRole("combobox", { name: "Шаблон workflow" }));
 
-    // audience и active снимают audience_mismatch и workflow_inactive заранее.
+    // audience и is_active снимают audience_mismatch и workflow_inactive
+    // заранее. Проверяем полное имя параметра: подстрока `active=true` нашлась
+    // бы и в устаревшем, и в новом.
     await waitFor(() => expect(listUrls).not.toHaveLength(0));
     expect(listUrls[0]).toContain("/api/workflows/workflows/");
-    expect(listUrls[0]).toContain("active=true");
+    expect(listUrls[0]).toContain("is_active=true");
     expect(listUrls[0]).toContain("audience=b2c");
   });
 
