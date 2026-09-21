@@ -205,6 +205,12 @@
   color: var(--atmr-text-secondary);
 }
 
+.root :global(.gantt_task_cell.sova-gantt-today) {
+  background: color-mix(in oklab, var(--atmr-brand-orange) 9%, transparent);
+  border-left: 1px solid
+    color-mix(in oklab, var(--atmr-brand-orange) 55%, transparent);
+}
+
 @media (max-width: 64rem) {
   .root :global(.gantt_grid) {
     max-width: 22rem;

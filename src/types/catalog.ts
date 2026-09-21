@@ -1,3 +1,5 @@
+import { VendorShort } from "@/types/vendor";
+
 /** Тип B2C-клиента: физлицо или юрлицо. */
 export type B2CClientKind = "individual" | "legal_entity";
 
@@ -48,7 +50,7 @@ export type Product = {
   name: string;
   external_code: string | null;
   is_active: boolean;
-  vendor: { id: string; name: string } | null;
+  vendor: VendorShort | null;
   programs: ProgramShort[];
   created_at: string;
   updated_at: string;

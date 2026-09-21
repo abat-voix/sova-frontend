@@ -47,6 +47,13 @@ const dashboardSections = new Set<CrmSection>([
   "processes",
 ]);
 
+/**
+ * Разделы-рабочие столы: занимают высоту окна целиком и скроллят содержимое
+ * панелями, а не страницей. Диаграмме Ганта нужна известная высота — от
+ * растущей страницы её не получить.
+ */
+const fullHeightSections = new Set<CrmSection>(["interactions"]);
+
 function Sidebar({
   activeSection,
   collapsed = false,
@@ -314,6 +321,7 @@ export function CrmShell(props: CrmShellProps) {
   const currentSection =
     crmNavigationItems.find((item) => item.id === activeSection) ??
     crmNavigationItems[0];
+  const isFullHeight = fullHeightSections.has(activeSection);
 
   return (
     <div
@@ -413,7 +421,14 @@ export function CrmShell(props: CrmShellProps) {
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-[100rem] p-4 sm:p-6 lg:p-8">
+        <main
+          className={cn(
+            "mx-auto w-full max-w-[100rem]",
+            isFullHeight
+              ? "flex h-[calc(100svh-4rem)] flex-col overflow-hidden p-4 sm:p-6 lg:px-8 lg:py-6"
+              : "p-4 sm:p-6 lg:p-8",
+          )}
+        >
           {activeSection === "home" ? (
             <DashboardHome user={user} />
           ) : activeSection === "interactions" ? (

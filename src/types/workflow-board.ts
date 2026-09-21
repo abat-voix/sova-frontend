@@ -7,6 +7,22 @@
  * не должен ломать вёрстку.
  */
 
+/**
+ * `InteractionProductShort` — краткое представление продукта взаимодействия
+ * для вложенного использования (например, в `License`).
+ */
+export type InteractionProductShort = {
+  id: string;
+  interaction: string;
+  product: ProductShort;
+};
+
+/** `ProductShort` — краткое представление продукта каталога. */
+export type ProductShort = {
+  id: string;
+  name: string;
+};
+
 export type UserShort = {
   id: number;
   email?: string;
@@ -259,4 +275,65 @@ export type CancelStagePayload = {
   mode: CancelStageMode;
   reason: string;
   return_to?: string | null;
+};
+
+// workflow-board.ts (добавить)
+
+/**
+ * Статусы экземпляров этапов и действий.
+ *
+ * В OpenAPI описаны как enum, но в схеме — обычная строка. Храним как
+ * union, чтобы незнакомое значение с бэкенда не ломало типы, но при этом
+ * давало автодополнение для известных.
+ */
+export type ActionInstanceStatus = "pending" | "in_progress" | "completed";
+export type StageInstanceStatus = "pending" | "in_progress" | "completed";
+
+/** Тип контекста этапа: к чему относится этап. */
+export type StageInstanceContextType =
+  "interaction" | "direction" | "program" | "product";
+
+/**
+ * `ActionOutcomeShort` — краткое представление исхода действия
+ * для вложенного использования (в `ActionResult`).
+ */
+export type ActionOutcomeShort = {
+  id: string;
+  code: string;
+  name: string;
+};
+
+/**
+ * `ActionResult` — результат действия для чтения (list/retrieve).
+ *
+ * Пишется движком при завершении действия (`complete`); записи не
+ * редактируются и не удаляются.
+ */
+export type ActionResult = {
+  id: string;
+  action_instance: string;
+  outcome: ActionOutcomeShort;
+  /** Название исхода на момент фиксации результата. */
+  outcome_name_snapshot: string;
+  comment?: string;
+  created_at: string;
+  /** Пользователь, зафиксировавший результат; null, если он удалён. */
+  created_by: UserShort | null;
+};
+
+/**
+ * `WorkflowActionShort` — краткое представление действия workflow.
+ */
+export type WorkflowActionShort = {
+  id: string;
+  name: string;
+};
+
+/**
+ * `WorkflowStageShort` — краткое представление этапа workflow.
+ */
+export type WorkflowStageShort = {
+  id: string;
+  name: string;
+  workflow: string;
 };

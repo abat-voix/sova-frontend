@@ -1,17 +1,30 @@
 "use client";
 
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { Building2, LoaderCircle, Play, Plus, User } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  CalendarDays,
+  LoaderCircle,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Play,
+  Plus,
+  TableProperties,
+} from "lucide-react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
-import { BoardDetails } from "@/components/interactions/board-details";
+import { BoardDetailsDrawer } from "@/components/interactions/board-details-drawer";
+import {
+  InteractionList,
+  interactionTitle,
+} from "@/components/interactions/interaction-list";
 import { NewInteractionDialog } from "@/components/interactions/new-interaction-dialog";
 import { StartProcessDialog } from "@/components/interactions/start-process-dialog";
-import { WorkflowGantt } from "@/components/interactions/workflow-gantt";
-import { Badge } from "@/components/ui/badge";
+import {
+  GanttScale,
+  WorkflowGantt,
+  type WorkflowGanttHandle,
+} from "@/components/interactions/workflow-gantt";
 import { Button } from "@/components/ui/button";
-import { SearchInput } from "@/components/ui/search-input";
-import { getInteractions } from "@/lib/api/interactions/interactions";
 import {
   boardQueryKey,
   getWorkflowBoard,
@@ -29,67 +42,56 @@ import type { Interaction, WorkflowAudience } from "@/types/workflow-board";
 const copy = {
   ru: {
     boardError: "Не удалось загрузить процесс.",
-    clearSearch: "Очистить поиск",
-    details: "Детали",
-    interactionsCount: "взаимодействий",
-    listError: "Не удалось загрузить список взаимодействий.",
-    loadMore: "Подгрузить",
+    collapseList: "Свернуть список",
     create: "Новое",
-    loading: "Загружаем взаимодействия…",
+    expandList: "Развернуть список",
+    hideGrid: "Скрыть таблицу",
     loadingBoard: "Загружаем процесс…",
-    loadingMore: "Загружаем…",
     noInteraction: "Выберите взаимодействие слева.",
     noProcess: "По этому взаимодействию процесс ещё не запущен.",
-    noResults: "По вашему запросу ничего не найдено.",
     process: "Процесс",
-    responsible: "Ответственный",
     retry: "Повторить",
-    searchLabel: "Поиск взаимодействий",
-    searchPlaceholder: "Вуз, клиент или ответственный",
+    scale: "Масштаб",
+    scales: { day: "Д", month: "М", week: "Н" },
+    scaleTitles: {
+      day: "По дням",
+      month: "По месяцам",
+      week: "По неделям",
+    },
+    showGrid: "Показать таблицу",
     startProcess: "Запустить процесс",
-    title: "Взаимодействия",
-    description:
-      "Путь взаимодействия с вузом: этапы, действия, сроки и результаты.",
-    unassigned: "не назначен",
+    today: "Сегодня",
     unnamed: "Без названия",
   },
   en: {
     boardError: "The process could not be loaded.",
-    clearSearch: "Clear search",
+    collapseList: "Collapse the list",
     create: "New",
-    details: "Details",
-    interactionsCount: "interactions",
-    listError: "The interaction list could not be loaded.",
-    loadMore: "Load more",
-    loading: "Loading interactions…",
+    expandList: "Expand the list",
+    hideGrid: "Hide the table",
     loadingBoard: "Loading the process…",
-    loadingMore: "Loading…",
     noInteraction: "Pick an interaction on the left.",
     noProcess: "No process has been started for this interaction yet.",
-    noResults: "Nothing matched your search.",
     process: "Process",
-    responsible: "Responsible",
     retry: "Retry",
-    searchLabel: "Search interactions",
-    searchPlaceholder: "University, client, or responsible",
+    scale: "Scale",
+    scales: { day: "D", month: "M", week: "W" },
+    scaleTitles: {
+      day: "By day",
+      month: "By month",
+      week: "By week",
+    },
+    showGrid: "Show the table",
     startProcess: "Start a process",
-    title: "Interactions",
-    description:
-      "The path of work with a university: stages, actions, dates, and results.",
-    unassigned: "unassigned",
+    today: "Today",
     unnamed: "Untitled",
   },
 } as const;
 
-function interactionTitle(interaction: Interaction, fallback: string) {
-  return (
-    interaction.university?.name ??
-    interaction.b2c_client?.full_name ??
-    fallback
-  );
-}
+const collapsedStorageKey = "sova-interactions-list-collapsed";
+const scaleOrder: GanttScale[] = ["day", "week", "month"];
 
-function RequestState({
+function BoardState({
   label,
   onRetry,
   retryLabel,
@@ -99,7 +101,7 @@ function RequestState({
   retryLabel?: string;
 }) {
   return (
-    <div className="bg-card text-muted-foreground flex min-h-40 flex-col items-center justify-center gap-4 rounded-xl border p-6 text-center text-sm">
+    <div className="text-muted-foreground flex h-full flex-col items-center justify-center gap-4 p-6 text-center text-sm">
       <p>{label}</p>
       {onRetry && retryLabel ? (
         <Button
@@ -120,14 +122,27 @@ export function InteractionsWorkspace() {
   const { locale } = useLocale();
   const { csrfToken, user } = useAuth();
   const text = copy[locale];
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  // Id — источник правды (взаимодействие можно выбрать и без списка, сразу
+  // после создания), объект нужен только для заголовка и аудитории шаблона.
   const [selectedInteractionId, setSelectedInteractionId] = useState<
     string | null
   >(null);
+  const [selectedInteraction, setSelectedInteraction] =
+    useState<Interaction | null>(null);
   const [instanceId, setInstanceId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isStartingProcess, setIsStartingProcess] = useState(false);
+  // Рабочий стол виден только авторизованному пользователю, а сессия приходит
+  // клиентским запросом — на сервере этот компонент не рендерится, читать
+  // localStorage при инициализации состояния безопасно.
+  const [isListCollapsed, setIsListCollapsed] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.localStorage.getItem(collapsedStorageKey) === "true",
+  );
+  const [scale, setScale] = useState<GanttScale>("week");
+  const [showGrid, setShowGrid] = useState(true);
+  const ganttRef = useRef<WorkflowGanttHandle>(null);
   // Выбор храним идентификатором: объект из прошлого ответа доски устаревает
   // после каждой команды.
   const [selectedRow, setSelectedRow] = useState<{
@@ -135,21 +150,13 @@ export function InteractionsWorkspace() {
     kind: BoardSelection["kind"];
   } | null>(null);
 
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      setDebouncedSearch(search.trim());
-    }, 350);
+  const toggleList = useCallback(() => {
+    setIsListCollapsed((collapsed) => {
+      window.localStorage.setItem(collapsedStorageKey, String(!collapsed));
 
-    return () => window.clearTimeout(timeoutId);
-  }, [search]);
-
-  const interactionsQuery = useInfiniteQuery({
-    queryKey: ["interactions", "list", { search: debouncedSearch }],
-    queryFn: ({ pageParam }) => getInteractions(pageParam, debouncedSearch),
-    initialPageParam: 1,
-    getNextPageParam: (lastPage, pages) =>
-      lastPage.next ? pages.length + 1 : undefined,
-  });
+      return !collapsed;
+    });
+  }, []);
 
   const instancesQuery = useQuery({
     queryKey: ["processes", "workflow-instances", selectedInteractionId],
@@ -157,7 +164,10 @@ export function InteractionsWorkspace() {
     enabled: selectedInteractionId !== null,
   });
 
-  const instances = instancesQuery.data?.results ?? [];
+  const instances = useMemo(
+    () => instancesQuery.data?.results ?? [],
+    [instancesQuery.data],
+  );
   const activeInstanceId = instanceId ?? instances[0]?.id ?? null;
 
   const boardQuery = useQuery({
@@ -166,15 +176,6 @@ export function InteractionsWorkspace() {
     enabled: activeInstanceId !== null,
   });
 
-  const interactions = useMemo(
-    () => interactionsQuery.data?.pages.flatMap((page) => page.results) ?? [],
-    [interactionsQuery.data],
-  );
-  const total = interactionsQuery.data?.pages[0]?.count;
-
-  const selectedInteraction = interactions.find(
-    (interaction) => interaction.id === selectedInteractionId,
-  );
   // Аудитория шаблона определяется контрагентом: вуз — b2b, клиент — b2c.
   const audience: WorkflowAudience = selectedInteraction?.b2c_client
     ? "b2c"
@@ -186,8 +187,9 @@ export function InteractionsWorkspace() {
     [boardQuery.data, selectedRow],
   );
 
-  const handleSelectInteraction = useCallback((id: string) => {
-    setSelectedInteractionId(id);
+  const handleSelectInteraction = useCallback((interaction: Interaction) => {
+    setSelectedInteractionId(interaction.id);
+    setSelectedInteraction(interaction);
     setInstanceId(null);
     setSelectedRow(null);
   }, []);
@@ -200,25 +202,12 @@ export function InteractionsWorkspace() {
     );
   }, []);
 
-  return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-medium tracking-[-0.025em] sm:text-4xl">
-            {text.title}
-          </h1>
-          <p className="text-muted-foreground mt-2 max-w-3xl text-base leading-7">
-            {text.description}
-          </p>
-        </div>
-        {user ? (
-          <Button onClick={() => setIsCreating(true)} size="m" type="button">
-            <Plus aria-hidden="true" className="size-4" />
-            {text.create}
-          </Button>
-        ) : null}
-      </div>
+  const closeDetails = useCallback(() => setSelectedRow(null), []);
 
+  const hasBoard = Boolean(boardQuery.data) && instances.length > 0;
+
+  return (
+    <div className="flex min-h-0 flex-1 gap-4">
       {isCreating && user ? (
         <NewInteractionDialog
           csrfToken={csrfToken}
@@ -226,7 +215,11 @@ export function InteractionsWorkspace() {
           onClose={() => setIsCreating(false)}
           onCreated={(interactionId) => {
             setIsCreating(false);
-            handleSelectInteraction(interactionId);
+            // Объект придёт из списка, когда обновлённая страница его вернёт.
+            setSelectedInteractionId(interactionId);
+            setSelectedInteraction(null);
+            setInstanceId(null);
+            setSelectedRow(null);
           }}
         />
       ) : null}
@@ -246,189 +239,202 @@ export function InteractionsWorkspace() {
         />
       ) : null}
 
-      <div className="grid gap-5 lg:grid-cols-[22rem_minmax(0,1fr)]">
-        <div className="space-y-3">
-          <SearchInput
-            aria-label={text.searchLabel}
-            clearLabel={text.clearSearch}
-            onChange={setSearch}
-            placeholder={text.searchPlaceholder}
-            value={search}
-          />
-
-          {total !== undefined ? (
-            <p className="text-muted-foreground text-sm">
-              {total} {text.interactionsCount}
-            </p>
-          ) : null}
-
-          {interactionsQuery.isPending ? (
-            <RequestState label={text.loading} />
-          ) : interactionsQuery.isError ? (
-            <RequestState
-              label={text.listError}
-              onRetry={() => void interactionsQuery.refetch()}
-              retryLabel={text.retry}
-            />
-          ) : interactions.length === 0 ? (
-            <RequestState label={text.noResults} />
-          ) : (
-            <ul className="space-y-2">
-              {interactions.map((interaction) => (
-                <li key={interaction.id}>
-                  <button
-                    aria-pressed={selectedInteractionId === interaction.id}
-                    className={cn(
-                      "bg-card w-full rounded-xl border p-4 text-left shadow-sm transition-colors",
-                      selectedInteractionId === interaction.id
-                        ? "border-[var(--atmr-accent-primary)] bg-[var(--atmr-background-accent-soft)]"
-                        : "hover:bg-secondary",
-                    )}
-                    onClick={() => handleSelectInteraction(interaction.id)}
-                    type="button"
-                  >
-                    <span className="flex items-start gap-3">
-                      <Building2
-                        aria-hidden="true"
-                        className="mt-0.5 size-5 shrink-0 text-[var(--atmr-accent-primary)]"
-                      />
-                      <span className="min-w-0 flex-1">
-                        <span className="block leading-5 font-medium">
-                          {interactionTitle(interaction, text.unnamed)}
-                        </span>
-                        <span className="text-muted-foreground mt-2 flex items-center gap-1.5 text-xs">
-                          <User aria-hidden="true" className="size-3.5" />
-                          {interaction.current_responsible?.manager.full_name ??
-                            text.unassigned}
-                        </span>
-                        <span className="mt-2 flex flex-wrap gap-1.5">
-                          <Badge variant="neutral">
-                            {interaction.directions_count} ·{" "}
-                            {interaction.programs_count} ·{" "}
-                            {interaction.products_count}
-                          </Badge>
-                        </span>
-                      </span>
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          {interactionsQuery.hasNextPage ? (
+      <aside
+        className={cn(
+          "flex min-h-0 shrink-0 flex-col",
+          isListCollapsed ? "w-10" : "w-80",
+        )}
+      >
+        <div className="mb-3 flex items-center gap-2">
+          <Button
+            aria-controls="interactions-list"
+            aria-expanded={!isListCollapsed}
+            aria-label={isListCollapsed ? text.expandList : text.collapseList}
+            colorScheme="neutral"
+            onClick={toggleList}
+            size="icon"
+            title={isListCollapsed ? text.expandList : text.collapseList}
+            type="button"
+            variant="outline"
+          >
+            {isListCollapsed ? (
+              <PanelLeftOpen aria-hidden="true" className="size-4" />
+            ) : (
+              <PanelLeftClose aria-hidden="true" className="size-4" />
+            )}
+          </Button>
+          {!isListCollapsed && user ? (
             <Button
-              colorScheme="neutral"
-              disabled={interactionsQuery.isFetchingNextPage}
-              onClick={() => void interactionsQuery.fetchNextPage()}
+              className="flex-1"
+              onClick={() => setIsCreating(true)}
               size="m"
               type="button"
-              variant="outline"
             >
-              {interactionsQuery.isFetchingNextPage
-                ? text.loadingMore
-                : text.loadMore}
+              <Plus aria-hidden="true" className="size-4" />
+              {text.create}
             </Button>
           ) : null}
         </div>
 
-        <div className="space-y-4">
+        <div
+          className={cn("min-h-0 flex-1", isListCollapsed && "hidden")}
+          id="interactions-list"
+        >
+          <InteractionList
+            onResolve={setSelectedInteraction}
+            onSelect={handleSelectInteraction}
+            selectedId={selectedInteractionId}
+          />
+        </div>
+      </aside>
+
+      <section className="bg-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border shadow-sm">
+        <div className="flex h-12 shrink-0 flex-wrap items-center gap-2 border-b px-3">
+          {selectedInteraction ? (
+            <p className="min-w-0 truncate text-sm font-medium">
+              {interactionTitle(selectedInteraction, text.unnamed)}
+            </p>
+          ) : null}
+
+          {instances.length > 1 ? (
+            <label className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground sr-only sm:not-sr-only">
+                {text.process}
+              </span>
+              <select
+                className="border-input bg-background h-8 max-w-56 rounded-lg border px-2 text-sm"
+                onChange={(event) => {
+                  setInstanceId(event.target.value);
+                  setSelectedRow(null);
+                }}
+                value={activeInstanceId ?? ""}
+              >
+                {instances.map((instance) => (
+                  <option key={instance.id} value={instance.id}>
+                    {instance.workflow.name} ·{" "}
+                    {new Date(instance.started_at).toLocaleDateString(
+                      locale === "ru" ? "ru-RU" : "en-GB",
+                    )}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+
+          {selectedInteractionId ? (
+            <Button
+              colorScheme={instances.length === 0 ? "accent" : "neutral"}
+              onClick={() => setIsStartingProcess(true)}
+              size="s"
+              type="button"
+              variant={instances.length === 0 ? "primary" : "outline"}
+            >
+              <Play aria-hidden="true" className="size-3.5" />
+              {text.startProcess}
+            </Button>
+          ) : null}
+
+          <div className="ml-auto flex items-center gap-2">
+            <div
+              aria-label={text.scale}
+              className="flex items-center gap-0.5 rounded-lg border p-0.5"
+              role="group"
+            >
+              {scaleOrder.map((value) => (
+                <Button
+                  aria-pressed={scale === value}
+                  className="min-w-8 px-2"
+                  colorScheme={scale === value ? "accent" : "neutral"}
+                  disabled={!hasBoard}
+                  key={value}
+                  onClick={() => setScale(value)}
+                  size="s"
+                  title={text.scaleTitles[value]}
+                  type="button"
+                  variant={scale === value ? "secondary" : "ghost"}
+                >
+                  {text.scales[value]}
+                </Button>
+              ))}
+            </div>
+
+            <Button
+              aria-label={text.today}
+              colorScheme="neutral"
+              disabled={!hasBoard}
+              onClick={() => ganttRef.current?.showToday()}
+              size="icon"
+              title={text.today}
+              type="button"
+              variant="outline"
+            >
+              <CalendarDays aria-hidden="true" className="size-4" />
+            </Button>
+
+            <Button
+              aria-label={showGrid ? text.hideGrid : text.showGrid}
+              aria-pressed={showGrid}
+              colorScheme={showGrid ? "accent" : "neutral"}
+              disabled={!hasBoard}
+              onClick={() => setShowGrid((visible) => !visible)}
+              size="icon"
+              title={showGrid ? text.hideGrid : text.showGrid}
+              type="button"
+              variant={showGrid ? "secondary" : "outline"}
+            >
+              <TableProperties aria-hidden="true" className="size-4" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="relative min-h-0 flex-1">
           {selectedInteractionId === null ? (
-            <RequestState label={text.noInteraction} />
+            <BoardState label={text.noInteraction} />
           ) : instancesQuery.isPending ? (
-            <p className="text-muted-foreground flex items-center gap-2 text-sm">
+            <BoardState label={text.loadingBoard} />
+          ) : instancesQuery.isError ? (
+            <BoardState
+              label={text.boardError}
+              onRetry={() => void instancesQuery.refetch()}
+              retryLabel={text.retry}
+            />
+          ) : instances.length === 0 ? (
+            <BoardState label={text.noProcess} />
+          ) : boardQuery.isPending ? (
+            <p className="text-muted-foreground flex h-full items-center justify-center gap-2 text-sm">
               <LoaderCircle
                 aria-hidden="true"
                 className="size-4 animate-spin"
               />
               {text.loadingBoard}
             </p>
-          ) : instancesQuery.isError ? (
-            <RequestState
+          ) : boardQuery.isError ? (
+            <BoardState
               label={text.boardError}
-              onRetry={() => void instancesQuery.refetch()}
+              onRetry={() => void boardQuery.refetch()}
               retryLabel={text.retry}
             />
-          ) : (
-            <>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                {instances.length > 1 ? (
-                  <label className="flex items-center gap-2 text-sm">
-                    <span className="text-muted-foreground">
-                      {text.process}
-                    </span>
-                    <select
-                      className="border-input bg-background h-9 rounded-lg border px-3 text-sm"
-                      onChange={(event) => {
-                        setInstanceId(event.target.value);
-                        setSelectedRow(null);
-                      }}
-                      value={activeInstanceId ?? ""}
-                    >
-                      {instances.map((instance) => (
-                        <option key={instance.id} value={instance.id}>
-                          {instance.workflow.name} ·{" "}
-                          {new Date(instance.started_at).toLocaleDateString(
-                            locale === "ru" ? "ru-RU" : "en-GB",
-                          )}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                ) : (
-                  <span />
-                )}
+          ) : boardQuery.data ? (
+            <WorkflowGantt
+              board={boardQuery.data}
+              className="h-full"
+              onSelect={handleSelectRow}
+              ref={ganttRef}
+              scale={scale}
+              showGrid={showGrid}
+            />
+          ) : null}
 
-                <Button
-                  onClick={() => setIsStartingProcess(true)}
-                  size="m"
-                  type="button"
-                  variant={instances.length === 0 ? "primary" : "outline"}
-                  colorScheme={instances.length === 0 ? "accent" : "neutral"}
-                >
-                  <Play aria-hidden="true" className="size-4" />
-                  {text.startProcess}
-                </Button>
-              </div>
-
-              {instances.length === 0 ? (
-                <RequestState label={text.noProcess} />
-              ) : boardQuery.isPending ? (
-                <p className="text-muted-foreground flex items-center gap-2 text-sm">
-                  <LoaderCircle
-                    aria-hidden="true"
-                    className="size-4 animate-spin"
-                  />
-                  {text.loadingBoard}
-                </p>
-              ) : boardQuery.isError ? (
-                <RequestState
-                  label={text.boardError}
-                  onRetry={() => void boardQuery.refetch()}
-                  retryLabel={text.retry}
-                />
-              ) : boardQuery.data ? (
-                <>
-                  <WorkflowGantt
-                    board={boardQuery.data}
-                    onSelect={handleSelectRow}
-                  />
-                  <section
-                    aria-label={text.details}
-                    className="bg-card rounded-xl border p-5 shadow-sm"
-                  >
-                    <BoardDetails
-                      csrfToken={csrfToken}
-                      selection={selection}
-                      workflowInstanceId={boardQuery.data.id}
-                    />
-                  </section>
-                </>
-              ) : null}
-            </>
-          )}
+          {selection && boardQuery.data ? (
+            <BoardDetailsDrawer
+              csrfToken={csrfToken}
+              onClose={closeDetails}
+              selection={selection}
+              workflowInstanceId={boardQuery.data.id}
+            />
+          ) : null}
         </div>
-      </div>
+      </section>
     </div>
   );
 }
