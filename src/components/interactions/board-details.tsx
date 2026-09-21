@@ -31,7 +31,7 @@ const copy = {
     attachButton: "Выбрать файл",
     attachments: "Вложений",
     attachmentRequired: "Этот исход требует вложение.",
-    cancelStage: "Отменить этап",
+    cancelStage: "Откатить на предыдущий этап",
     cancelStageHint:
       "Этапы после этапа возврата снова перейдут в ожидание и будут выполнены заново.",
     close: "Закрыть",
@@ -77,7 +77,7 @@ const copy = {
     attachButton: "Choose file",
     attachments: "Attachments",
     attachmentRequired: "This outcome requires an attachment.",
-    cancelStage: "Cancel stage",
+    cancelStage: "Roll back to the previous stage",
     cancelStageHint:
       "Stages after the return point go back to pending and will be done again.",
     close: "Close",
