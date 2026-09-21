@@ -235,11 +235,16 @@ export function InteractionsWorkspace() {
 
       <aside
         className={cn(
-          "flex min-h-0 shrink-0 flex-col",
-          isListCollapsed ? "w-10" : "w-80",
+          "bg-card flex min-h-0 shrink-0 flex-col overflow-hidden rounded-xl border shadow-sm",
+          isListCollapsed ? "w-14" : "w-80",
         )}
       >
-        <div className="mb-3 flex items-center gap-2">
+        <div
+          className={cn(
+            "flex h-12 shrink-0 items-center gap-2 border-b",
+            isListCollapsed ? "justify-center px-0" : "px-2",
+          )}
+        >
           <Button
             aria-controls="interactions-list"
             aria-expanded={!isListCollapsed}
@@ -270,8 +275,15 @@ export function InteractionsWorkspace() {
           ) : null}
         </div>
 
+        {/*
+          В свёрнутом виде список прячем стилями, а не размонтированием: он
+          продолжает отдавать наружу объект выбранного взаимодействия.
+        */}
         <div
-          className={cn("min-h-0 flex-1", isListCollapsed && "hidden")}
+          className={cn(
+            "flex min-h-0 flex-1 flex-col p-3",
+            isListCollapsed && "hidden",
+          )}
           id="interactions-list"
         >
           <InteractionList
