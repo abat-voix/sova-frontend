@@ -5,6 +5,7 @@ import { ThemeProvider, useTheme } from "next-themes";
 import { useState } from "react";
 import { Toaster } from "sonner";
 
+import { SessionExpiredError } from "@/lib/api/http";
 import { AuthProvider } from "@/providers/auth-provider";
 import { LocaleProvider } from "@/providers/locale-provider";
 
@@ -27,7 +28,10 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
         defaultOptions: {
           queries: {
             refetchOnWindowFocus: false,
-            retry: 1,
+            // Повтор после истёкшей сессии даст тот же 401, а переход на
+            // вход уже начат — ретраить нечего.
+            retry: (failureCount, error) =>
+              !(error instanceof SessionExpiredError) && failureCount < 1,
             staleTime: 30_000,
           },
         },

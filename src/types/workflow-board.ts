@@ -50,10 +50,99 @@ export type Interaction = {
   products_count: number;
 };
 
+/** `WriteInteraction`: контрагент ровно один — вуз либо B2C-клиент. */
+export type CreateInteractionPayload = {
+  comment?: string;
+  is_active?: boolean;
+  university?: string | null;
+  b2c_client?: string | null;
+};
+
+/** `WriteInteractionDirection`. */
+export type CreateInteractionDirectionPayload = {
+  interaction: string;
+  direction: string;
+};
+
+/** `WriteInteractionProgram`. Направление не дублируется: оно выводится
+ * из `program.direction` каталога. */
+export type CreateInteractionProgramPayload = {
+  interaction: string;
+  program: string;
+};
+
+/** `WriteInteractionProduct`. */
+export type CreateInteractionProductPayload = {
+  interaction: string;
+  product: string;
+  interaction_program?: string | null;
+};
+
+/** Развёрнутая ссылка на объект каталога в ответах взаимодействия. */
+export type NamedRef = {
+  id: string;
+  name: string;
+};
+
+/** Ответ `assign-responsible`: `Responsible` из схемы. */
+export type InteractionResponsible = {
+  id: string;
+  interaction: string;
+  manager: UserShort;
+  assigned_by: UserShort | null;
+  assigned_at: string;
+  unassigned_at: string | null;
+};
+
+export type InteractionDirection = {
+  id: string;
+  interaction: string;
+  direction: NamedRef;
+  is_active: boolean;
+  added_at: string;
+};
+
+export type InteractionProgram = {
+  id: string;
+  interaction: string;
+  program: NamedRef;
+  is_active: boolean;
+  added_at: string;
+};
+
+export type InteractionProduct = {
+  id: string;
+  interaction: string;
+  interaction_program: string | null;
+  product: NamedRef;
+  is_active: boolean;
+  added_at: string;
+};
+
 export type WorkflowShort = {
   id: string;
   name: string;
   code: string;
+};
+
+/** Аудитория шаблона: вузы или физ/юрлица. Должна совпасть с контрагентом. */
+export type WorkflowAudience = "b2b" | "b2c";
+
+export type Workflow = {
+  id: string;
+  name: string;
+  code: string;
+  audience: WorkflowAudience;
+  description: string;
+  is_base: boolean;
+  active: boolean;
+  stages_count: number;
+};
+
+/** `WriteWorkflowInstance`: остальные поля движок задаёт сам. */
+export type StartWorkflowInstancePayload = {
+  workflow: string;
+  interaction: string;
 };
 
 export type WorkflowInstance = {

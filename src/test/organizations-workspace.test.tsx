@@ -82,7 +82,7 @@ describe("OrganizationsWorkspace", () => {
     expect(screen.queryByRole("button", { name: "Подгрузить" })).toBeNull();
     expect(fetchMock).toHaveBeenLastCalledWith(
       "/api/catalog/universities/?page=2&page_size=20",
-      expect.objectContaining({ credentials: "same-origin" }),
+      expect.objectContaining({ credentials: "include" }),
     );
   });
 
@@ -131,7 +131,7 @@ describe("OrganizationsWorkspace", () => {
     await waitFor(() =>
       expect(fetchMock).toHaveBeenLastCalledWith(
         "/api/catalog/universities/?page=1&page_size=20&search=%D0%A2%D1%8E%D0%BC%D0%B5%D0%BD%D1%8C",
-        expect.objectContaining({ credentials: "same-origin" }),
+        expect.objectContaining({ credentials: "include" }),
       ),
     );
   });

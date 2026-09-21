@@ -1,10 +1,12 @@
 "use client";
 
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { Building2, LoaderCircle, User } from "lucide-react";
+import { Building2, LoaderCircle, Play, Plus, User } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { BoardDetails } from "@/components/interactions/board-details";
+import { NewInteractionDialog } from "@/components/interactions/new-interaction-dialog";
+import { StartProcessDialog } from "@/components/interactions/start-process-dialog";
 import { WorkflowGantt } from "@/components/interactions/workflow-gantt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,7 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
-import type { Interaction } from "@/types/workflow-board";
+import type { Interaction, WorkflowAudience } from "@/types/workflow-board";
 
 const copy = {
   ru: {
@@ -32,6 +34,7 @@ const copy = {
     interactionsCount: "взаимодействий",
     listError: "Не удалось загрузить список взаимодействий.",
     loadMore: "Подгрузить",
+    create: "Новое",
     loading: "Загружаем взаимодействия…",
     loadingBoard: "Загружаем процесс…",
     loadingMore: "Загружаем…",
@@ -43,6 +46,7 @@ const copy = {
     retry: "Повторить",
     searchLabel: "Поиск взаимодействий",
     searchPlaceholder: "Вуз, клиент или ответственный",
+    startProcess: "Запустить процесс",
     title: "Взаимодействия",
     description:
       "Путь взаимодействия с вузом: этапы, действия, сроки и результаты.",
@@ -52,6 +56,7 @@ const copy = {
   en: {
     boardError: "The process could not be loaded.",
     clearSearch: "Clear search",
+    create: "New",
     details: "Details",
     interactionsCount: "interactions",
     listError: "The interaction list could not be loaded.",
@@ -67,6 +72,7 @@ const copy = {
     retry: "Retry",
     searchLabel: "Search interactions",
     searchPlaceholder: "University, client, or responsible",
+    startProcess: "Start a process",
     title: "Interactions",
     description:
       "The path of work with a university: stages, actions, dates, and results.",
@@ -112,7 +118,7 @@ function RequestState({
 
 export function InteractionsWorkspace() {
   const { locale } = useLocale();
-  const { csrfToken } = useAuth();
+  const { csrfToken, user } = useAuth();
   const text = copy[locale];
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -120,6 +126,8 @@ export function InteractionsWorkspace() {
     string | null
   >(null);
   const [instanceId, setInstanceId] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+  const [isStartingProcess, setIsStartingProcess] = useState(false);
   // Выбор храним идентификатором: объект из прошлого ответа доски устаревает
   // после каждой команды.
   const [selectedRow, setSelectedRow] = useState<{
@@ -164,6 +172,14 @@ export function InteractionsWorkspace() {
   );
   const total = interactionsQuery.data?.pages[0]?.count;
 
+  const selectedInteraction = interactions.find(
+    (interaction) => interaction.id === selectedInteractionId,
+  );
+  // Аудитория шаблона определяется контрагентом: вуз — b2b, клиент — b2c.
+  const audience: WorkflowAudience = selectedInteraction?.b2c_client
+    ? "b2c"
+    : "b2b";
+
   const selection = useMemo(
     () =>
       boardQuery.data ? findBoardSelection(boardQuery.data, selectedRow) : null,
@@ -186,14 +202,49 @@ export function InteractionsWorkspace() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-3xl font-medium tracking-[-0.025em] sm:text-4xl">
-          {text.title}
-        </h1>
-        <p className="text-muted-foreground mt-2 max-w-3xl text-base leading-7">
-          {text.description}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-medium tracking-[-0.025em] sm:text-4xl">
+            {text.title}
+          </h1>
+          <p className="text-muted-foreground mt-2 max-w-3xl text-base leading-7">
+            {text.description}
+          </p>
+        </div>
+        {user ? (
+          <Button onClick={() => setIsCreating(true)} size="m" type="button">
+            <Plus aria-hidden="true" className="size-4" />
+            {text.create}
+          </Button>
+        ) : null}
       </div>
+
+      {isCreating && user ? (
+        <NewInteractionDialog
+          csrfToken={csrfToken}
+          currentUser={user}
+          onClose={() => setIsCreating(false)}
+          onCreated={(interactionId) => {
+            setIsCreating(false);
+            handleSelectInteraction(interactionId);
+          }}
+        />
+      ) : null}
+
+      {isStartingProcess && selectedInteractionId ? (
+        <StartProcessDialog
+          audience={audience}
+          csrfToken={csrfToken}
+          interactionId={selectedInteractionId}
+          onClose={() => setIsStartingProcess(false)}
+          onStarted={(workflowInstanceId) => {
+            setIsStartingProcess(false);
+            // Показываем только что запущенный процесс, а не первый в списке.
+            setInstanceId(workflowInstanceId);
+            setSelectedRow(null);
+          }}
+        />
+      ) : null}
 
       <div className="grid gap-5 lg:grid-cols-[22rem_minmax(0,1fr)]">
         <div className="space-y-3">
@@ -298,34 +349,51 @@ export function InteractionsWorkspace() {
               onRetry={() => void instancesQuery.refetch()}
               retryLabel={text.retry}
             />
-          ) : instances.length === 0 ? (
-            <RequestState label={text.noProcess} />
           ) : (
             <>
-              {instances.length > 1 ? (
-                <label className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">{text.process}</span>
-                  <select
-                    className="border-input bg-background h-9 rounded-lg border px-3 text-sm"
-                    onChange={(event) => {
-                      setInstanceId(event.target.value);
-                      setSelectedRow(null);
-                    }}
-                    value={activeInstanceId ?? ""}
-                  >
-                    {instances.map((instance) => (
-                      <option key={instance.id} value={instance.id}>
-                        {instance.workflow.name} ·{" "}
-                        {new Date(instance.started_at).toLocaleDateString(
-                          locale === "ru" ? "ru-RU" : "en-GB",
-                        )}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : null}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                {instances.length > 1 ? (
+                  <label className="flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">
+                      {text.process}
+                    </span>
+                    <select
+                      className="border-input bg-background h-9 rounded-lg border px-3 text-sm"
+                      onChange={(event) => {
+                        setInstanceId(event.target.value);
+                        setSelectedRow(null);
+                      }}
+                      value={activeInstanceId ?? ""}
+                    >
+                      {instances.map((instance) => (
+                        <option key={instance.id} value={instance.id}>
+                          {instance.workflow.name} ·{" "}
+                          {new Date(instance.started_at).toLocaleDateString(
+                            locale === "ru" ? "ru-RU" : "en-GB",
+                          )}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : (
+                  <span />
+                )}
 
-              {boardQuery.isPending ? (
+                <Button
+                  onClick={() => setIsStartingProcess(true)}
+                  size="m"
+                  type="button"
+                  variant={instances.length === 0 ? "primary" : "outline"}
+                  colorScheme={instances.length === 0 ? "accent" : "neutral"}
+                >
+                  <Play aria-hidden="true" className="size-4" />
+                  {text.startProcess}
+                </Button>
+              </div>
+
+              {instances.length === 0 ? (
+                <RequestState label={text.noProcess} />
+              ) : boardQuery.isPending ? (
                 <p className="text-muted-foreground flex items-center gap-2 text-sm">
                   <LoaderCircle
                     aria-hidden="true"

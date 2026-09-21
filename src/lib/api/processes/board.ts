@@ -5,12 +5,17 @@ import type {
   CancelStagePayload,
   CompleteActionPayload,
   CompleteActionResult,
+  StartWorkflowInstancePayload,
   WorkflowBoard,
   WorkflowInstance,
 } from "@/types/workflow-board";
 
 export function boardQueryKey(workflowInstanceId: string) {
   return ["processes", "workflow-board", workflowInstanceId] as const;
+}
+
+export function workflowInstancesQueryKey(interactionId: string) {
+  return ["processes", "workflow-instances", interactionId] as const;
 }
 
 export function getWorkflowInstances(interactionId: string) {
@@ -21,6 +26,21 @@ export function getWorkflowInstances(interactionId: string) {
 
   return getJson<PaginatedResponse<WorkflowInstance>>(
     `${apiEndpoints.processes.workflowInstances.list}?${query}`,
+  );
+}
+
+/**
+ * Запускает процесс: движок создаёт все экземпляры этапов и действий и
+ * открывает этапы без входящих связей (Шаг 3 описания движка).
+ */
+export function startWorkflowInstance(
+  payload: StartWorkflowInstancePayload,
+  csrfToken: string,
+) {
+  return postJson<WorkflowInstance>(
+    apiEndpoints.processes.workflowInstances.list,
+    payload,
+    csrfToken,
   );
 }
 

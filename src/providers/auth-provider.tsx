@@ -3,6 +3,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 
+/** Прикладные роли СОВА (`accounts.SystemRole`). */
+export type SystemRole = "kam" | "head" | "platform_admin";
+
 export type AuthenticatedUser = {
   id: number;
   email: string;
@@ -10,6 +13,10 @@ export type AuthenticatedUser = {
   lastName: string;
   displayName: string;
   isStaff: boolean;
+  /** `null`, если роль СОВА не назначена. */
+  role: SystemRole | null;
+  /** Название роли для интерфейса; приходит с бэкенда, не переводим. */
+  roleDisplay: string | null;
   roles: string[];
 };
 
@@ -28,9 +35,17 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/**
+ * Сессия читается в обход общего транспорта намеренно.
+ *
+ * `/api/auth/me/` освобождён от продления id token и отвечает 200 даже при
+ * истёкшем токене, а анонимному пользователю — `{authenticated: false}`.
+ * Поэтому уводить отсюда на вход нельзя: неавторизованный экран должен
+ * отрисоваться со своей кнопкой входа.
+ */
 async function fetchSession(): Promise<SessionResponse> {
   const response = await fetch("/api/auth/me/", {
-    credentials: "same-origin",
+    credentials: "include",
     headers: { accept: "application/json" },
   });
 

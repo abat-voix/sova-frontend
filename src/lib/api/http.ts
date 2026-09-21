@@ -1,6 +1,9 @@
 /**
  * Транспорт для API. Бизнес-правил здесь нет: коды ошибок бэкенда доезжают до
  * интерфейса как есть, а он решает, каким сообщением их показать.
+ *
+ * Исключение — истёкшая сессия: показывать её как ошибку нечего, единственный
+ * осмысленный ответ интерфейса один и тот же, поэтому вход инициирует транспорт.
  */
 
 /**
@@ -29,32 +32,88 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Сессия истекла — начат переход на вход.
+ *
+ * Отдельный тип, чтобы такие ошибки не ретраились и не показывались как сбой
+ * сети: это штатное состояние приложения.
+ */
+export class SessionExpiredError extends Error {
+  constructor() {
+    super("Сессия истекла, требуется повторный вход.");
+    this.name = "SessionExpiredError";
+  }
+}
+
+const defaultLoginUrl = "/api/auth/oidc/authenticate/";
+
+/**
+ * На экране обычно висит несколько запросов сразу, и 401 придёт на каждый.
+ * Флаг оставляет ровно одну навигацию вместо гонки переходов.
+ */
+let isRedirectingToLogin = false;
+
+/**
+ * Уводит на вход, сохранив текущую страницу в `next`.
+ *
+ * Без `next` Keycloak вернёт пользователя на корень приложения. Идём именно на
+ * `login_url`, а не на `refresh_url`: молчаливое продление теряет страницу,
+ * с которой всё началось.
+ */
+function goToLogin(loginUrl: string) {
+  if (isRedirectingToLogin) return;
+  isRedirectingToLogin = true;
+
+  const next = encodeURIComponent(
+    window.location.pathname + window.location.search,
+  );
+
+  // Адрес входа обслуживает бэкенд, а не роутер Next: нужен именно полный
+  // переход, router.push() до Keycloak не дойдёт.
+  // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+  window.location.assign(`${loginUrl}?next=${next}`);
+}
+
 type ErrorBody = {
   code?: unknown;
   detail?: unknown;
+  login_url?: unknown;
 };
 
 async function readErrorBody(response: Response) {
   try {
     const body = (await response.json()) as ErrorBody;
-    const code = typeof body.code === "string" ? body.code : null;
-    const detail = typeof body.detail === "string" ? body.detail : null;
 
-    return { code, detail };
+    return {
+      code: typeof body.code === "string" ? body.code : null,
+      detail: typeof body.detail === "string" ? body.detail : null,
+      loginUrl: typeof body.login_url === "string" ? body.login_url : null,
+    };
   } catch {
-    return { code: null, detail: null };
+    return { code: null, detail: null, loginUrl: null };
   }
 }
 
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
-    credentials: "same-origin",
+    credentials: "include",
     ...init,
+    // `Accept: text/html` бэкенд считает навигацией браузера и отвечает 302 на
+    // Keycloak — запрос упрётся в чужой origin без CORS.
     headers: { accept: "application/json", ...init?.headers },
   });
 
   if (!response.ok) {
-    const { code, detail } = await readErrorBody(response);
+    const { code, detail, loginUrl } = await readErrorBody(response);
+
+    // `session_expired` — сессия жива, но id token протух; `not_authenticated`
+    // — сессии нет совсем. Ответ интерфейса в обоих случаях один.
+    if (code === "session_expired" || code === "not_authenticated") {
+      goToLogin(loginUrl ?? defaultLoginUrl);
+
+      throw new SessionExpiredError();
+    }
+
     throw new ApiError(
       response.status,
       code,
