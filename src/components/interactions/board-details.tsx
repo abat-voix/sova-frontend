@@ -6,12 +6,8 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  boardQueryKey,
-  cancelStage,
-  completeAction,
-  uploadActionAttachment,
-} from "@/lib/api/processes/board";
+import { useCompleteAction } from "@/hooks/use-complete-action";
+import { boardQueryKey, cancelStage } from "@/lib/api/processes/board";
 import { resolveActionErrorMessage } from "@/lib/workflow/action-errors";
 import {
   resolveActionState,
@@ -59,10 +55,8 @@ const copy = {
     stageCancelled: "Этап отменён, процесс вернулся назад.",
     stageClosed: "Закрыт",
     stageOpened: "Открыт",
-    success: "Действие завершено.",
     unassigned: "не назначен",
     uploadFailed: "Не удалось загрузить файл.",
-    workflowCompleted: "Процесс завершён.",
   },
   en: {
     actual: "Actual",
@@ -97,10 +91,8 @@ const copy = {
     stageCancelled: "The stage was cancelled and the process moved back.",
     stageClosed: "Closed",
     stageOpened: "Opened",
-    success: "The action is complete.",
     unassigned: "unassigned",
     uploadFailed: "The file could not be uploaded.",
-    workflowCompleted: "The process is complete.",
   },
 } as const;
 
@@ -125,7 +117,6 @@ function ActionPanel({
 }: PanelProps & { action: BoardAction }) {
   const { locale } = useLocale();
   const text = copy[locale];
-  const queryClient = useQueryClient();
   const [outcomeId, setOutcomeId] = useState("");
   const [comment, setComment] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -139,43 +130,7 @@ function ActionPanel({
     (outcome?.is_attachment_required ?? false) &&
     action.attachments_count === 0;
 
-  const mutation = useMutation({
-    mutationFn: async () => {
-      if (!outcome) return null;
-
-      // Исход с is_attachment_required бэкенд проверяет при завершении, поэтому
-      // файл уходит раньше команды.
-      if (needsAttachment) {
-        if (!file) throw new Error("missing-file");
-        await uploadActionAttachment(action.id, file, csrfToken);
-      }
-
-      return completeAction(
-        action.id,
-        { comment: comment.trim(), outcome: outcome.id },
-        csrfToken,
-      );
-    },
-    onError: (mutationError) => {
-      setError(
-        mutationError instanceof Error &&
-          mutationError.message === "missing-file"
-          ? text.attachmentRequired
-          : resolveActionErrorMessage(mutationError, locale),
-      );
-    },
-    onSuccess: (result) => {
-      setError(null);
-      toast.success(
-        result?.workflow_completed ? text.workflowCompleted : text.success,
-      );
-      // Состояние процесса пересчитывает движок — забираем доску заново,
-      // а не достраиваем цепочку у себя.
-      void queryClient.invalidateQueries({
-        queryKey: boardQueryKey(workflowInstanceId),
-      });
-    },
-  });
+  const mutation = useCompleteAction(csrfToken);
 
   const state = resolveActionState(action);
   const canSubmit =
@@ -251,7 +206,26 @@ function ActionPanel({
           className="space-y-3 border-t pt-4"
           onSubmit={(event) => {
             event.preventDefault();
-            mutation.mutate();
+            if (!outcome) return;
+            setError(null);
+            mutation.mutate(
+              {
+                // Доска знает процесс из своих пропсов: в BoardAction его нет.
+                action: { ...action, workflow_instance: workflowInstanceId },
+                comment,
+                file,
+                outcome,
+              },
+              {
+                onError: (mutationError) =>
+                  setError(
+                    mutationError instanceof Error &&
+                      mutationError.message === "missing-file"
+                      ? text.attachmentRequired
+                      : resolveActionErrorMessage(mutationError, locale),
+                  ),
+              },
+            );
           }}
         >
           <div>
