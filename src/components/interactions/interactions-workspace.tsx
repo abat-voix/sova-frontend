@@ -393,43 +393,45 @@ export function InteractionsWorkspace() {
           </div>
         </div>
 
-        <div className="relative min-h-0 flex-1">
-          {selectedInteractionId === null ? (
-            <BoardState label={text.noInteraction} />
-          ) : instancesQuery.isPending ? (
-            <BoardState label={text.loadingBoard} />
-          ) : instancesQuery.isError ? (
-            <BoardState
-              label={text.boardError}
-              onRetry={() => void instancesQuery.refetch()}
-              retryLabel={text.retry}
-            />
-          ) : instances.length === 0 ? (
-            <BoardState label={text.noProcess} />
-          ) : boardQuery.isPending ? (
-            <p className="text-muted-foreground flex h-full items-center justify-center gap-2 text-sm">
-              <LoaderCircle
-                aria-hidden="true"
-                className="size-4 animate-spin"
+        <div className="relative flex min-h-0 flex-1">
+          <div className="relative min-h-0 min-w-0 flex-1">
+            {selectedInteractionId === null ? (
+              <BoardState label={text.noInteraction} />
+            ) : instancesQuery.isPending ? (
+              <BoardState label={text.loadingBoard} />
+            ) : instancesQuery.isError ? (
+              <BoardState
+                label={text.boardError}
+                onRetry={() => void instancesQuery.refetch()}
+                retryLabel={text.retry}
               />
-              {text.loadingBoard}
-            </p>
-          ) : boardQuery.isError ? (
-            <BoardState
-              label={text.boardError}
-              onRetry={() => void boardQuery.refetch()}
-              retryLabel={text.retry}
-            />
-          ) : boardQuery.data ? (
-            <WorkflowGantt
-              board={boardQuery.data}
-              className="h-full"
-              onSelect={handleSelectRow}
-              ref={ganttRef}
-              scale={scale}
-              showGrid={showGrid}
-            />
-          ) : null}
+            ) : instances.length === 0 ? (
+              <BoardState label={text.noProcess} />
+            ) : boardQuery.isPending ? (
+              <p className="text-muted-foreground flex h-full items-center justify-center gap-2 text-sm">
+                <LoaderCircle
+                  aria-hidden="true"
+                  className="size-4 animate-spin"
+                />
+                {text.loadingBoard}
+              </p>
+            ) : boardQuery.isError ? (
+              <BoardState
+                label={text.boardError}
+                onRetry={() => void boardQuery.refetch()}
+                retryLabel={text.retry}
+              />
+            ) : boardQuery.data ? (
+              <WorkflowGantt
+                board={boardQuery.data}
+                className="h-full"
+                onSelect={handleSelectRow}
+                ref={ganttRef}
+                scale={scale}
+                showGrid={showGrid}
+              />
+            ) : null}
+          </div>
 
           {selection && boardQuery.data ? (
             <BoardDetailsDrawer
