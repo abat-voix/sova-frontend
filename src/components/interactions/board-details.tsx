@@ -6,13 +6,13 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ApiError } from "@/lib/api/http";
 import {
   boardQueryKey,
   cancelStage,
   completeAction,
   uploadActionAttachment,
 } from "@/lib/api/processes/board";
+import { resolveActionErrorMessage } from "@/lib/workflow/action-errors";
 import {
   resolveActionState,
   type BoardSelection,
@@ -41,14 +41,6 @@ const copy = {
     completing: "Завершаем…",
     confirmReturn: "Подтвердить возврат",
     empty: "Выберите действие или этап на диаграмме.",
-    errors: {
-      attachment_required: "Не приложен обязательный файл.",
-      comment_required: "Нужен комментарий к выбранному исходу.",
-      invalid_state: "Действие не в работе — обновите страницу.",
-      outcome_inactive: "Исход больше не активен.",
-      outcome_mismatch: "Исход не относится к этому действию.",
-      unknown: "Не удалось выполнить операцию.",
-    },
     mode: "Как вернуть этап",
     modes: {
       last_only: "Только последнее обязательное действие",
@@ -87,14 +79,6 @@ const copy = {
     completing: "Completing…",
     confirmReturn: "Confirm return",
     empty: "Pick an action or a stage on the chart.",
-    errors: {
-      attachment_required: "A required file is missing.",
-      comment_required: "The selected outcome needs a comment.",
-      invalid_state: "The action is not in progress — refresh the page.",
-      outcome_inactive: "This outcome is no longer active.",
-      outcome_mismatch: "The outcome does not belong to this action.",
-      unknown: "The operation failed.",
-    },
     mode: "How to return the stage",
     modes: {
       last_only: "Only the last required action",
@@ -119,19 +103,6 @@ const copy = {
     workflowCompleted: "The process is complete.",
   },
 } as const;
-
-type Locale = keyof typeof copy;
-
-/** Код ошибки бэкенда → текст. Правила исхода проверяет бэкенд, не интерфейс. */
-function resolveErrorMessage(error: unknown, locale: Locale) {
-  const messages = copy[locale].errors;
-  if (!(error instanceof ApiError)) return messages.unknown;
-
-  const code = error.code as keyof typeof messages | null;
-  if (code && code in messages) return messages[code];
-
-  return error.detail ?? messages.unknown;
-}
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
@@ -190,7 +161,7 @@ function ActionPanel({
         mutationError instanceof Error &&
           mutationError.message === "missing-file"
           ? text.attachmentRequired
-          : resolveErrorMessage(mutationError, locale),
+          : resolveActionErrorMessage(mutationError, locale),
       );
     },
     onSuccess: (result) => {
@@ -389,7 +360,7 @@ function StagePanel({
         csrfToken,
       ),
     onError: (mutationError) =>
-      setError(resolveErrorMessage(mutationError, locale)),
+      setError(resolveActionErrorMessage(mutationError, locale)),
     onSuccess: () => {
       setError(null);
       setIsCancelling(false);
