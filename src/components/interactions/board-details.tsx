@@ -648,6 +648,7 @@ export function BoardDetails({
   onActionChanged,
   selection,
   workflowInstanceId,
+  interaction,
 }: PanelProps & {
   onActionChanged?: () => void;
   selection: BoardSelection | null;
@@ -670,6 +671,7 @@ export function BoardDetails({
         key={selection.action.id}
         onActionChanged={onActionChanged}
         workflowInstanceId={workflowInstanceId}
+        interaction={interaction}
       />
     );
   }
