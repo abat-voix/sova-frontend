@@ -150,6 +150,8 @@ function stubApi() {
       });
     }
 
+    if (url.endsWith("/contacts/")) return json([]);
+
     if (url.startsWith("/api/interactions/interactions/")) {
       return json({
         count: 1,

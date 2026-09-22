@@ -38,6 +38,10 @@ export const apiEndpoints = {
     interactions: {
       assignResponsible: (id: string) =>
         `/api/interactions/interactions/${id}/assign-responsible/`,
+      contacts: (id: string) =>
+        `/api/interactions/interactions/${id}/contacts/`,
+      contact: (id: string, contactId: string) =>
+        `/api/interactions/interactions/${id}/contacts/${contactId}/`,
       detail: (id: string) => `/api/interactions/interactions/${id}/`,
       list: "/api/interactions/interactions/",
       unassignResponsible: (id: string) =>

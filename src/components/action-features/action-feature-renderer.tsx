@@ -6,6 +6,7 @@ import type { ComponentType } from "react";
 import { ContactPersonCreateFeature } from "@/components/action-features/contact-person-create-feature";
 import { useLocale } from "@/providers/locale-provider";
 import type {
+  ActionFeatureCode,
   ActionFeatureExecution,
   AvailableActionFeature,
 } from "@/types/action-feature";
@@ -20,10 +21,11 @@ export type ActionFeatureRendererProps = {
   features?: AvailableActionFeature[];
   executions: ActionFeatureExecution[];
   interaction?: InteractionShort;
+  featureCode?: ActionFeatureCode;
 };
 
 export type ActionFeatureDefinition = {
-  code: "contact_person.create" | "contact_person.select";
+  code: ActionFeatureCode;
   Component: ComponentType<ActionFeatureRendererProps>;
 };
 
@@ -35,6 +37,10 @@ export const actionFeatureDefinitions: Record<string, ActionFeatureDefinition> =
     },
     "contact_person.select": {
       code: "contact_person.select",
+      Component: ContactPersonSelectFeature,
+    },
+    "contact_person.link": {
+      code: "contact_person.link",
       Component: ContactPersonSelectFeature,
     },
   };
@@ -64,7 +70,15 @@ type Props = {
 
 export function ActionFeatureRenderer(props: Props) {
   const { locale } = useLocale();
-  const unknown = props.features.filter(
+  const hasContactLink = props.features.some(
+    (feature) => feature.code === "contact_person.link",
+  );
+  const visibleFeatures = hasContactLink
+    ? props.features.filter(
+        (feature) => feature.code !== "contact_person.select",
+      )
+    : props.features;
+  const unknown = visibleFeatures.filter(
     (feature) =>
       !Object.prototype.hasOwnProperty.call(
         actionFeatureDefinitions,
@@ -80,7 +94,7 @@ export function ActionFeatureRenderer(props: Props) {
 
   return (
     <div className="space-y-3">
-      {props.features.map((feature) => {
+      {visibleFeatures.map((feature) => {
         const Renderer = actionFeatureDefinitions[feature.code]?.Component;
         if (!Renderer)
           return (
@@ -97,6 +111,7 @@ export function ActionFeatureRenderer(props: Props) {
             csrfToken={props.csrfToken}
             executionNo={props.executionNo}
             executions={props.executions}
+            featureCode={feature.code as ActionFeatureCode}
             key={`${props.actionInstanceId}-${props.executionNo}-${feature.code}`}
             workflowInstanceId={props.workflowInstanceId}
             interaction={props.interaction}

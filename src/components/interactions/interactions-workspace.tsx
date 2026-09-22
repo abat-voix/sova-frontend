@@ -13,6 +13,7 @@ import {
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { BoardDetailsDrawer } from "@/components/interactions/board-details-drawer";
+import { InteractionContactsPanel } from "@/components/interactions/interaction-contacts-panel";
 import {
   InteractionList,
   interactionTitle,
@@ -407,6 +408,14 @@ export function InteractionsWorkspace() {
             </Button>
           </div>
         </div>
+
+        {selectedInteraction ? (
+          <InteractionContactsPanel
+            key={selectedInteraction.id}
+            csrfToken={csrfToken}
+            interaction={selectedInteraction}
+          />
+        ) : null}
 
         <div className="relative flex min-h-0 flex-1">
           <div className="relative min-h-0 min-w-0 flex-1">

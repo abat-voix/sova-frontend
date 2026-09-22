@@ -154,6 +154,13 @@ export function postJson<T>(url: string, body: unknown, csrfToken: string) {
   });
 }
 
+export function deleteJson(url: string, csrfToken: string) {
+  return request<void>(url, {
+    headers: { "x-csrftoken": csrfToken },
+    method: "DELETE",
+  });
+}
+
 /** Для загрузки файлов: `content-type` расставляет браузер вместе с boundary. */
 export function postFormData<T>(
   url: string,

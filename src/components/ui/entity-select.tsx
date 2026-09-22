@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { Check, ChevronDown, LoaderCircle, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -16,6 +16,7 @@ const copy = {
     empty: "Ничего не найдено.",
     error: "Не удалось загрузить справочник.",
     loading: "Загружаем…",
+    loadMore: "Показать ещё",
     searchPlaceholder: "Поиск…",
   },
   en: {
@@ -24,6 +25,7 @@ const copy = {
     empty: "Nothing found.",
     error: "The catalog could not be loaded.",
     loading: "Loading…",
+    loadMore: "Load more",
     searchPlaceholder: "Search…",
   },
 } as const;
@@ -42,6 +44,11 @@ type EntitySelectProps = {
   /** Ключ кэша без строки поиска — её компонент добавляет сам. */
   queryKey: readonly unknown[];
   search: (term: string) => Promise<LookupOption[]>;
+  /** Постраничный источник для больших справочников. */
+  searchPage?: (
+    term: string,
+    page: number,
+  ) => Promise<{ options: LookupOption[]; hasNextPage: boolean }>;
   value: LookupOption | null;
 };
 
@@ -63,6 +70,7 @@ export function EntitySelect({
   placeholder,
   queryKey,
   search,
+  searchPage,
   value,
 }: EntitySelectProps) {
   const { locale } = useLocale();
@@ -95,13 +103,21 @@ export function EntitySelect({
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, [isOpen]);
 
-  const optionsQuery = useQuery({
+  const optionsQuery = useInfiniteQuery({
     queryKey: [...queryKey, debouncedTerm],
-    queryFn: () => search(debouncedTerm),
+    queryFn: async ({ pageParam }) =>
+      searchPage
+        ? searchPage(debouncedTerm, pageParam)
+        : { options: await search(debouncedTerm), hasNextPage: false },
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, pages) =>
+      lastPage.hasNextPage ? pages.length + 1 : undefined,
     enabled: isOpen && !disabled,
   });
 
-  const options = (optionsQuery.data ?? []).filter(
+  const options = (
+    optionsQuery.data?.pages.flatMap((page) => page.options) ?? []
+  ).filter(
     (option) => option.id === value?.id || !excludeIds.includes(option.id),
   );
 
@@ -175,7 +191,7 @@ export function EntitySelect({
 
           <div
             aria-label={label}
-            className="mt-2 max-h-56 overflow-y-auto"
+            className="mt-2 h-56 overflow-y-auto"
             id={`${id}-list`}
             role="listbox"
           >
@@ -212,6 +228,16 @@ export function EntitySelect({
                 </button>
               ))
             )}
+            {optionsQuery.hasNextPage ? (
+              <button
+                className="text-muted-foreground hover:bg-secondary w-full rounded-lg px-2 py-2 text-center text-sm"
+                disabled={optionsQuery.isFetchingNextPage}
+                onClick={() => void optionsQuery.fetchNextPage()}
+                type="button"
+              >
+                {optionsQuery.isFetchingNextPage ? text.loading : text.loadMore}
+              </button>
+            ) : null}
           </div>
         </div>
       ) : null}

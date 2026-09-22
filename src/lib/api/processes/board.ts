@@ -77,10 +77,10 @@ export function completeAction(
 }
 
 /** Выполняет feature для текущего исполнения действия. Контекст задаёт backend. */
-export function executeActionFeature(
+export function executeActionFeature<Code extends ActionFeatureCode>(
   actionInstanceId: string,
-  code: ActionFeatureCode,
-  payload: ActionFeaturePayloadMap[typeof code],
+  code: Code,
+  payload: ActionFeaturePayloadMap[Code],
   csrfToken: string,
 ) {
   return postJson<ExecuteActionFeatureResult>(

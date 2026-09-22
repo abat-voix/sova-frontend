@@ -2,7 +2,7 @@ import type { UserShort } from "@/types/workflow-board";
 
 /** Только renderer, поддержанные интерфейсом. Остальные backend-коды игнорируются. */
 export type ActionFeatureCode =
-  "contact_person.create" | "contact_person.select";
+  "contact_person.create" | "contact_person.select" | "contact_person.link";
 
 /** Коды из плана, которые подключаются интерфейсом отдельными волнами. */
 export type PlannedActionFeatureCode =
@@ -69,6 +69,7 @@ export type SelectContactPersonFeaturePayload = {
 export type ActionFeaturePayloadMap = {
   "contact_person.create": CreateContactPersonFeaturePayload;
   "contact_person.select": SelectContactPersonFeaturePayload;
+  "contact_person.link": SelectContactPersonFeaturePayload;
 };
 
 export type ExecuteActionFeatureResult = {

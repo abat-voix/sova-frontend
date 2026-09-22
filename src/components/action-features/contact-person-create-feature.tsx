@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { contactPersonsQueryKey } from "@/lib/api/catalog/contact-persons";
+import { interactionContactsQueryKey } from "@/lib/api/interactions/contacts";
 import { ApiError } from "@/lib/api/http";
 import { executeActionFeature, boardQueryKey } from "@/lib/api/processes/board";
 import { useLocale } from "@/providers/locale-provider";
@@ -59,6 +60,7 @@ export function ContactPersonCreateFeature({
   executionNo,
   csrfToken,
   workflowInstanceId,
+  interaction,
 }: Props) {
   const { locale } = useLocale();
   const text = copy[locale];
@@ -104,6 +106,11 @@ export function ContactPersonCreateFeature({
       void queryClient.invalidateQueries({
         queryKey: contactPersonsQueryKey(),
       });
+      if (interaction) {
+        void queryClient.invalidateQueries({
+          queryKey: interactionContactsQueryKey(interaction.id),
+        });
+      }
     },
   });
 
