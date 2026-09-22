@@ -9,7 +9,6 @@ import {
   uploadActionAttachment,
 } from "@/lib/api/processes/board";
 import { useLocale } from "@/providers/locale-provider";
-import type { ActionInstance } from "@/types/action-instance";
 import type { BoardOutcome } from "@/types/workflow-board";
 
 const copy = {
@@ -23,8 +22,15 @@ const copy = {
   },
 } as const;
 
+/** Поля, которые читает завершение: больше хуку от действия ничего не нужно. */
+export type CompleteActionTarget = {
+  attachments_count: number;
+  id: string;
+  workflow_instance: string;
+};
+
 export type CompleteActionInput = {
-  action: ActionInstance;
+  action: CompleteActionTarget;
   comment?: string;
   file?: File | null;
   outcome: BoardOutcome;

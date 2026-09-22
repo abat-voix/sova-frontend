@@ -19,6 +19,7 @@ import {
   type CrmNavigationItem,
   type CrmSection,
 } from "@/components/crm/crm-navigation";
+import { ContactsWorkspace } from "@/components/contacts/contacts-workspace";
 import { InteractionsWorkspace } from "@/components/interactions/interactions-workspace";
 import { LanguageToggle } from "@/components/language-toggle";
 import { OrganizationsWorkspace } from "@/components/organizations/organizations-workspace";
@@ -437,6 +438,8 @@ export function CrmShell(props: CrmShellProps) {
         >
           {activeSection === "home" ? (
             <DashboardHome user={user} />
+          ) : activeSection === "contacts" ? (
+            <ContactsWorkspace />
           ) : activeSection === "interactions" ? (
             <InteractionsWorkspace />
           ) : activeSection === "myTasks" ? (

@@ -6,14 +6,25 @@ import { LocaleProvider } from "@/providers/locale-provider";
 import { actionInstanceFixture as base } from "@/test/fixtures/action-instance";
 import type { ActionInstance } from "@/types/action-instance";
 
-function renderCard(action: ActionInstance, onOutcome = vi.fn()) {
+function renderCard(
+  action: ActionInstance,
+  handlers: { onOpen?: () => void; onOutcome?: () => void } = {},
+) {
+  const onOpen = handlers.onOpen ?? vi.fn();
+  const onOutcome = handlers.onOutcome ?? vi.fn();
+
   render(
     <LocaleProvider>
-      <TaskCard action={action} onOutcome={onOutcome} showResponsible={false} />
+      <TaskCard
+        action={action}
+        onOpen={onOpen}
+        onOutcome={onOutcome}
+        showResponsible={false}
+      />
     </LocaleProvider>,
   );
 
-  return onOutcome;
+  return { onOpen, onOutcome };
 }
 
 afterEach(cleanup);
@@ -28,11 +39,21 @@ describe("TaskCard", () => {
   });
 
   it("reports the picked outcome instead of completing on its own", () => {
-    const onOutcome = renderCard(base);
+    const { onOpen, onOutcome } = renderCard(base);
 
     fireEvent.click(screen.getByRole("button", { name: "Выполнено" }));
 
     expect(onOutcome).toHaveBeenCalledWith(base.available_outcomes[0]);
+    // Кнопка исхода лежит поверх подложки: открывать панель она не должна.
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+
+  it("opens the details when the card itself is clicked", () => {
+    const { onOpen } = renderCard(base);
+
+    fireEvent.click(screen.getByRole("button", { name: "Подписать договор" }));
+
+    expect(onOpen).toHaveBeenCalled();
   });
 
   it("marks an overdue action", () => {

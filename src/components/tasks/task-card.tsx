@@ -33,6 +33,8 @@ const copy = {
 
 type TaskCardProps = {
   action: ActionInstance;
+  /** Открыть детали. Что именно открыть — решает рабочий стол. */
+  onOpen: () => void;
   onOutcome: (outcome: BoardOutcome) => void;
   /** Ответственный нужен только в режиме «Все»: в «Моих» это всегда сам пользователь. */
   showResponsible: boolean;
@@ -40,6 +42,7 @@ type TaskCardProps = {
 
 export function TaskCard({
   action,
+  onOpen,
   onOutcome,
   showResponsible,
 }: TaskCardProps) {
@@ -51,11 +54,29 @@ export function TaskCard({
   return (
     <article
       className={cn(
-        "bg-card rounded-lg border p-3 shadow-sm",
+        "bg-card relative rounded-lg border p-3 shadow-sm",
         state === "overdue" && "border-[var(--atmr-brand-orange)]",
         isWaiting && "opacity-60",
       )}
     >
+      {/*
+        Подложка вместо onClick на самой карточке: внутри уже есть кнопки
+        исходов, а вложенные интерактивные элементы ломают клавиатуру и
+        скринридер. Кнопки исходов лежат выше по z-порядку и до подложки
+        клик не доводят.
+      */}
+      {/*
+        Подсветка висит на подложке, а не на самой карточке: у карточки уже
+        есть `bg-card`, и `hover:bg-*` на ней проигрывает по каскаду. Подложка
+        накрывает карточку целиком, поэтому её фон и читается как подсветка.
+      */}
+      <button
+        aria-label={action.action_name_snapshot}
+        className="focus-visible:ring-ring absolute inset-0 z-0 cursor-pointer rounded-lg transition-colors duration-150 hover:bg-[color-mix(in_oklab,var(--atmr-accent-primary)_10%,transparent)] focus-visible:ring-2 focus-visible:outline-none"
+        onClick={onOpen}
+        type="button"
+      />
+
       <p className="text-sm leading-5 font-medium">
         {action.action_name_snapshot}
       </p>
@@ -111,7 +132,7 @@ export function TaskCard({
       ) : null}
 
       {action.available_outcomes.length > 0 ? (
-        <div className="mt-3 flex flex-wrap gap-1.5 border-t pt-3">
+        <div className="relative z-10 mt-3 flex flex-wrap gap-1.5 border-t pt-3">
           {action.available_outcomes.map((outcome) => (
             <Button
               key={outcome.id}

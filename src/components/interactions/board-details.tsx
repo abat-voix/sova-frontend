@@ -4,15 +4,23 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import {
+  ActionRollbackHistory,
+  StageRollbackHistory,
+} from "@/components/interactions/rollback-history";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useCompleteAction } from "@/hooks/use-complete-action";
 import {
   boardQueryKey,
+  cancelAction,
   cancelStage,
-  completeAction,
-  uploadActionAttachment,
 } from "@/lib/api/processes/board";
-import { resolveActionErrorMessage } from "@/lib/workflow/action-errors";
+import { rollbacksQueryKey } from "@/lib/api/processes/rollbacks";
+import {
+  resolveActionErrorMessage,
+  resolveRollbackErrorMessage,
+} from "@/lib/workflow/action-errors";
 import {
   resolveActionState,
   type BoardSelection,
@@ -40,6 +48,7 @@ const copy = {
     complete: "Завершить действие",
     completing: "Завершаем…",
     confirmReturn: "Подтвердить возврат",
+    confirmRollback: "Подтвердить откат",
     empty: "Выберите действие или этап на диаграмме.",
     mode: "Как вернуть этап",
     modes: {
@@ -56,13 +65,14 @@ const copy = {
     responsible: "Ответственный",
     result: "Результат",
     returnTo: "Вернуться к этапу",
+    rollbackAction: "Откатить действие",
+    rollbackDone: "Действие откачено, создано новое исполнение.",
+    rollbackHint:
+      "Действие будет выполнено заново: движок создаст новое исполнение вместо текущего.",
     stageCancelled: "Этап отменён, процесс вернулся назад.",
     stageClosed: "Закрыт",
     stageOpened: "Открыт",
-    success: "Действие завершено.",
     unassigned: "не назначен",
-    uploadFailed: "Не удалось загрузить файл.",
-    workflowCompleted: "Процесс завершён.",
   },
   en: {
     actual: "Actual",
@@ -78,6 +88,7 @@ const copy = {
     complete: "Complete action",
     completing: "Completing…",
     confirmReturn: "Confirm return",
+    confirmRollback: "Confirm rollback",
     empty: "Pick an action or a stage on the chart.",
     mode: "How to return the stage",
     modes: {
@@ -94,13 +105,14 @@ const copy = {
     responsible: "Responsible",
     result: "Result",
     returnTo: "Return to stage",
+    rollbackAction: "Roll back the action",
+    rollbackDone: "The action was rolled back; a new execution was created.",
+    rollbackHint:
+      "The action will be done again: the engine creates a new execution instead of the current one.",
     stageCancelled: "The stage was cancelled and the process moved back.",
     stageClosed: "Closed",
     stageOpened: "Opened",
-    success: "The action is complete.",
     unassigned: "unassigned",
-    uploadFailed: "The file could not be uploaded.",
-    workflowCompleted: "The process is complete.",
   },
 } as const;
 
@@ -121,15 +133,52 @@ type PanelProps = {
 function ActionPanel({
   action,
   csrfToken,
+  // Канбан хранит открытое действие снимком в useState и не перечитывает
+  // его при рефетче — в отличие от диаграммы, которая каждый раз находит
+  // строку заново по id. Без колбэка панель после успеха показывала бы
+  // устаревшую форму и второе нажатие било бы в бэкенд с 409.
+  onActionChanged,
   workflowInstanceId,
-}: PanelProps & { action: BoardAction }) {
+}: PanelProps & { action: BoardAction; onActionChanged?: () => void }) {
   const { locale } = useLocale();
   const text = copy[locale];
-  const queryClient = useQueryClient();
   const [outcomeId, setOutcomeId] = useState("");
   const [comment, setComment] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isRollingBack, setIsRollingBack] = useState(false);
+  const [rollbackReason, setRollbackReason] = useState("");
+  const [rollbackError, setRollbackError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const rollback = useMutation({
+    mutationFn: () =>
+      cancelAction(action.id, { reason: rollbackReason.trim() }, csrfToken),
+    onError: (mutationError) =>
+      setRollbackError(resolveRollbackErrorMessage(mutationError, locale)),
+    onSuccess: () => {
+      setRollbackError(null);
+      setIsRollingBack(false);
+      setRollbackReason("");
+      toast.success(text.rollbackDone);
+      // Откат меняет и диаграмму, и колонки задач: новое исполнение попадает
+      // в «Ожидает» или «В работе».
+      void queryClient.invalidateQueries({
+        queryKey: boardQueryKey(workflowInstanceId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ["processes", "action-instances"],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: rollbacksQueryKey(workflowInstanceId),
+      });
+      onActionChanged?.();
+    },
+  });
+
+  const canRollback = action.status === "completed";
+  const canConfirmRollback =
+    rollbackReason.trim().length > 0 && !rollback.isPending;
 
   const outcome = action.available_outcomes.find(
     (candidate) => candidate.id === outcomeId,
@@ -139,43 +188,7 @@ function ActionPanel({
     (outcome?.is_attachment_required ?? false) &&
     action.attachments_count === 0;
 
-  const mutation = useMutation({
-    mutationFn: async () => {
-      if (!outcome) return null;
-
-      // Исход с is_attachment_required бэкенд проверяет при завершении, поэтому
-      // файл уходит раньше команды.
-      if (needsAttachment) {
-        if (!file) throw new Error("missing-file");
-        await uploadActionAttachment(action.id, file, csrfToken);
-      }
-
-      return completeAction(
-        action.id,
-        { comment: comment.trim(), outcome: outcome.id },
-        csrfToken,
-      );
-    },
-    onError: (mutationError) => {
-      setError(
-        mutationError instanceof Error &&
-          mutationError.message === "missing-file"
-          ? text.attachmentRequired
-          : resolveActionErrorMessage(mutationError, locale),
-      );
-    },
-    onSuccess: (result) => {
-      setError(null);
-      toast.success(
-        result?.workflow_completed ? text.workflowCompleted : text.success,
-      );
-      // Состояние процесса пересчитывает движок — забираем доску заново,
-      // а не достраиваем цепочку у себя.
-      void queryClient.invalidateQueries({
-        queryKey: boardQueryKey(workflowInstanceId),
-      });
-    },
-  });
+  const mutation = useCompleteAction(csrfToken);
 
   const state = resolveActionState(action);
   const canSubmit =
@@ -251,7 +264,27 @@ function ActionPanel({
           className="space-y-3 border-t pt-4"
           onSubmit={(event) => {
             event.preventDefault();
-            mutation.mutate();
+            if (!outcome) return;
+            setError(null);
+            mutation.mutate(
+              {
+                // Доска знает процесс из своих пропсов: в BoardAction его нет.
+                action: { ...action, workflow_instance: workflowInstanceId },
+                comment,
+                file,
+                outcome,
+              },
+              {
+                onError: (mutationError) =>
+                  setError(
+                    mutationError instanceof Error &&
+                      mutationError.message === "missing-file"
+                      ? text.attachmentRequired
+                      : resolveActionErrorMessage(mutationError, locale),
+                  ),
+                onSuccess: () => onActionChanged?.(),
+              },
+            );
           }}
         >
           <div>
@@ -330,6 +363,77 @@ function ActionPanel({
           </Button>
         </form>
       ) : null}
+
+      {canRollback ? (
+        <div className="space-y-3 border-t pt-4">
+          {isRollingBack ? (
+            <form
+              className="space-y-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                rollback.mutate();
+              }}
+            >
+              <p className="text-muted-foreground text-xs">
+                {text.rollbackHint}
+              </p>
+
+              <div>
+                <label
+                  className="text-muted-foreground text-xs"
+                  htmlFor="action-rollback-reason"
+                >
+                  {text.reason} *
+                </label>
+                <textarea
+                  className="border-input bg-background mt-1 w-full rounded-lg border px-3 py-2 text-sm"
+                  id="action-rollback-reason"
+                  onChange={(event) => setRollbackReason(event.target.value)}
+                  required
+                  rows={2}
+                  value={rollbackReason}
+                />
+              </div>
+
+              {rollbackError ? (
+                <p className="text-sm text-[var(--atmr-brand-orange)]">
+                  {rollbackError}
+                </p>
+              ) : null}
+
+              <div className="flex gap-2">
+                <Button disabled={!canConfirmRollback} size="m" type="submit">
+                  {text.confirmRollback}
+                </Button>
+                <Button
+                  colorScheme="neutral"
+                  onClick={() => setIsRollingBack(false)}
+                  size="m"
+                  type="button"
+                  variant="ghost"
+                >
+                  {text.close}
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <Button
+              colorScheme="neutral"
+              onClick={() => setIsRollingBack(true)}
+              size="m"
+              type="button"
+              variant="outline"
+            >
+              {text.rollbackAction}
+            </Button>
+          )}
+        </div>
+      ) : null}
+
+      <ActionRollbackHistory
+        actionDefinitionId={action.action.id}
+        workflowInstanceId={workflowInstanceId}
+      />
     </div>
   );
 }
@@ -367,6 +471,14 @@ function StagePanel({
       toast.success(text.stageCancelled);
       void queryClient.invalidateQueries({
         queryKey: boardQueryKey(workflowInstanceId),
+      });
+      // Откат этапа снова открывает действия — колонки задач устареют так
+      // же, как после отката отдельного действия.
+      void queryClient.invalidateQueries({
+        queryKey: ["processes", "action-instances"],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: rollbacksQueryKey(workflowInstanceId),
       });
     },
   });
@@ -504,15 +616,24 @@ function StagePanel({
           )}
         </div>
       ) : null}
+
+      <StageRollbackHistory
+        stageInstanceId={stage.id}
+        workflowInstanceId={workflowInstanceId}
+      />
     </div>
   );
 }
 
 export function BoardDetails({
   csrfToken,
+  onActionChanged,
   selection,
   workflowInstanceId,
-}: PanelProps & { selection: BoardSelection | null }) {
+}: PanelProps & {
+  onActionChanged?: () => void;
+  selection: BoardSelection | null;
+}) {
   const { locale } = useLocale();
 
   if (!selection) {
@@ -529,6 +650,7 @@ export function BoardDetails({
         action={selection.action}
         csrfToken={csrfToken}
         key={selection.action.id}
+        onActionChanged={onActionChanged}
         workflowInstanceId={workflowInstanceId}
       />
     );

@@ -33,6 +33,7 @@ function renderColumn(props: Partial<Parameters<typeof TaskColumn>[0]> = {}) {
       <LocaleProvider>
         <TaskColumn
           interactionId={null}
+          onOpen={vi.fn()}
           onOutcome={vi.fn()}
           ordering="planned_end"
           scope="mine"

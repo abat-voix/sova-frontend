@@ -3,6 +3,7 @@
 import { PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 
+import { BoardDetailsDrawer } from "@/components/interactions/board-details-drawer";
 import {
   InteractionList,
   interactionTitle,
@@ -15,6 +16,7 @@ import { useCompleteAction } from "@/hooks/use-complete-action";
 import { usePersistedFlag } from "@/hooks/use-persisted-flag";
 import type { ActionInstanceScope } from "@/lib/api/processes/action-instances";
 import { cn } from "@/lib/utils";
+import { actionInstanceToBoardAction } from "@/lib/workflow/action-instance-to-board";
 import { useAuth } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
 import type { ActionInstance } from "@/types/action-instance";
@@ -82,6 +84,7 @@ export function MyTasksWorkspace() {
     action: ActionInstance;
     outcome: BoardOutcome;
   } | null>(null);
+  const [openedAction, setOpenedAction] = useState<ActionInstance | null>(null);
   const [isListCollapsed, setIsListCollapsed] =
     usePersistedFlag(collapsedStorageKey);
 
@@ -123,6 +126,13 @@ export function MyTasksWorkspace() {
       }
 
       mutation.mutate({ action, outcome });
+
+      // Панель — снимок открытого действия: карточка сейчас продвинется
+      // сама, а панель об этом не узнает и предложит завершить то же
+      // действие повторно. Закрываем её сразу, не дожидаясь ответа.
+      setOpenedAction((current) =>
+        current?.id === action.id ? null : current,
+      );
     },
     [mutation],
   );
@@ -253,30 +263,46 @@ export function MyTasksWorkspace() {
           ) : null}
         </div>
 
-        <div className="flex min-h-0 flex-1 gap-3 overflow-x-auto p-3">
-          {columns.map(({ ordering, status }) => (
-            <TaskColumn
-              actualEndGte={status === "completed" ? actualEndGte : undefined}
-              interactionId={selectedInteractionId}
-              key={status}
-              onOutcome={handleOutcome}
-              ordering={ordering}
-              scope={scope}
-              status={status}
-              subtitle={
-                status === "completed" ? (
-                  <button
-                    className="underline-offset-2 hover:underline"
-                    onClick={() => setIsWholeTime((whole) => !whole)}
-                    type="button"
-                  >
-                    {isWholeTime ? text.wholeTime : text.lastDays}
-                  </button>
-                ) : undefined
-              }
-              title={text.columns[status]}
+        <div className="relative flex min-h-0 flex-1">
+          <div className="flex min-w-0 flex-1 gap-3 overflow-x-auto p-3">
+            {columns.map(({ ordering, status }) => (
+              <TaskColumn
+                actualEndGte={status === "completed" ? actualEndGte : undefined}
+                interactionId={selectedInteractionId}
+                key={status}
+                onOpen={setOpenedAction}
+                onOutcome={handleOutcome}
+                ordering={ordering}
+                scope={scope}
+                status={status}
+                subtitle={
+                  status === "completed" ? (
+                    <button
+                      className="underline-offset-2 hover:underline"
+                      onClick={() => setIsWholeTime((whole) => !whole)}
+                      type="button"
+                    >
+                      {isWholeTime ? text.wholeTime : text.lastDays}
+                    </button>
+                  ) : undefined
+                }
+                title={text.columns[status]}
+              />
+            ))}
+          </div>
+
+          {openedAction ? (
+            <BoardDetailsDrawer
+              csrfToken={csrfToken}
+              onActionChanged={() => setOpenedAction(null)}
+              onClose={() => setOpenedAction(null)}
+              selection={{
+                kind: "action",
+                action: actionInstanceToBoardAction(openedAction),
+              }}
+              workflowInstanceId={openedAction.workflow_instance}
             />
-          ))}
+          ) : null}
         </div>
       </section>
     </div>

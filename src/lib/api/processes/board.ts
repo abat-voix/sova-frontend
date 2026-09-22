@@ -1,5 +1,9 @@
 import { apiEndpoints } from "@/lib/api/endpoints";
 import { buildQuery, getJson, postFormData, postJson } from "@/lib/api/http";
+import type {
+  CancelActionPayload,
+  CancelActionResult,
+} from "@/types/action-rollback";
 import type { PaginatedResponse } from "@/types/api";
 import type {
   CancelStagePayload,
@@ -74,6 +78,25 @@ export function cancelStage(
 ) {
   return postJson<unknown>(
     apiEndpoints.processes.stageInstances.cancel(stageInstanceId),
+    payload,
+    csrfToken,
+  );
+}
+
+/**
+ * Откатывает выполненное действие: движок создаёт новое исполнение вместо
+ * отменённого.
+ *
+ * Доступность отката бэкенд проверяет сам — флага в доске нет, поэтому
+ * интерфейс показывает кнопку по статусу и разбирает отказ по коду ошибки.
+ */
+export function cancelAction(
+  actionInstanceId: string,
+  payload: CancelActionPayload,
+  csrfToken: string,
+) {
+  return postJson<CancelActionResult>(
+    apiEndpoints.processes.actionInstances.cancel(actionInstanceId),
     payload,
     csrfToken,
   );

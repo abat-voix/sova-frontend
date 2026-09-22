@@ -88,4 +88,32 @@ describe("useCompleteAction", () => {
     );
     expect(String(fetchMock.mock.calls[1][0])).toContain("/complete/");
   });
+
+  it("accepts any object carrying the three fields it reads", async () => {
+    const fetchMock = vi.fn<typeof fetch>(
+      async () =>
+        new Response(JSON.stringify({ workflow_completed: false }), {
+          headers: { "content-type": "application/json" },
+          status: 200,
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { result } = renderHook(() => useCompleteAction("csrf"), { wrapper });
+
+    // Форма доски держит BoardAction, у которого нет полей взаимодействия;
+    // идентификатор процесса она подставляет из своих пропсов.
+    const boardShape = {
+      attachments_count: 0,
+      id: "act-9",
+      workflow_instance: "wf-9",
+    };
+
+    act(() => result.current.mutate({ action: boardShape, outcome }));
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(String(fetchMock.mock.calls[0][0])).toBe(
+      "/api/processes/action-instances/act-9/complete/",
+    );
+  });
 });

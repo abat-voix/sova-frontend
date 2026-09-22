@@ -3,6 +3,10 @@ export const apiEndpoints = {
     b2cClients: {
       list: "/api/catalog/b2c-clients/",
     },
+    contactPersons: {
+      detail: (id: string) => `/api/catalog/contact-persons/${id}/`,
+      list: "/api/catalog/contact-persons/",
+    },
     directions: {
       list: "/api/catalog/directions/",
     },
@@ -40,12 +44,19 @@ export const apiEndpoints = {
       list: "/api/processes/action-attachments/",
     },
     actionInstances: {
+      cancel: (id: string) => `/api/processes/action-instances/${id}/cancel/`,
       complete: (id: string) =>
         `/api/processes/action-instances/${id}/complete/`,
       list: "/api/processes/action-instances/",
     },
+    actionRollbacks: {
+      list: "/api/processes/action-rollbacks/",
+    },
     stageInstances: {
       cancel: (id: string) => `/api/processes/stage-instances/${id}/cancel/`,
+    },
+    stageRollbacks: {
+      list: "/api/processes/stage-rollbacks/",
     },
     workflowInstances: {
       board: (id: string) => `/api/processes/workflow-instances/${id}/board/`,
