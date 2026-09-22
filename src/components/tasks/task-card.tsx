@@ -65,9 +65,14 @@ export function TaskCard({
         скринридер. Кнопки исходов лежат выше по z-порядку и до подложки
         клик не доводят.
       */}
+      {/*
+        Подсветка висит на подложке, а не на самой карточке: у карточки уже
+        есть `bg-card`, и `hover:bg-*` на ней проигрывает по каскаду. Подложка
+        накрывает карточку целиком, поэтому её фон и читается как подсветка.
+      */}
       <button
         aria-label={action.action_name_snapshot}
-        className="focus-visible:ring-ring absolute inset-0 z-0 rounded-lg focus-visible:ring-2 focus-visible:outline-none"
+        className="focus-visible:ring-ring absolute inset-0 z-0 cursor-pointer rounded-lg transition-colors duration-150 hover:bg-[color-mix(in_oklab,var(--atmr-accent-primary)_10%,transparent)] focus-visible:ring-2 focus-visible:outline-none"
         onClick={onOpen}
         type="button"
       />
