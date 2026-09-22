@@ -6,7 +6,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { BoardDetails } from "@/components/interactions/board-details";
 import { actionInstanceToBoardAction } from "@/lib/workflow/action-instance-to-board";
@@ -31,6 +31,19 @@ const completed = {
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+});
+
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn<typeof fetch>(
+      async () =>
+        new Response(
+          JSON.stringify({ count: 0, next: null, previous: null, results: [] }),
+          { headers: { "content-type": "application/json" }, status: 200 },
+        ),
+    ),
+  );
 });
 
 function renderPanel(instance: ActionInstance) {
@@ -82,15 +95,30 @@ describe("ActionPanel rollback", () => {
   });
 
   it("sends the reason to the cancel endpoint", async () => {
-    const fetchMock = vi.fn<typeof fetch>(
-      async () =>
-        new Response(JSON.stringify({}), {
-          headers: { "content-type": "application/json" },
-          status: 200,
-        }),
+    // Успешный откат инвалидирует и запрашивает журнал заново — тому запросу
+    // нужен настоящий пагинированный ответ, иначе компонент падает на
+    // повторном рендере.
+    const fetchMock = vi.fn<typeof fetch>(async (input) =>
+      String(input).includes("/action-rollbacks/")
+        ? new Response(
+            JSON.stringify({
+              count: 0,
+              next: null,
+              previous: null,
+              results: [],
+            }),
+            { headers: { "content-type": "application/json" }, status: 200 },
+          )
+        : new Response(JSON.stringify({}), {
+            headers: { "content-type": "application/json" },
+            status: 200,
+          }),
     );
     vi.stubGlobal("fetch", fetchMock);
     renderPanel(completed);
+    // Монтирование панели само дёргает журнал откатов — сбрасываем счётчик,
+    // чтобы calls[0] ниже указывал на запрос отмены, а не на этот фоновый.
+    fetchMock.mockClear();
 
     fireEvent.click(screen.getByRole("button", { name: "Откатить действие" }));
     fireEvent.change(screen.getByLabelText(/Причина/), {

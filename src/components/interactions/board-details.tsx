@@ -4,6 +4,10 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import {
+  ActionRollbackHistory,
+  StageRollbackHistory,
+} from "@/components/interactions/rollback-history";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useCompleteAction } from "@/hooks/use-complete-action";
@@ -12,6 +16,7 @@ import {
   cancelAction,
   cancelStage,
 } from "@/lib/api/processes/board";
+import { rollbacksQueryKey } from "@/lib/api/processes/rollbacks";
 import {
   resolveActionErrorMessage,
   resolveRollbackErrorMessage,
@@ -160,6 +165,9 @@ function ActionPanel({
       });
       void queryClient.invalidateQueries({
         queryKey: ["processes", "action-instances"],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: rollbacksQueryKey(workflowInstanceId),
       });
     },
   });
@@ -416,6 +424,11 @@ function ActionPanel({
           )}
         </div>
       ) : null}
+
+      <ActionRollbackHistory
+        actionDefinitionId={action.action.id}
+        workflowInstanceId={workflowInstanceId}
+      />
     </div>
   );
 }
@@ -453,6 +466,9 @@ function StagePanel({
       toast.success(text.stageCancelled);
       void queryClient.invalidateQueries({
         queryKey: boardQueryKey(workflowInstanceId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: rollbacksQueryKey(workflowInstanceId),
       });
     },
   });
@@ -590,6 +606,11 @@ function StagePanel({
           )}
         </div>
       ) : null}
+
+      <StageRollbackHistory
+        stageInstanceId={stage.id}
+        workflowInstanceId={workflowInstanceId}
+      />
     </div>
   );
 }
