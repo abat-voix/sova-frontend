@@ -44,6 +44,8 @@ type DataTableProps<Row> = {
   caption: string;
   className?: string;
   columns: DataTableColumn<Row>[];
+  /** Растягивает таблицу на доступное место и включает внутреннюю прокрутку строк. */
+  fillHeight?: boolean;
   /** Подвал: пагинация, кнопка подгрузки или итоги. */
   footer?: ReactNode;
   getRowId: (row: Row) => string;
@@ -74,6 +76,7 @@ export function DataTable<Row>({
   caption,
   className,
   columns,
+  fillHeight = false,
   footer,
   getRowId,
   isError = false,
@@ -125,10 +128,16 @@ export function DataTable<Row>({
     <div
       className={cn(
         "bg-card overflow-hidden rounded-xl border shadow-sm",
+        fillHeight && "flex min-h-0 flex-1 flex-col",
         className,
       )}
     >
-      <div className="overflow-x-auto">
+      <div
+        className={cn(
+          "overflow-x-auto",
+          fillHeight && "min-h-0 flex-1 overflow-auto",
+        )}
+      >
         <table
           aria-busy={isLoading || undefined}
           aria-label={caption}

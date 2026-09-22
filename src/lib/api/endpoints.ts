@@ -8,12 +8,15 @@ export const apiEndpoints = {
       list: "/api/catalog/contact-persons/",
     },
     directions: {
+      detail: (id: string) => `/api/catalog/directions/${id}/`,
       list: "/api/catalog/directions/",
     },
     products: {
+      detail: (id: string) => `/api/catalog/products/${id}/`,
       list: "/api/catalog/products/",
     },
     programs: {
+      detail: (id: string) => `/api/catalog/programs/${id}/`,
       list: "/api/catalog/programs/",
     },
     universities: {
