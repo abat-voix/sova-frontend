@@ -66,6 +66,8 @@ describe("TaskCard", () => {
     renderCard({
       ...base,
       available_outcomes: [],
+      available_features: [],
+      feature_executions: [],
       is_trigger_only: true,
       is_triggered: false,
       status: "pending",
@@ -78,6 +80,8 @@ describe("TaskCard", () => {
     renderCard({
       ...base,
       available_outcomes: [],
+      available_features: [],
+      feature_executions: [],
       result: {
         outcome_name: "Выполнено",
         comment: "Подписан 20 сентября",

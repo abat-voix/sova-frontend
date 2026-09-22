@@ -30,5 +30,7 @@ export function actionInstanceToBoardAction(
     result: instance.result,
     attachments_count: instance.attachments_count,
     available_outcomes: instance.available_outcomes,
+    available_features: instance.available_features,
+    feature_executions: instance.feature_executions,
   };
 }

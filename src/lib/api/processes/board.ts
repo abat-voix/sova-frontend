@@ -6,6 +6,10 @@ import type {
 } from "@/types/action-rollback";
 import type { PaginatedResponse } from "@/types/api";
 import type {
+  CreateContactPersonFeaturePayload,
+  ExecuteActionFeatureResult,
+} from "@/types/action-feature";
+import type {
   CancelStagePayload,
   CompleteActionPayload,
   CompleteActionResult,
@@ -66,6 +70,23 @@ export function completeAction(
 ) {
   return postJson<CompleteActionResult>(
     apiEndpoints.processes.actionInstances.complete(actionInstanceId),
+    payload,
+    csrfToken,
+  );
+}
+
+/** Выполняет feature для текущего исполнения действия. Контекст задаёт backend. */
+export function executeActionFeature(
+  actionInstanceId: string,
+  code: string,
+  payload: CreateContactPersonFeaturePayload,
+  csrfToken: string,
+) {
+  return postJson<ExecuteActionFeatureResult>(
+    apiEndpoints.processes.actionInstances.executeFeature(
+      actionInstanceId,
+      code,
+    ),
     payload,
     csrfToken,
   );

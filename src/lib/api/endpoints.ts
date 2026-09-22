@@ -50,6 +50,8 @@ export const apiEndpoints = {
       cancel: (id: string) => `/api/processes/action-instances/${id}/cancel/`,
       complete: (id: string) =>
         `/api/processes/action-instances/${id}/complete/`,
+      executeFeature: (id: string, code: string) =>
+        `/api/processes/action-instances/${id}/features/${encodeURIComponent(code)}/execute/`,
       list: "/api/processes/action-instances/",
     },
     actionRollbacks: {

@@ -21,6 +21,7 @@ import { TableToolbar, type TableFilter } from "@/components/ui/table-toolbar";
 import { useTableQueryState } from "@/hooks/use-table-query-state";
 import {
   contactPersonsPageSize,
+  contactPersonsQueryKey,
   getContactPerson,
   getContactPersons,
 } from "@/lib/api/catalog/contact-persons";
@@ -146,18 +147,14 @@ export function ContactsWorkspace() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const contactsQuery = useQuery({
-    queryKey: [
-      "catalog",
-      "contact-persons",
-      {
-        activity,
-        b2cClientId: b2cClient?.id ?? null,
-        ordering: table.ordering,
-        page: table.page,
-        search: table.debouncedSearch,
-        universityId: university?.id ?? null,
-      },
-    ],
+    queryKey: contactPersonsQueryKey({
+      activity,
+      b2cClientId: b2cClient?.id ?? null,
+      ordering: table.ordering,
+      page: table.page,
+      search: table.debouncedSearch,
+      universityId: university?.id ?? null,
+    }),
     queryFn: () =>
       getContactPersons({
         activity,

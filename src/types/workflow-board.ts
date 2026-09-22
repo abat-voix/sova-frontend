@@ -219,6 +219,8 @@ export type BoardAction = {
   attachments_count: number;
   /** Пусто, если действие не в работе. */
   available_outcomes: BoardOutcome[];
+  available_features: import("@/types/action-feature").AvailableActionFeature[];
+  feature_executions: import("@/types/action-feature").ActionFeatureExecution[];
 };
 
 export type BoardStage = {

@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { ActionFeatureRenderer } from "@/components/action-features/action-feature-renderer";
 import {
   ActionRollbackHistory,
   StageRollbackHistory,
@@ -258,6 +259,15 @@ function ActionPanel({
           </p>
         </div>
       ) : null}
+
+      <ActionFeatureRenderer
+        actionInstanceId={action.id}
+        csrfToken={csrfToken}
+        executionNo={action.execution_no}
+        executions={action.feature_executions}
+        features={action.available_features}
+        workflowInstanceId={workflowInstanceId}
+      />
 
       {action.available_outcomes.length > 0 ? (
         <form

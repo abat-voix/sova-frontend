@@ -42,8 +42,8 @@ vi.mock("@/components/interactions/workflow-gantt", () => ({
 
 const action: BoardAction = {
   id: "action-1",
-  action: { id: "definition-1", name: "Подписать договор" },
-  name: "Подписать договор",
+  action: { id: "definition-1", name: "Найти контакт" },
+  name: "Найти контакт",
   status: "in_progress",
   is_optional: false,
   is_trigger_only: false,
@@ -58,6 +58,8 @@ const action: BoardAction = {
   result: null,
   attachments_count: 0,
   available_outcomes: [],
+  available_features: [{ code: "contact_person.create", settings: {} }],
+  feature_executions: [],
 };
 
 const interaction = {
@@ -111,8 +113,24 @@ function json(body: unknown) {
 }
 
 function stubApi() {
-  const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+  const fetchMock = vi.fn<typeof fetch>(async (input) => {
     const url = String(input);
+
+    if (url.includes("/features/contact_person.create/execute/")) {
+      return json({
+        execution: {
+          id: "execution-1",
+          feature_code: "contact_person.create",
+          performed_at: "2026-09-22T10:00:00Z",
+          performed_by: { id: 1, full_name: "Иван Иванов" },
+        },
+        target: {
+          type: "contact_person",
+          id: "contact-1",
+          data: { full_name: "Анна Иванова" },
+        },
+      });
+    }
 
     if (url.startsWith("/api/auth/me/")) {
       return json({
@@ -183,6 +201,35 @@ afterEach(() => {
 });
 
 describe("InteractionsWorkspace", () => {
+  it("creates a contact from the action panel without asking for its counterparty", async () => {
+    const fetchMock = stubApi();
+    renderWorkspace();
+
+    fireEvent.click(await screen.findByText("Первый университет"));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Найти контакт" }),
+    );
+    fireEvent.change(screen.getByLabelText("ФИО *"), {
+      target: { value: "Анна Иванова" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Добавить контакт" }));
+
+    expect(
+      await screen.findByText("Создан контакт: Анна Иванова"),
+    ).toBeInTheDocument();
+    const call = fetchMock.mock.calls.find(([input]) =>
+      String(input).includes("/features/contact_person.create/execute/"),
+    );
+    expect(call?.[1]?.body).toBe(
+      JSON.stringify({
+        full_name: "Анна Иванова",
+        position: "",
+        email: "",
+        phone: "",
+      }),
+    );
+  });
+
   it("opens the details drawer for the selected row and closes it on Escape", async () => {
     stubApi();
     renderWorkspace();
@@ -190,7 +237,7 @@ describe("InteractionsWorkspace", () => {
     fireEvent.click(await screen.findByText("Первый университет"));
 
     const row = await screen.findByRole("button", {
-      name: "Подписать договор",
+      name: "Найти контакт",
     });
     fireEvent.click(row);
 
@@ -199,7 +246,7 @@ describe("InteractionsWorkspace", () => {
     });
     expect(drawer).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "Подписать договор" }),
+      screen.getByRole("heading", { name: "Найти контакт" }),
     ).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: "Escape" });

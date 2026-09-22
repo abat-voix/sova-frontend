@@ -6,6 +6,10 @@ import type {
   UserShort,
   WorkflowActionShort,
 } from "./workflow-board";
+import type {
+  ActionFeatureExecution,
+  AvailableActionFeature,
+} from "./action-feature";
 
 /**
  * Экземпляр действия этапа — по схеме `ActionInstance` из
@@ -54,4 +58,6 @@ export type ActionInstance = {
   result: BoardResult | null;
   /** Активные исходы; пусто, если действие не в работе. */
   available_outcomes: BoardOutcome[];
+  available_features: AvailableActionFeature[];
+  feature_executions: ActionFeatureExecution[];
 };

@@ -21,6 +21,8 @@ function makeAction(overrides: Partial<BoardAction> = {}): BoardAction {
     actual_start: null,
     attachments_count: 0,
     available_outcomes: [],
+    available_features: [],
+    feature_executions: [],
     execution_no: 1,
     id: "exec-1",
     is_optional: false,
