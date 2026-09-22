@@ -22,6 +22,7 @@ import {
 import { InteractionsWorkspace } from "@/components/interactions/interactions-workspace";
 import { LanguageToggle } from "@/components/language-toggle";
 import { OrganizationsWorkspace } from "@/components/organizations/organizations-workspace";
+import { MyTasksWorkspace } from "@/components/tasks/my-tasks-workspace";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BuildVersion } from "@/components/build-version";
 import { Button } from "@/components/ui/button";
@@ -53,7 +54,7 @@ const dashboardSections = new Set<CrmSection>([
  * панелями, а не страницей. Диаграмме Ганта нужна известная высота — от
  * растущей страницы её не получить.
  */
-const fullHeightSections = new Set<CrmSection>(["interactions"]);
+const fullHeightSections = new Set<CrmSection>(["interactions", "myTasks"]);
 
 const sidebarStorageKey = "sova-sidebar-collapsed";
 
@@ -438,6 +439,8 @@ export function CrmShell(props: CrmShellProps) {
             <DashboardHome user={user} />
           ) : activeSection === "interactions" ? (
             <InteractionsWorkspace />
+          ) : activeSection === "myTasks" ? (
+            <MyTasksWorkspace />
           ) : activeSection === "organizations" ? (
             <OrganizationsWorkspace />
           ) : (

@@ -10,7 +10,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { getInteractions } from "@/lib/api/interactions/interactions";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/providers/locale-provider";
-import type { Interaction } from "@/types/workflow-board";
+import type { Interaction, InteractionShort } from "@/types/workflow-board";
 
 const copy = {
   ru: {
@@ -43,7 +43,11 @@ const copy = {
   },
 } as const;
 
-export function interactionTitle(interaction: Interaction, fallback: string) {
+/** Принимает и полное взаимодействие, и краткое: читаются только контрагенты. */
+export function interactionTitle(
+  interaction: InteractionShort,
+  fallback: string,
+) {
   return (
     interaction.university?.name ??
     interaction.b2c_client?.full_name ??

@@ -1,6 +1,6 @@
 import { Building2, ExternalLink, Mail, MapPin, Phone } from "lucide-react";
 
-import { StatusChip } from "@/components/organizations/status-chip";
+import { StatusChip } from "@/components/ui/status-chip";
 import type { University } from "@/types/university";
 
 export type OrganizationDetailsLabels = {

@@ -16,9 +16,9 @@ import {
 } from "@/components/organizations/organization-details";
 import { OrganizationSheet } from "@/components/organizations/organization-sheet";
 import { OrganizationsMap } from "@/components/organizations/organizations-map";
-import { StatusChip } from "@/components/organizations/status-chip";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
+import { StatusChip } from "@/components/ui/status-chip";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import {
   getUniversities,

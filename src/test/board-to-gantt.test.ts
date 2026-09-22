@@ -620,4 +620,15 @@ describe("resolveActionState", () => {
       ),
     ).toBe("pending");
   });
+
+  it("accepts any object carrying the four state fields", () => {
+    const actionInstanceShape = {
+      is_overdue: false,
+      is_trigger_only: true,
+      is_triggered: false,
+      status: "pending",
+    };
+
+    expect(resolveActionState(actionInstanceShape)).toBe("waiting_transition");
+  });
 });

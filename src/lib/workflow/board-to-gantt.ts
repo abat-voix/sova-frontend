@@ -101,6 +101,14 @@ function normalizeStatus(status: string): StageState {
   return "unknown";
 }
 
+/** Поля, из которых складывается состояние: больше `resolveActionState` ничего не читает. */
+export type ActionStateSource = {
+  is_overdue: boolean;
+  is_trigger_only: boolean;
+  is_triggered: boolean;
+  status: string;
+};
+
 /**
  * Состояние действия для отображения.
  *
@@ -108,7 +116,7 @@ function normalizeStatus(status: string): StageState {
  * просрочку считает бэкенд (`is_overdue`), а ожидание перехода выражено парой
  * `is_trigger_only` + `is_triggered`. Своего `BLOCKED` не вычисляем.
  */
-export function resolveActionState(action: BoardAction): ActionState {
+export function resolveActionState(action: ActionStateSource): ActionState {
   if (action.is_overdue) return "overdue";
   if (action.is_trigger_only && !action.is_triggered)
     return "waiting_transition";
