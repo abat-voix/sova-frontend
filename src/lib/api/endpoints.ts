@@ -49,8 +49,14 @@ export const apiEndpoints = {
         `/api/processes/action-instances/${id}/complete/`,
       list: "/api/processes/action-instances/",
     },
+    actionRollbacks: {
+      list: "/api/processes/action-rollbacks/",
+    },
     stageInstances: {
       cancel: (id: string) => `/api/processes/stage-instances/${id}/cancel/`,
+    },
+    stageRollbacks: {
+      list: "/api/processes/stage-rollbacks/",
     },
     workflowInstances: {
       board: (id: string) => `/api/processes/workflow-instances/${id}/board/`,
