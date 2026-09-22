@@ -86,7 +86,7 @@ export function ActionRollbackHistory({
   });
 
   const entries =
-    query.data?.results.filter(
+    query.data?.results?.filter(
       (record) => record.from_action_instance.action.id === actionDefinitionId,
     ) ?? [];
 
@@ -107,7 +107,7 @@ export function StageRollbackHistory({
   });
 
   const entries =
-    query.data?.results.filter(
+    query.data?.results?.filter(
       (record) =>
         record.from_stage_instance.id === stageInstanceId ||
         record.to_stage_instance.id === stageInstanceId,

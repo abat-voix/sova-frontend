@@ -73,7 +73,6 @@ const copy = {
     stageClosed: "Закрыт",
     stageOpened: "Открыт",
     unassigned: "не назначен",
-    uploadFailed: "Не удалось загрузить файл.",
   },
   en: {
     actual: "Actual",
@@ -114,7 +113,6 @@ const copy = {
     stageClosed: "Closed",
     stageOpened: "Opened",
     unassigned: "unassigned",
-    uploadFailed: "The file could not be uploaded.",
   },
 } as const;
 
@@ -135,8 +133,13 @@ type PanelProps = {
 function ActionPanel({
   action,
   csrfToken,
+  // Канбан хранит открытое действие снимком в useState и не перечитывает
+  // его при рефетче — в отличие от диаграммы, которая каждый раз находит
+  // строку заново по id. Без колбэка панель после успеха показывала бы
+  // устаревшую форму и второе нажатие било бы в бэкенд с 409.
+  onActionChanged,
   workflowInstanceId,
-}: PanelProps & { action: BoardAction }) {
+}: PanelProps & { action: BoardAction; onActionChanged?: () => void }) {
   const { locale } = useLocale();
   const text = copy[locale];
   const [outcomeId, setOutcomeId] = useState("");
@@ -169,6 +172,7 @@ function ActionPanel({
       void queryClient.invalidateQueries({
         queryKey: rollbacksQueryKey(workflowInstanceId),
       });
+      onActionChanged?.();
     },
   });
 
@@ -278,6 +282,7 @@ function ActionPanel({
                       ? text.attachmentRequired
                       : resolveActionErrorMessage(mutationError, locale),
                   ),
+                onSuccess: () => onActionChanged?.(),
               },
             );
           }}
@@ -467,6 +472,11 @@ function StagePanel({
       void queryClient.invalidateQueries({
         queryKey: boardQueryKey(workflowInstanceId),
       });
+      // Откат этапа снова открывает действия — колонки задач устареют так
+      // же, как после отката отдельного действия.
+      void queryClient.invalidateQueries({
+        queryKey: ["processes", "action-instances"],
+      });
       void queryClient.invalidateQueries({
         queryKey: rollbacksQueryKey(workflowInstanceId),
       });
@@ -617,9 +627,13 @@ function StagePanel({
 
 export function BoardDetails({
   csrfToken,
+  onActionChanged,
   selection,
   workflowInstanceId,
-}: PanelProps & { selection: BoardSelection | null }) {
+}: PanelProps & {
+  onActionChanged?: () => void;
+  selection: BoardSelection | null;
+}) {
   const { locale } = useLocale();
 
   if (!selection) {
@@ -636,6 +650,7 @@ export function BoardDetails({
         action={selection.action}
         csrfToken={csrfToken}
         key={selection.action.id}
+        onActionChanged={onActionChanged}
         workflowInstanceId={workflowInstanceId}
       />
     );

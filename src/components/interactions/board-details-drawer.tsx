@@ -15,6 +15,7 @@ const copy = {
 
 type BoardDetailsDrawerProps = {
   csrfToken: string;
+  onActionChanged?: () => void;
   onClose: () => void;
   selection: BoardSelection;
   workflowInstanceId: string;
@@ -31,6 +32,7 @@ type BoardDetailsDrawerProps = {
  */
 export function BoardDetailsDrawer({
   csrfToken,
+  onActionChanged,
   onClose,
   selection,
   workflowInstanceId,
@@ -73,6 +75,7 @@ export function BoardDetailsDrawer({
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
         <BoardDetails
           csrfToken={csrfToken}
+          onActionChanged={onActionChanged}
           selection={selection}
           workflowInstanceId={workflowInstanceId}
         />

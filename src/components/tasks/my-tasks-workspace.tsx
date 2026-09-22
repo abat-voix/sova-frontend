@@ -126,6 +126,13 @@ export function MyTasksWorkspace() {
       }
 
       mutation.mutate({ action, outcome });
+
+      // Панель — снимок открытого действия: карточка сейчас продвинется
+      // сама, а панель об этом не узнает и предложит завершить то же
+      // действие повторно. Закрываем её сразу, не дожидаясь ответа.
+      setOpenedAction((current) =>
+        current?.id === action.id ? null : current,
+      );
     },
     [mutation],
   );
@@ -287,6 +294,7 @@ export function MyTasksWorkspace() {
           {openedAction ? (
             <BoardDetailsDrawer
               csrfToken={csrfToken}
+              onActionChanged={() => setOpenedAction(null)}
               onClose={() => setOpenedAction(null)}
               selection={{
                 kind: "action",
