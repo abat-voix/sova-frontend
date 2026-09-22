@@ -1,11 +1,11 @@
 import { Suspense } from "react";
 
-import { SovaShell } from "@/components/sova-shell";
+import { ReportsPage } from "@/components/reports/reports-page";
 
-export default function ReportsPage() {
+export default function Page() {
   return (
     <Suspense fallback={null}>
-      <SovaShell section="reports" />
+      <ReportsPage />
     </Suspense>
   );
 }
