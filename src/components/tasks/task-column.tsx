@@ -39,6 +39,7 @@ const copy = {
 type TaskColumnProps = {
   actualEndGte?: string;
   interactionId: string | null;
+  onOpen: (action: ActionInstance) => void;
   onOutcome: (action: ActionInstance, outcome: BoardOutcome) => void;
   ordering: string;
   scope: ActionInstanceScope;
@@ -51,6 +52,7 @@ type TaskColumnProps = {
 export function TaskColumn({
   actualEndGte,
   interactionId,
+  onOpen,
   onOutcome,
   ordering,
   scope,
@@ -134,6 +136,7 @@ export function TaskColumn({
             <TaskCard
               action={action}
               key={action.id}
+              onOpen={() => onOpen(action)}
               onOutcome={(outcome) => onOutcome(action, outcome)}
               showResponsible={scope === "all"}
             />

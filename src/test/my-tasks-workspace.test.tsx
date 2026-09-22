@@ -11,6 +11,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { MyTasksWorkspace } from "@/components/tasks/my-tasks-workspace";
 import { AuthProvider } from "@/providers/auth-provider";
 import { LocaleProvider } from "@/providers/locale-provider";
+import { actionInstanceFixture } from "@/test/fixtures/action-instance";
 
 afterEach(() => {
   cleanup();
@@ -55,6 +56,50 @@ function stubApi(role: "kam" | "head") {
                 products_count: 0,
               },
             ],
+          }
+        : { count: 0, next: null, previous: null, results: [] };
+
+    return new Response(JSON.stringify(body), {
+      headers: { "content-type": "application/json" },
+      status: 200,
+    });
+  });
+  vi.stubGlobal("fetch", fetchMock);
+
+  return fetchMock;
+}
+
+function stubApiWithTask(role: "kam" | "head") {
+  const task = {
+    ...actionInstanceFixture,
+    action_name_snapshot: "Найти контакт",
+    available_outcomes: [],
+    status: "in_progress",
+  };
+
+  const fetchMock = vi.fn<typeof fetch>(async (input) => {
+    const url = String(input);
+    // У задачи один статус — в остальных колонках отдаём пустой список,
+    // иначе одна и та же карточка всплывёт сразу в трёх колонках.
+    const body = url.startsWith("/api/processes/action-instances/")
+      ? url.includes(`status=${task.status}`)
+        ? { count: 1, next: null, previous: null, results: [task] }
+        : { count: 0, next: null, previous: null, results: [] }
+      : url.startsWith("/api/auth/me/")
+        ? {
+            authenticated: true,
+            csrfToken: "csrf",
+            user: {
+              id: 1,
+              email: "u@example.com",
+              firstName: "Иван",
+              lastName: "Иванов",
+              displayName: "Иван Иванов",
+              isStaff: false,
+              role,
+              roleDisplay: "",
+              roles: [],
+            },
           }
         : { count: 0, next: null, previous: null, results: [] };
 
@@ -149,5 +194,18 @@ describe("MyTasksWorkspace", () => {
           .length,
       ).toBeGreaterThan(3),
     );
+  });
+
+  it("opens the details drawer for the clicked card", async () => {
+    stubApiWithTask("head");
+    renderWorkspace();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Найти контакт" }),
+    );
+
+    expect(
+      await screen.findByRole("complementary", { name: "Действие" }),
+    ).toBeInTheDocument();
   });
 });
