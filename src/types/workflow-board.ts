@@ -221,6 +221,7 @@ export type BoardAction = {
   available_outcomes: BoardOutcome[];
   available_features: import("@/types/action-feature").AvailableActionFeature[];
   feature_executions: import("@/types/action-feature").ActionFeatureExecution[];
+  interaction?: InteractionShort;
 };
 
 export type BoardStage = {

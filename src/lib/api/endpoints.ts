@@ -40,6 +40,8 @@ export const apiEndpoints = {
         `/api/interactions/interactions/${id}/assign-responsible/`,
       detail: (id: string) => `/api/interactions/interactions/${id}/`,
       list: "/api/interactions/interactions/",
+      unassignResponsible: (id: string) =>
+        `/api/interactions/interactions/${id}/unassign-responsible/`,
     },
   },
   processes: {

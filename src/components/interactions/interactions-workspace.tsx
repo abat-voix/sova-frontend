@@ -132,6 +132,8 @@ export function InteractionsWorkspace() {
     useState<Interaction | null>(null);
   const [instanceId, setInstanceId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [editingInteraction, setEditingInteraction] =
+    useState<Interaction | null>(null);
   const [isStartingProcess, setIsStartingProcess] = useState(false);
   // Рабочий стол виден только авторизованному пользователю, а сессия приходит
   // клиентским запросом — на сервере этот компонент не рендерится.
@@ -218,6 +220,18 @@ export function InteractionsWorkspace() {
         />
       ) : null}
 
+      {editingInteraction && user ? (
+        <NewInteractionDialog
+          key={editingInteraction.id}
+          csrfToken={csrfToken}
+          currentUser={user}
+          editInteraction={editingInteraction}
+          onClose={() => setEditingInteraction(null)}
+          onCreated={() => setEditingInteraction(null)}
+          onUpdated={() => setEditingInteraction(null)}
+        />
+      ) : null}
+
       {isStartingProcess && selectedInteractionId ? (
         <StartProcessDialog
           audience={audience}
@@ -288,6 +302,7 @@ export function InteractionsWorkspace() {
         >
           <InteractionList
             onResolve={setSelectedInteraction}
+            onEdit={setEditingInteraction}
             onSelect={handleSelectInteraction}
             selectedId={selectedInteractionId}
           />
@@ -439,6 +454,7 @@ export function InteractionsWorkspace() {
               onClose={closeDetails}
               selection={selection}
               workflowInstanceId={boardQuery.data.id}
+              interaction={boardQuery.data.interaction}
             />
           ) : null}
         </div>

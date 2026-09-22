@@ -31,6 +31,7 @@ describe("actionInstanceToBoardAction", () => {
       available_outcomes: base.available_outcomes,
       available_features: base.available_features,
       feature_executions: base.feature_executions,
+      interaction: base.interaction,
     });
   });
 

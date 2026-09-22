@@ -10,6 +10,7 @@ import { ApiError } from "@/lib/api/http";
 import { executeActionFeature, boardQueryKey } from "@/lib/api/processes/board";
 import { useLocale } from "@/providers/locale-provider";
 import type {
+  ActionFeatureExecution,
   CreateContactPersonFeaturePayload,
   ExecuteActionFeatureResult,
 } from "@/types/action-feature";
@@ -46,6 +47,8 @@ type Props = {
   executionNo: number;
   csrfToken: string;
   workflowInstanceId: string;
+  interaction?: import("@/types/workflow-board").InteractionShort;
+  executions?: ActionFeatureExecution[];
 };
 
 const fields = ["full_name", "position", "email", "phone"] as const;

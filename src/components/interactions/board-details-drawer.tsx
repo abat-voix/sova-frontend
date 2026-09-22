@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { BoardDetails } from "@/components/interactions/board-details";
 import { Button } from "@/components/ui/button";
 import type { BoardSelection } from "@/lib/workflow/board-to-gantt";
+import type { InteractionShort } from "@/types/workflow-board";
 import { useLocale } from "@/providers/locale-provider";
 
 const copy = {
@@ -19,6 +20,7 @@ type BoardDetailsDrawerProps = {
   onClose: () => void;
   selection: BoardSelection;
   workflowInstanceId: string;
+  interaction?: InteractionShort;
 };
 
 /**
@@ -36,6 +38,7 @@ export function BoardDetailsDrawer({
   onClose,
   selection,
   workflowInstanceId,
+  interaction,
 }: BoardDetailsDrawerProps) {
   const { locale } = useLocale();
   const text = copy[locale];
@@ -78,6 +81,7 @@ export function BoardDetailsDrawer({
           onActionChanged={onActionChanged}
           selection={selection}
           workflowInstanceId={workflowInstanceId}
+          interaction={interaction}
         />
       </div>
     </aside>

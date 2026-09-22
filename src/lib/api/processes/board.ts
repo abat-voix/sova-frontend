@@ -6,7 +6,8 @@ import type {
 } from "@/types/action-rollback";
 import type { PaginatedResponse } from "@/types/api";
 import type {
-  CreateContactPersonFeaturePayload,
+  ActionFeatureCode,
+  ActionFeaturePayloadMap,
   ExecuteActionFeatureResult,
 } from "@/types/action-feature";
 import type {
@@ -78,8 +79,8 @@ export function completeAction(
 /** Выполняет feature для текущего исполнения действия. Контекст задаёт backend. */
 export function executeActionFeature(
   actionInstanceId: string,
-  code: string,
-  payload: CreateContactPersonFeaturePayload,
+  code: ActionFeatureCode,
+  payload: ActionFeaturePayloadMap[typeof code],
   csrfToken: string,
 ) {
   return postJson<ExecuteActionFeatureResult>(

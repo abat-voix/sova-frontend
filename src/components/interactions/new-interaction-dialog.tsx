@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import {
   buildCreationPlan,
   draftReducer,
-  draftWithResponsible,
+  emptyDraft,
   emptyNodeKeys,
   isDraftReady,
   selectedDirectionIds,
@@ -32,8 +32,13 @@ import {
   searchUniversities,
 } from "@/lib/api/catalog/lookups";
 import { ApiError } from "@/lib/api/http";
+import {
+  assignResponsible,
+  unassignResponsible,
+} from "@/lib/api/interactions/interactions";
 import type { AuthenticatedUser } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
+import type { Interaction } from "@/types/workflow-board";
 
 const copy = {
   ru: {
@@ -50,6 +55,8 @@ const copy = {
     commentPlaceholder: "Например: пилот на осенний семестр",
     counterparty: "Контрагент",
     created: "Взаимодействие создано.",
+    editTitle: "Редактировать взаимодействие",
+    edited: "Ответственный обновлён.",
     direction: "Направление",
     directionPlaceholder: "Выберите направление",
     failed: "Не удалось создать взаимодействие.",
@@ -72,6 +79,7 @@ const copy = {
     responsiblePlaceholder: "Выберите менеджера",
     retry: "Повторить",
     submit: "Создать",
+    save: "Сохранить",
     submitting: "Создаём…",
     title: "Новое взаимодействие",
     universityPlaceholder: "Выберите вуз",
@@ -90,6 +98,8 @@ const copy = {
     commentPlaceholder: "For example: pilot for the autumn term",
     counterparty: "Counterparty",
     created: "The interaction was created.",
+    editTitle: "Edit interaction",
+    edited: "Responsible updated.",
     direction: "Direction",
     directionPlaceholder: "Pick a direction",
     failed: "The interaction could not be created.",
@@ -112,6 +122,7 @@ const copy = {
     responsiblePlaceholder: "Pick a manager",
     retry: "Retry",
     submit: "Create",
+    save: "Save",
     submitting: "Creating…",
     title: "New interaction",
     universityPlaceholder: "Pick a university",
@@ -123,6 +134,34 @@ type Text = { [Key in keyof (typeof copy)["ru"]]: string };
 
 function resolveErrorDetail(error: unknown) {
   return error instanceof ApiError ? error.detail : null;
+}
+
+function initialDraft(
+  value: Interaction | { id: string; name: string } | null,
+): InteractionDraft {
+  if (value && "current_responsible" in value) {
+    return {
+      comment: value.comment ?? "",
+      counterparty: value.university
+        ? { id: value.university.id, name: value.university.name }
+        : value.b2c_client
+          ? { id: value.b2c_client.id, name: value.b2c_client.full_name }
+          : null,
+      counterpartyKind: value.b2c_client ? "b2c_client" : "university",
+      createdInteractionId: null,
+      directions: [],
+      isActive: value.is_active ?? true,
+      responsible: value.current_responsible
+        ? {
+            id: String(value.current_responsible.manager.id),
+            name: value.current_responsible.manager.full_name,
+          }
+        : null,
+      responsibleAssigned: false,
+    };
+  }
+
+  return { ...emptyDraft, responsible: value };
 }
 
 function RemoveButton({
@@ -310,13 +349,17 @@ function DirectionRow({
 export function NewInteractionDialog({
   csrfToken,
   currentUser,
+  editInteraction,
   onClose,
   onCreated,
+  onUpdated,
 }: {
   csrfToken: string;
   currentUser: AuthenticatedUser;
+  editInteraction?: Interaction;
   onClose: () => void;
   onCreated: (interactionId: string) => void;
+  onUpdated?: () => void;
 }) {
   const { locale } = useLocale();
   const text = copy[locale];
@@ -326,12 +369,14 @@ export function NewInteractionDialog({
   const isKam = currentUser.role === "kam";
   const canChooseResponsible =
     currentUser.role === "head" || currentUser.role === "platform_admin";
+  const isEditing = Boolean(editInteraction);
   const [draft, dispatch] = useReducer(
     draftReducer,
-    isKam
-      ? { id: String(currentUser.id), name: currentUser.displayName }
-      : null,
-    draftWithResponsible,
+    editInteraction ??
+      (isKam
+        ? { id: String(currentUser.id), name: currentUser.displayName }
+        : null),
+    initialDraft,
   );
   const [error, setError] = useState<string | null>(null);
   const keyCounter = useRef(0);
@@ -343,26 +388,60 @@ export function NewInteractionDialog({
   }
 
   const mutation = useMutation({
-    mutationFn: () => runCreationPlan(buildCreationPlan(draft), csrfToken),
+    mutationFn: async () => {
+      if (!editInteraction) {
+        return {
+          kind: "create" as const,
+          outcome: await runCreationPlan(buildCreationPlan(draft), csrfToken),
+        };
+      }
+
+      const previousId =
+        editInteraction.current_responsible?.manager.id ?? null;
+      const nextId = draft.responsible ? Number(draft.responsible.id) : null;
+      if (previousId === nextId)
+        return { kind: "edit" as const, changed: false };
+      if (nextId === null) {
+        await unassignResponsible(editInteraction.id, csrfToken);
+      } else {
+        await assignResponsible(editInteraction.id, nextId, csrfToken);
+      }
+      return { kind: "edit" as const, changed: true };
+    },
     onSuccess: (outcome) => {
-      if (outcome.interactionId === null) {
-        setError(resolveErrorDetail(outcome.error) ?? text.failed);
+      if (outcome.kind === "edit") {
+        void queryClient.invalidateQueries({
+          queryKey: ["interactions", "list"],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ["processes", "action-instances"],
+        });
+        void queryClient.invalidateQueries({
+          queryKey: ["processes", "workflow-board"],
+        });
+        toast.success(text.edited);
+        onUpdated?.();
+        return;
+      }
+      const creationOutcome = outcome.outcome;
+      if (creationOutcome.interactionId === null) {
+        setError(resolveErrorDetail(creationOutcome.error) ?? text.failed);
 
         return;
       }
 
       // Принятые узлы помечаем сразу: повтор отправит только недостающее.
       dispatch({
-        createdIds: outcome.createdIds,
-        interactionId: outcome.interactionId,
-        responsibleAssigned: outcome.responsibleAssigned,
+        createdIds: creationOutcome.createdIds,
+        interactionId: creationOutcome.interactionId,
+        responsibleAssigned: creationOutcome.responsibleAssigned,
         type: "mark-created",
       });
       void queryClient.invalidateQueries({
         queryKey: ["interactions", "list"],
       });
 
-      if (outcome.error) {
+      if (creationOutcome.error) {
         setError(text.partial);
 
         return;
@@ -370,14 +449,14 @@ export function NewInteractionDialog({
 
       setError(null);
       toast.success(text.created);
-      onCreated(outcome.interactionId);
+      onCreated(creationOutcome.interactionId);
     },
     onError: (mutationError) => {
       setError(resolveErrorDetail(mutationError) ?? text.failed);
     },
   });
 
-  const isRetry = draft.createdInteractionId !== null;
+  const isRetry = !isEditing && draft.createdInteractionId !== null;
   const hasEmptyRows = emptyNodeKeys(draft).length > 0;
 
   return (
@@ -395,7 +474,7 @@ export function NewInteractionDialog({
       >
         <div className="border-b px-5 py-4 pr-14">
           <h2 className="text-lg font-medium" id="new-interaction-title">
-            {text.title}
+            {isEditing ? text.editTitle : text.title}
           </h2>
         </div>
 
@@ -409,7 +488,7 @@ export function NewInteractionDialog({
                 <label className="flex items-center gap-2" key={kind}>
                   <input
                     checked={draft.counterpartyKind === kind}
-                    disabled={isRetry}
+                    disabled={isEditing || isRetry}
                     name="counterparty-kind"
                     onChange={() =>
                       dispatch({ kind, type: "set-counterparty-kind" })
@@ -421,7 +500,7 @@ export function NewInteractionDialog({
               ))}
             </div>
             <EntitySelect
-              disabled={isRetry}
+              disabled={isEditing || isRetry}
               id="new-interaction-counterparty"
               label={text.counterparty}
               onChange={(option) =>
@@ -483,7 +562,7 @@ export function NewInteractionDialog({
             </label>
             <textarea
               className="border-input bg-background mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-              disabled={isRetry}
+              disabled={isEditing || isRetry}
               id="new-interaction-comment"
               onChange={(event) =>
                 dispatch({ comment: event.target.value, type: "set-comment" })
@@ -497,7 +576,7 @@ export function NewInteractionDialog({
           <label className="flex items-center gap-2 text-sm">
             <input
               checked={draft.isActive}
-              disabled={isRetry}
+              disabled={isEditing || isRetry}
               onChange={(event) =>
                 dispatch({ isActive: event.target.checked, type: "set-active" })
               }
@@ -506,7 +585,10 @@ export function NewInteractionDialog({
             {text.active}
           </label>
 
-          <section className="space-y-3 border-t pt-4">
+          <fieldset
+            className="space-y-3 border-t pt-4"
+            disabled={isEditing || isRetry}
+          >
             <div>
               <h3 className="text-sm font-medium">{text.catalogTitle}</h3>
               <p className="text-muted-foreground mt-1 text-xs leading-5">
@@ -537,7 +619,7 @@ export function NewInteractionDialog({
               <Plus aria-hidden="true" className="size-4" />
               {text.addDirection}
             </Button>
-          </section>
+          </fieldset>
         </div>
 
         <div className="space-y-3 border-t px-5 py-4">
@@ -564,9 +646,11 @@ export function NewInteractionDialog({
             >
               {mutation.isPending
                 ? text.submitting
-                : isRetry
-                  ? text.retry
-                  : text.submit}
+                : isEditing
+                  ? text.save
+                  : isRetry
+                    ? text.retry
+                    : text.submit}
             </Button>
           </div>
         </div>
