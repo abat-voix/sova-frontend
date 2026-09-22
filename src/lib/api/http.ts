@@ -17,18 +17,21 @@ export class ApiError extends Error {
   readonly status: number;
   readonly code: string | null;
   readonly detail: string | null;
+  readonly fieldErrors: Record<string, string[]>;
 
   constructor(
     status: number,
     code: string | null,
     detail: string | null,
     message: string,
+    fieldErrors: Record<string, string[]> = {},
   ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
     this.detail = detail;
+    this.fieldErrors = fieldErrors;
   }
 }
 
@@ -84,13 +87,23 @@ async function readErrorBody(response: Response) {
   try {
     const body = (await response.json()) as ErrorBody;
 
+    const fieldErrors: Record<string, string[]> = {};
+    const validation =
+      body.detail && typeof body.detail === "object"
+        ? (body.detail as Record<string, unknown>)
+        : (body as Record<string, unknown>);
+    for (const [field, value] of Object.entries(validation)) {
+      if (Array.isArray(value)) fieldErrors[field] = value.map(String);
+    }
+
     return {
       code: typeof body.code === "string" ? body.code : null,
       detail: typeof body.detail === "string" ? body.detail : null,
+      fieldErrors,
       loginUrl: typeof body.login_url === "string" ? body.login_url : null,
     };
   } catch {
-    return { code: null, detail: null, loginUrl: null };
+    return { code: null, detail: null, fieldErrors: {}, loginUrl: null };
   }
 }
 
@@ -104,7 +117,8 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    const { code, detail, loginUrl } = await readErrorBody(response);
+    const { code, detail, fieldErrors, loginUrl } =
+      await readErrorBody(response);
 
     // `session_expired` — сессия жива, но id token протух; `not_authenticated`
     // — сессии нет совсем. Ответ интерфейса в обоих случаях один.
@@ -119,6 +133,7 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
       code,
       detail,
       `Request to ${url} failed with status ${response.status}`,
+      fieldErrors,
     );
   }
 

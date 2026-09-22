@@ -61,6 +61,14 @@ export function assignResponsible(
   );
 }
 
+export function unassignResponsible(interactionId: string, csrfToken: string) {
+  return postJson<InteractionResponsible>(
+    apiEndpoints.interactions.interactions.unassignResponsible(interactionId),
+    {},
+    csrfToken,
+  );
+}
+
 export function createInteractionDirection(
   payload: CreateInteractionDirectionPayload,
   csrfToken: string,

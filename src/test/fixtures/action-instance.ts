@@ -36,4 +36,6 @@ export const actionInstanceFixture = {
       is_attachment_required: false,
     },
   ],
+  available_features: [],
+  feature_executions: [],
 } satisfies ActionInstance;

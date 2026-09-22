@@ -8,6 +8,23 @@ import type {
 
 export const contactPersonsPageSize = 20;
 
+export const contactPersonsQueryKey = (params?: ContactPersonsQuery) => {
+  if (!params) return ["catalog", "contact-persons"] as const;
+
+  return [
+    "catalog",
+    "contact-persons",
+    {
+      activity: params.activity ?? "all",
+      b2cClientId: params.b2cClientId ?? null,
+      ordering: params.ordering ?? null,
+      page: params.page,
+      search: params.search ?? "",
+      universityId: params.universityId ?? null,
+    },
+  ] as const;
+};
+
 /** `all` параметр не отправляет: каталог отдаёт контакты в обоих состояниях. */
 function activityParam(filter: ContactActivityFilter) {
   if (filter === "all") return undefined;

@@ -74,11 +74,30 @@ function stubApiWithTask(role: "kam" | "head") {
     ...actionInstanceFixture,
     action_name_snapshot: "Найти контакт",
     available_outcomes: [],
+    available_features: [{ code: "contact_person.create", settings: {} }],
     status: "in_progress",
   };
 
   const fetchMock = vi.fn<typeof fetch>(async (input) => {
     const url = String(input);
+    if (url.includes("/features/contact_person.create/execute/")) {
+      return new Response(
+        JSON.stringify({
+          execution: {
+            id: "execution-1",
+            feature_code: "contact_person.create",
+            performed_at: "2026-09-22T10:00:00Z",
+            performed_by: { id: 1, full_name: "Иван Иванов" },
+          },
+          target: {
+            type: "contact_person",
+            id: "contact-1",
+            data: { full_name: "Анна Иванова" },
+          },
+        }),
+        { headers: { "content-type": "application/json" }, status: 200 },
+      );
+    }
     // У задачи один статус — в остальных колонках отдаём пустой список,
     // иначе одна и та же карточка всплывёт сразу в трёх колонках.
     const body = url.startsWith("/api/processes/action-instances/")
@@ -269,6 +288,33 @@ describe("MyTasksWorkspace", () => {
     expect(
       await screen.findByRole("complementary", { name: "Действие" }),
     ).toBeInTheDocument();
+  });
+
+  it("executes contact creation from the same task details panel", async () => {
+    const fetchMock = stubApiWithTask("head");
+    renderWorkspace();
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Найти контакт" }),
+    );
+    fireEvent.change(await screen.findByLabelText("ФИО *"), {
+      target: { value: "Анна Иванова" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Добавить контакт" }));
+
+    expect(
+      await screen.findByText("Создан контакт: Анна Иванова"),
+    ).toBeInTheDocument();
+    const call = fetchMock.mock.calls.find(([input]) =>
+      String(input).includes("/features/contact_person.create/execute/"),
+    );
+    expect(call?.[1]?.body).toBe(
+      JSON.stringify({
+        full_name: "Анна Иванова",
+        position: "",
+        email: "",
+        phone: "",
+      }),
+    );
   });
 
   // Панель хранит снимок открытого действия и не перечитывает его сама —

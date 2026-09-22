@@ -19,6 +19,8 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
 const completed = {
   ...base,
   available_outcomes: [],
+  available_features: [],
+  feature_executions: [],
   status: "completed",
   result: {
     outcome_name: "Выполнено",

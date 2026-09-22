@@ -40,6 +40,8 @@ export const apiEndpoints = {
         `/api/interactions/interactions/${id}/assign-responsible/`,
       detail: (id: string) => `/api/interactions/interactions/${id}/`,
       list: "/api/interactions/interactions/",
+      unassignResponsible: (id: string) =>
+        `/api/interactions/interactions/${id}/unassign-responsible/`,
     },
   },
   processes: {
@@ -50,6 +52,8 @@ export const apiEndpoints = {
       cancel: (id: string) => `/api/processes/action-instances/${id}/cancel/`,
       complete: (id: string) =>
         `/api/processes/action-instances/${id}/complete/`,
+      executeFeature: (id: string, code: string) =>
+        `/api/processes/action-instances/${id}/features/${encodeURIComponent(code)}/execute/`,
       list: "/api/processes/action-instances/",
     },
     actionRollbacks: {

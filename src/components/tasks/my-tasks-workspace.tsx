@@ -301,6 +301,7 @@ export function MyTasksWorkspace() {
                 action: actionInstanceToBoardAction(openedAction),
               }}
               workflowInstanceId={openedAction.workflow_instance}
+              interaction={openedAction.interaction}
             />
           ) : null}
         </div>

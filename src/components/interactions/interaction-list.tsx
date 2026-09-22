@@ -1,7 +1,7 @@
 "use client";
 
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { Building2, User } from "lucide-react";
+import { Building2, Pencil, User } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,7 @@ const copy = {
   ru: {
     clearSearch: "Очистить поиск",
     interactionsCount: "взаимодействий",
+    edit: "Редактировать взаимодействие",
     listError: "Не удалось загрузить список взаимодействий.",
     loadMore: "Подгрузить",
     loading: "Загружаем взаимодействия…",
@@ -30,6 +31,7 @@ const copy = {
   en: {
     clearSearch: "Clear search",
     interactionsCount: "interactions",
+    edit: "Edit interaction",
     listError: "The interaction list could not be loaded.",
     loadMore: "Load more",
     loading: "Loading interactions…",
@@ -89,6 +91,7 @@ type InteractionListProps = {
    * например, только что созданное.
    */
   onResolve: (interaction: Interaction) => void;
+  onEdit?: (interaction: Interaction) => void;
   onSelect: (interaction: Interaction) => void;
   selectedId: string | null;
 };
@@ -99,6 +102,7 @@ type InteractionListProps = {
  */
 export function InteractionList({
   onResolve,
+  onEdit,
   onSelect,
   selectedId,
 }: InteractionListProps) {
@@ -168,46 +172,64 @@ export function InteractionList({
           <ul className="space-y-1.5">
             {interactions.map((interaction) => (
               <li key={interaction.id}>
-                <button
-                  aria-pressed={selectedId === interaction.id}
+                <div
                   className={cn(
-                    "bg-card w-full rounded-lg border p-3 text-left transition-colors",
+                    "bg-card flex w-full rounded-lg border p-3 text-left transition-colors",
                     selectedId === interaction.id
                       ? "border-[var(--atmr-accent-primary)] bg-[var(--atmr-background-accent-soft)]"
                       : "hover:bg-secondary",
                   )}
-                  onClick={() => onSelect(interaction)}
-                  type="button"
                 >
-                  <span className="flex items-start gap-2.5">
-                    <Building2
-                      aria-hidden="true"
-                      className="mt-0.5 size-4 shrink-0 text-[var(--atmr-accent-primary)]"
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm leading-5 font-medium">
-                        {interactionTitle(interaction, text.unnamed)}
-                      </span>
-                      <span className="mt-1.5 flex items-center gap-2">
-                        <span className="text-muted-foreground flex min-w-0 flex-1 items-center gap-1 text-xs">
-                          <User
-                            aria-hidden="true"
-                            className="size-3 shrink-0"
-                          />
-                          <span className="truncate">
-                            {interaction.current_responsible?.manager
-                              .full_name ?? text.unassigned}
-                          </span>
+                  <button
+                    aria-pressed={selectedId === interaction.id}
+                    className="min-w-0 flex-1 text-left"
+                    onClick={() => onSelect(interaction)}
+                    type="button"
+                  >
+                    <span className="flex items-start gap-2.5">
+                      <Building2
+                        aria-hidden="true"
+                        className="mt-0.5 size-4 shrink-0 text-[var(--atmr-accent-primary)]"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm leading-5 font-medium">
+                          {interactionTitle(interaction, text.unnamed)}
                         </span>
-                        <Badge variant="neutral">
-                          {interaction.directions_count} ·{" "}
-                          {interaction.programs_count} ·{" "}
-                          {interaction.products_count}
-                        </Badge>
+                        <span className="mt-1.5 flex items-center gap-2">
+                          <span className="text-muted-foreground flex min-w-0 flex-1 items-center gap-1 text-xs">
+                            <User
+                              aria-hidden="true"
+                              className="size-3 shrink-0"
+                            />
+                            <span className="truncate">
+                              {interaction.current_responsible?.manager
+                                .full_name ?? text.unassigned}
+                            </span>
+                          </span>
+                          <Badge variant="neutral">
+                            {interaction.directions_count} ·{" "}
+                            {interaction.programs_count} ·{" "}
+                            {interaction.products_count}
+                          </Badge>
+                        </span>
                       </span>
                     </span>
-                  </span>
-                </button>
+                  </button>
+                  {onEdit ? (
+                    <Button
+                      aria-label={text.edit}
+                      className="-mt-2 -mr-2 shrink-0"
+                      colorScheme="neutral"
+                      onClick={() => onEdit(interaction)}
+                      size="icon"
+                      title={text.edit}
+                      type="button"
+                      variant="ghost"
+                    >
+                      <Pencil aria-hidden="true" className="size-3.5" />
+                    </Button>
+                  ) : null}
+                </div>
               </li>
             ))}
           </ul>

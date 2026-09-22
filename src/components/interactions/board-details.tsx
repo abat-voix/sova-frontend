@@ -5,6 +5,10 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import {
+  ActionFeatureRenderer,
+  FeatureExecutionHistory,
+} from "@/components/action-features/action-feature-renderer";
+import {
   ActionRollbackHistory,
   StageRollbackHistory,
 } from "@/components/interactions/rollback-history";
@@ -31,6 +35,7 @@ import type {
   BoardAction,
   BoardStage,
   CancelStageMode,
+  InteractionShort,
 } from "@/types/workflow-board";
 
 const copy = {
@@ -128,6 +133,7 @@ function Field({ label, value }: { label: string; value: string }) {
 type PanelProps = {
   csrfToken: string;
   workflowInstanceId: string;
+  interaction?: InteractionShort;
 };
 
 function ActionPanel({
@@ -139,6 +145,7 @@ function ActionPanel({
   // устаревшую форму и второе нажатие било бы в бэкенд с 409.
   onActionChanged,
   workflowInstanceId,
+  interaction,
 }: PanelProps & { action: BoardAction; onActionChanged?: () => void }) {
   const { locale } = useLocale();
   const text = copy[locale];
@@ -258,6 +265,16 @@ function ActionPanel({
           </p>
         </div>
       ) : null}
+
+      <ActionFeatureRenderer
+        actionInstanceId={action.id}
+        csrfToken={csrfToken}
+        executionNo={action.execution_no}
+        executions={action.feature_executions}
+        features={action.available_features}
+        workflowInstanceId={workflowInstanceId}
+        interaction={interaction ?? action.interaction}
+      />
 
       {action.available_outcomes.length > 0 ? (
         <form
@@ -434,6 +451,7 @@ function ActionPanel({
         actionDefinitionId={action.action.id}
         workflowInstanceId={workflowInstanceId}
       />
+      <FeatureExecutionHistory executions={action.feature_executions} />
     </div>
   );
 }

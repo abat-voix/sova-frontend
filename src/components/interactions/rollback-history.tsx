@@ -13,7 +13,7 @@ import { useLocale } from "@/providers/locale-provider";
 const copy = {
   ru: {
     error: "Не удалось загрузить историю откатов.",
-    title: "Откаты",
+    title: "История откатов",
     unknownAuthor: "неизвестно кем",
   },
   en: {
@@ -40,27 +40,28 @@ function History({ entries, isError }: { entries: Entry[]; isError: boolean }) {
 
   return (
     <div data-testid="rollback-history">
-      {isError ? (
-        <p className="text-muted-foreground border-t pt-4 text-xs">
-          {text.error}
-        </p>
-      ) : entries.length > 0 ? (
-        <div className="space-y-2 border-t pt-4">
-          <p className="text-muted-foreground text-xs font-bold tracking-[0.12em] uppercase">
+      {isError || entries.length > 0 ? (
+        <details className="border-t pt-3">
+          <summary className="text-muted-foreground cursor-pointer text-xs font-medium">
             {text.title}
-          </p>
-          <ul className="space-y-2">
-            {entries.map((entry) => (
-              <li className="bg-secondary rounded-lg p-3" key={entry.id}>
-                <p className="text-sm">{entry.reason}</p>
-                <p className="text-muted-foreground mt-1 text-xs">
-                  {entry.created_by?.full_name ?? text.unknownAuthor} ·{" "}
-                  {formatMoment(entry.created_at, locale)}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </div>
+            {entries.length > 0 ? ` (${entries.length})` : ""}
+          </summary>
+          {isError ? (
+            <p className="text-muted-foreground mt-2 text-xs">{text.error}</p>
+          ) : (
+            <ul className="mt-2 space-y-2">
+              {entries.map((entry) => (
+                <li className="bg-secondary rounded-lg p-3" key={entry.id}>
+                  <p className="text-sm">{entry.reason}</p>
+                  <p className="text-muted-foreground mt-1 text-xs">
+                    {entry.created_by?.full_name ?? text.unknownAuthor} ·{" "}
+                    {formatMoment(entry.created_at, locale)}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </details>
       ) : null}
     </div>
   );
