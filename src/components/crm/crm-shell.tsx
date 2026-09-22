@@ -24,6 +24,7 @@ import { ItCatalogWorkspace } from "@/components/catalog/it-catalog-workspace";
 import { InteractionsWorkspace } from "@/components/interactions/interactions-workspace";
 import { LanguageToggle } from "@/components/language-toggle";
 import { OrganizationsWorkspace } from "@/components/organizations/organizations-workspace";
+import { ReportsWorkspace } from "@/components/reports/reports-workspace";
 import { MyTasksWorkspace } from "@/components/tasks/my-tasks-workspace";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BuildVersion } from "@/components/build-version";
@@ -453,6 +454,8 @@ export function CrmShell(props: CrmShellProps) {
             <MyTasksWorkspace />
           ) : activeSection === "organizations" ? (
             <OrganizationsWorkspace />
+          ) : activeSection === "reports" ? (
+            <ReportsWorkspace />
           ) : (
             <SectionPlaceholder section={currentSection} />
           )}

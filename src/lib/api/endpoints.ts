@@ -74,6 +74,17 @@ export const apiEndpoints = {
       list: "/api/processes/workflow-instances/",
     },
   },
+  reports: {
+    exports: {
+      detail: (id: string) => `/api/reports/exports/${id}/`,
+      download: (id: string) => `/api/reports/exports/${id}/download/`,
+    },
+    interactions: {
+      exports: "/api/reports/interactions/exports/",
+      preview: "/api/reports/interactions/preview/",
+      summary: "/api/reports/interactions/summary/",
+    },
+  },
   users: {
     list: "/api/users/",
   },
