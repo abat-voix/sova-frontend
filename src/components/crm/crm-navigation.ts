@@ -10,7 +10,6 @@ import {
   Layers,
   ListChecks,
   Settings2,
-  Workflow,
   type LucideIcon,
 } from "lucide-react";
 
@@ -23,7 +22,6 @@ export type CrmSection =
   | "licenses"
   | "reports"
   | "interactions"
-  | "processes"
   | "organizations"
   | "contacts"
   | "itCatalog"
@@ -68,13 +66,6 @@ export const crmNavigation: CrmNavigationGroup[] = [
         descriptionKey: "interactionsDescription",
         href: "/interactions",
         icon: Handshake,
-      },
-      {
-        id: "processes",
-        labelKey: "processes",
-        descriptionKey: "processesDescription",
-        href: "/processes",
-        icon: Workflow,
       },
     ],
   },

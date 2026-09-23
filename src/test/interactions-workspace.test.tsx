@@ -9,6 +9,7 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { InteractionsWorkspace } from "@/components/interactions/interactions-workspace";
+import { interactionsQueryKey } from "@/lib/api/interactions/interactions";
 import { AuthProvider } from "@/providers/auth-provider";
 import { LocaleProvider } from "@/providers/locale-provider";
 import type { BoardSelection } from "@/lib/workflow/board-to-gantt";
@@ -180,10 +181,18 @@ function stubApi() {
   return fetchMock;
 }
 
-function renderWorkspace() {
+function renderWorkspace({ withDashboardCache = false } = {}) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
+  if (withDashboardCache) {
+    queryClient.setQueryData(interactionsQueryKey(""), {
+      count: 1,
+      next: null,
+      previous: null,
+      results: [interaction],
+    });
+  }
 
   return render(
     <QueryClientProvider client={queryClient}>
@@ -203,6 +212,13 @@ afterEach(() => {
 });
 
 describe("InteractionsWorkspace", () => {
+  it("opens after the dashboard has cached its interaction preview", async () => {
+    stubApi();
+    renderWorkspace({ withDashboardCache: true });
+
+    expect(await screen.findByText("Первый университет")).toBeInTheDocument();
+  });
+
   it("creates a contact from the action panel without asking for its counterparty", async () => {
     const fetchMock = stubApi();
     renderWorkspace();

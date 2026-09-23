@@ -107,6 +107,7 @@ export function StartProcessDialog({
 
   return (
     <Modal
+      allowContentOverflow
       closeLabel={text.cancel}
       labelledBy="start-process-title"
       onClose={onClose}
@@ -131,6 +132,7 @@ export function StartProcessDialog({
                 id="start-process-workflow"
                 label={text.workflow}
                 onChange={setWorkflow}
+                placement="top"
                 placeholder={text.placeholder}
                 queryKey={["workflows", "startable", audience]}
                 search={(term) => searchWorkflows(term, audience)}

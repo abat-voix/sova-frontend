@@ -194,7 +194,7 @@ function RequestState({
 export function OrganizationsWorkspace() {
   const { locale } = useLocale();
   const text = copy[locale];
-  const [view, setView] = useState<ViewMode>("list");
+  const [view, setView] = useState<ViewMode>("map");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");

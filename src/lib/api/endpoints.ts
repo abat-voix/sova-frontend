@@ -89,8 +89,42 @@ export const apiEndpoints = {
     list: "/api/users/",
   },
   workflows: {
+    actionDependencies: {
+      create: "/api/workflows/action-dependencies/",
+      detail: (id: string) => `/api/workflows/action-dependencies/${id}/`,
+    },
+    actionFeatures: {
+      create: "/api/workflows/action-features/",
+      detail: (id: string) => `/api/workflows/action-features/${id}/`,
+    },
+    actionOutcomes: {
+      create: "/api/workflows/action-outcomes/",
+      detail: (id: string) => `/api/workflows/action-outcomes/${id}/`,
+    },
+    actionTransitions: {
+      create: "/api/workflows/action-transitions/",
+      detail: (id: string) => `/api/workflows/action-transitions/${id}/`,
+    },
     workflows: {
+      create: "/api/workflows/workflows/",
+      definition: (id: string) => `/api/workflows/workflows/${id}/definition/`,
+      detail: (id: string) => `/api/workflows/workflows/${id}/`,
       list: "/api/workflows/workflows/",
+      publish: (id: string) => `/api/workflows/workflows/${id}/publish/`,
+      unpublish: (id: string) => `/api/workflows/workflows/${id}/unpublish/`,
+      validate: (id: string) => `/api/workflows/workflows/${id}/validate/`,
+    },
+    stages: {
+      create: "/api/workflows/workflow-stages/",
+      detail: (id: string) => `/api/workflows/workflow-stages/${id}/`,
+    },
+    stageTransitions: {
+      create: "/api/workflows/stage-transitions/",
+      detail: (id: string) => `/api/workflows/stage-transitions/${id}/`,
+    },
+    actions: {
+      create: "/api/workflows/workflow-actions/",
+      detail: (id: string) => `/api/workflows/workflow-actions/${id}/`,
     },
   },
 } as const;

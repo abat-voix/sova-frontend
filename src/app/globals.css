@@ -145,6 +145,24 @@ button {
   font: inherit;
 }
 
+/* React Flow ships light-only control colors. Keep canvas controls readable in
+   both themes and make the icon color follow the application foreground. */
+.workflow-editor .react-flow__controls-button {
+  background: var(--card);
+  border-color: var(--border);
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.workflow-editor .react-flow__controls-button:hover {
+  background: var(--secondary);
+}
+
+.workflow-editor .react-flow__controls-button svg {
+  fill: currentColor;
+  stroke: currentColor;
+}
+
 ::selection {
   background: color-mix(in oklab, var(--primary) 24%, transparent);
 }
