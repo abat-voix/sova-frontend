@@ -12,6 +12,18 @@ import { OrganizationsWorkspace } from "@/components/organizations/organizations
 import { LocaleProvider } from "@/providers/locale-provider";
 import type { University } from "@/types/university";
 
+vi.mock("@/components/organizations/organizations-map", () => ({
+  OrganizationsMap: ({
+    onSelect,
+  }: {
+    onSelect: (organizationId: string) => void;
+  }) => (
+    <button onClick={() => onSelect("university-1")} type="button">
+      Выбрать университет на карте
+    </button>
+  ),
+}));
+
 const university = (id: string, name: string): University => ({
   id,
   name,
@@ -34,6 +46,95 @@ afterEach(() => {
 });
 
 describe("OrganizationsWorkspace", () => {
+  it("loads and shows contact people for the university selected on the map", async () => {
+    const selectedUniversity = university(
+      "university-1",
+      "Тюменский университет",
+    );
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input), "http://localhost");
+      let body: unknown;
+
+      if (url.pathname === "/api/catalog/universities/map/") {
+        body = [
+          {
+            id: selectedUniversity.id,
+            lat: "57.15",
+            lon: "65.53",
+            has_interactions: false,
+          },
+        ];
+      } else if (url.pathname === "/api/catalog/universities/university-1/") {
+        body = selectedUniversity;
+      } else if (url.pathname === "/api/catalog/contact-persons/") {
+        body = {
+          count: 1,
+          next: null,
+          previous: null,
+          results: [
+            {
+              id: "contact-1",
+              full_name: "Анна Смирнова",
+              position: "Проректор",
+              email: "anna@example.test",
+              phone: "+7 900 000-00-00",
+              is_active: true,
+              university: {
+                id: selectedUniversity.id,
+                name: selectedUniversity.name,
+              },
+              b2c_client: null,
+              created_at: "2026-09-20T17:18:08.681266+03:00",
+              updated_at: "2026-09-20T17:18:08.681272+03:00",
+            },
+          ],
+        };
+      } else {
+        body = { count: 0, next: null, previous: null, results: [] };
+      }
+
+      return new Response(JSON.stringify(body), {
+        headers: { "content-type": "application/json" },
+        status: 200,
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <LocaleProvider>
+          <OrganizationsWorkspace />
+        </LocaleProvider>
+      </QueryClientProvider>,
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Выбрать университет на карте",
+      }),
+    );
+
+    expect(await screen.findByText("Анна Смирнова")).toBeInTheDocument();
+    expect(screen.getByText("Проректор")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "anna@example.test" }),
+    ).toHaveAttribute("href", "mailto:anna@example.test");
+    expect(screen.queryByText("Контакты не указаны")).not.toBeInTheDocument();
+
+    await waitFor(() => {
+      const contactUrl = fetchMock.mock.calls
+        .map(([input]) => new URL(String(input), "http://localhost"))
+        .find((url) => url.pathname === "/api/catalog/contact-persons/");
+
+      expect(contactUrl?.searchParams.get("university__ids")).toBe(
+        "university-1",
+      );
+    });
+  });
+
   it("loads the next page when the user clicks the load-more button", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);

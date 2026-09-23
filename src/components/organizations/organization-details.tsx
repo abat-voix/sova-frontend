@@ -8,7 +8,6 @@ export type OrganizationDetailsLabels = {
   hasInteractions: string;
   inactive: string;
   inn: string;
-  noContacts: string;
   noInteractions: string;
 };
 
@@ -25,8 +24,6 @@ export function OrganizationDetails({
   organization: University;
   labels: OrganizationDetailsLabels;
 }) {
-  const hasContacts = Boolean(organization.email || organization.phone);
-
   return (
     <>
       <span className="flex size-16 items-center justify-center rounded-2xl bg-[var(--atmr-background-accent-soft)] text-[var(--atmr-accent-primary)]">
@@ -74,9 +71,6 @@ export function OrganizationDetails({
             <Phone aria-hidden="true" className="size-4" />
             {organization.phone}
           </a>
-        ) : null}
-        {!hasContacts ? (
-          <p className="text-muted-foreground">{labels.noContacts}</p>
         ) : null}
         {organization.external_code ? (
           <a

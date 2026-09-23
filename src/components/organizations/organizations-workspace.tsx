@@ -14,6 +14,7 @@ import {
   OrganizationDetails,
   type OrganizationDetailsLabels,
 } from "@/components/organizations/organization-details";
+import { OrganizationContacts } from "@/components/organizations/organization-contacts";
 import { OrganizationSheet } from "@/components/organizations/organization-sheet";
 import { OrganizationsMap } from "@/components/organizations/organizations-map";
 import { Button } from "@/components/ui/button";
@@ -60,7 +61,6 @@ const copy = {
     interactionsFilterWithout: "Нет",
     inn: "ИНН",
     noInteractions: "Без взаимодействий",
-    noContacts: "Контакты не указаны",
     selectedOrganization: "Выбранный вуз",
     selectMarker: "Выберите маркер на карте",
     selectMarkerDescription:
@@ -95,7 +95,6 @@ const copy = {
     interactionsFilterWithout: "No",
     inn: "Tax ID",
     noInteractions: "No interactions",
-    noContacts: "No contacts provided",
     selectedOrganization: "Selected university",
     selectMarker: "Select a marker on the map",
     selectMarkerDescription:
@@ -247,7 +246,6 @@ export function OrganizationsWorkspace() {
     hasInteractions: text.hasInteractions,
     inactive: text.inactive,
     inn: text.inn,
-    noContacts: text.noContacts,
     noInteractions: text.noInteractions,
   };
   const clearSelection = useCallback(() => setSelectedId(null), []);
@@ -274,11 +272,14 @@ export function OrganizationsWorkspace() {
       retryLabel={text.retry}
     />
   ) : selectedUniversityQuery.data ? (
-    <OrganizationDetails
-      headingId={isCompactViewport ? sheetHeadingId : panelHeadingId}
-      labels={detailLabels}
-      organization={selectedUniversityQuery.data}
-    />
+    <>
+      <OrganizationDetails
+        headingId={isCompactViewport ? sheetHeadingId : panelHeadingId}
+        labels={detailLabels}
+        organization={selectedUniversityQuery.data}
+      />
+      <OrganizationContacts universityId={selectedUniversityQuery.data.id} />
+    </>
   ) : null;
 
   return (
