@@ -48,7 +48,7 @@ export function MessengerPanel({
         </Button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-hidden px-4 py-3">
+      <div className="min-h-0 flex-1 px-4 py-3">
         {selectedConversation ? (
           <MessageThread
             conversation={selectedConversation}

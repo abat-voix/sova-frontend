@@ -447,11 +447,11 @@ export function CrmShell(props: CrmShellProps) {
       </div>
 
       <aside
-        className="bg-card sticky top-0 z-40 hidden h-svh overflow-hidden border-l lg:block"
+        className="bg-card sticky top-0 z-40 hidden h-svh border-l lg:block"
         id="desktop-messenger-panel"
       >
         {isMessengerOpen ? (
-          <div style={{ width: messengerPanelWidth }}>
+          <div className="h-full" style={{ width: messengerPanelWidth }}>
             <MessengerPanel
               csrfToken={csrfToken}
               currentUser={user}
