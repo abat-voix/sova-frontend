@@ -551,7 +551,10 @@ export function WorkflowTemplatesWorkspace() {
                       ))}
                 </div>
               ) : null}
-              <div className="grid min-h-[36rem] xl:grid-cols-[minmax(0,1fr)_24rem]">
+              <div
+                className="grid min-h-[36rem] xl:h-[36rem] xl:grid-cols-[minmax(0,1fr)_24rem]"
+                data-testid="workflow-editor-frame"
+              >
                 <div className="workflow-editor h-[36rem] min-w-0 xl:h-auto">
                   <ReactFlow
                     edges={edges}

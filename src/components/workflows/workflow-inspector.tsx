@@ -1172,7 +1172,10 @@ export function WorkflowInspector({
   const reset = () => onSelectionChange({ kind: "workflow" });
 
   return (
-    <aside className="bg-card min-h-0 overflow-y-auto border-t p-4 xl:border-t-0 xl:border-l">
+    <aside
+      className="bg-card max-h-[36rem] min-h-0 overflow-y-auto border-t p-4 xl:max-h-none xl:border-t-0 xl:border-l"
+      data-testid="workflow-inspector"
+    >
       <div className="mb-4">
         <p className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
           Свойства

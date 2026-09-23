@@ -101,6 +101,10 @@ describe("WorkflowInspector", () => {
     expect(screen.getByText("Исходы")).toBeInTheDocument();
     expect(screen.getByText("Зависимости")).toBeInTheDocument();
     expect(screen.getByText("Возможности")).toBeInTheDocument();
+    expect(screen.getByTestId("workflow-inspector")).toHaveClass(
+      "max-h-[36rem]",
+      "overflow-y-auto",
+    );
 
     fireEvent.change(screen.getByLabelText("Код нового исхода"), {
       target: { value: "rejected" },

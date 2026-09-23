@@ -223,7 +223,7 @@ function SectionPlaceholder({ section }: { section: CrmNavigationItem }) {
   const Icon = section.icon;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <div>
         <h1 className="text-3xl font-medium tracking-[-0.025em] sm:text-4xl">
           {t(section.labelKey)}
@@ -374,8 +374,8 @@ export function CrmShell(props: CrmShellProps) {
           className={cn(
             "mx-auto w-full max-w-[100rem]",
             isFullHeight
-              ? "flex h-[calc(100svh-4rem)] flex-col overflow-hidden p-4 sm:p-6 lg:px-8 lg:py-6"
-              : "p-4 sm:p-6 lg:p-8",
+              ? "flex h-[calc(100svh-4rem)] flex-col overflow-hidden p-4 sm:p-6 lg:px-4 lg:py-4"
+              : "p-3 sm:p-4 lg:p-4",
           )}
         >
           {activeSection === "workflowTemplates" && !canManageWorkflows ? (
