@@ -136,6 +136,18 @@ describe("StartProcessDialog", () => {
     expect(listUrls[0]).toContain("audience=b2c");
   });
 
+  it("does not clip a long workflow dropdown at the modal boundary", async () => {
+    stubFetch();
+    renderDialog();
+
+    fireEvent.click(screen.getByRole("combobox", { name: "Шаблон workflow" }));
+    await screen.findByRole("listbox", { name: "Шаблон workflow" });
+
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toHaveClass("overflow-visible");
+    expect(dialog).not.toHaveClass("overflow-hidden");
+  });
+
   it("explains a 409 from the engine instead of a generic failure", async () => {
     stubFetch({
       code: "already_started",

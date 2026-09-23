@@ -4,8 +4,11 @@ import { X } from "lucide-react";
 import { useEffect, useRef, type ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type ModalProps = {
+  /** Разрешает дочерним popover-элементам выходить за границы модалки. */
+  allowContentOverflow?: boolean;
   children: ReactNode;
   closeLabel: string;
   labelledBy: string;
@@ -20,6 +23,7 @@ type ModalProps = {
  * открытый список, а не всё окно.
  */
 export function Modal({
+  allowContentOverflow = false,
   children,
   closeLabel,
   labelledBy,
@@ -57,7 +61,10 @@ export function Modal({
       <div
         aria-labelledby={labelledBy}
         aria-modal="true"
-        className="bg-card relative flex max-h-[90svh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border shadow-2xl sm:rounded-2xl"
+        className={cn(
+          "bg-card relative flex max-h-[90svh] w-full max-w-2xl flex-col rounded-t-2xl border shadow-2xl sm:rounded-2xl",
+          allowContentOverflow ? "overflow-visible" : "overflow-hidden",
+        )}
         role="dialog"
       >
         <Button
