@@ -215,269 +215,269 @@ export function InteractionsWorkspace() {
       </div>
 
       <div className="flex min-h-0 flex-1 gap-4">
-      {isCreating && user ? (
-        <NewInteractionDialog
-          csrfToken={csrfToken}
-          currentUser={user}
-          onClose={() => setIsCreating(false)}
-          onCreated={(interactionId) => {
-            setIsCreating(false);
-            // Объект придёт из списка, когда обновлённая страница его вернёт.
-            setSelectedInteractionId(interactionId);
-            setSelectedInteraction(null);
-            setInstanceId(null);
-            setSelectedRow(null);
-          }}
-        />
-      ) : null}
-
-      {editingInteraction && user ? (
-        <NewInteractionDialog
-          key={editingInteraction.id}
-          csrfToken={csrfToken}
-          currentUser={user}
-          editInteraction={editingInteraction}
-          onClose={() => setEditingInteraction(null)}
-          onCreated={() => setEditingInteraction(null)}
-          onUpdated={() => setEditingInteraction(null)}
-        />
-      ) : null}
-
-      {isStartingProcess && selectedInteractionId ? (
-        <StartProcessDialog
-          audience={audience}
-          csrfToken={csrfToken}
-          interactionId={selectedInteractionId}
-          onClose={() => setIsStartingProcess(false)}
-          onStarted={(workflowInstanceId) => {
-            setIsStartingProcess(false);
-            // Показываем только что запущенный процесс, а не первый в списке.
-            setInstanceId(workflowInstanceId);
-            setSelectedRow(null);
-          }}
-        />
-      ) : null}
-
-      <aside
-        className={cn(
-          "bg-card flex min-h-0 shrink-0 flex-col overflow-hidden rounded-xl border shadow-sm",
-          isListCollapsed ? "w-14" : "w-80",
-        )}
-      >
-        <div
-          className={cn(
-            "flex h-12 shrink-0 items-center gap-2 border-b",
-            isListCollapsed ? "justify-center px-0" : "px-2",
-          )}
-        >
-          <Button
-            aria-controls="interactions-list"
-            aria-expanded={!isListCollapsed}
-            aria-label={isListCollapsed ? text.expandList : text.collapseList}
-            colorScheme="neutral"
-            onClick={toggleList}
-            size="icon"
-            title={isListCollapsed ? text.expandList : text.collapseList}
-            type="button"
-            variant="outline"
-          >
-            {isListCollapsed ? (
-              <PanelLeftOpen aria-hidden="true" className="size-4" />
-            ) : (
-              <PanelLeftClose aria-hidden="true" className="size-4" />
-            )}
-          </Button>
-          {!isListCollapsed && user ? (
-            <Button
-              className="flex-1"
-              onClick={() => setIsCreating(true)}
-              size="m"
-              type="button"
-            >
-              <Plus aria-hidden="true" className="size-4" />
-              {text.create}
-            </Button>
-          ) : null}
-        </div>
-
-        {/*
-          В свёрнутом виде список прячем стилями, а не размонтированием: он
-          продолжает отдавать наружу объект выбранного взаимодействия.
-        */}
-        <div
-          className={cn(
-            "flex min-h-0 flex-1 flex-col p-3",
-            isListCollapsed && "hidden",
-          )}
-          id="interactions-list"
-        >
-          <InteractionList
-            onResolve={setSelectedInteraction}
-            onEdit={setEditingInteraction}
-            onSelect={handleSelectInteraction}
-            selectedId={selectedInteractionId}
-          />
-        </div>
-      </aside>
-
-      <section className="bg-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border shadow-sm">
-        <div className="flex h-12 shrink-0 flex-wrap items-center gap-2 border-b px-3">
-          {selectedInteraction ? (
-            <p className="min-w-0 truncate text-sm font-medium">
-              {interactionTitle(selectedInteraction, text.unnamed)}
-            </p>
-          ) : null}
-
-          {instances.length > 1 ? (
-            <label className="flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground sr-only sm:not-sr-only">
-                {text.process}
-              </span>
-              <select
-                className="border-input bg-background h-8 max-w-56 rounded-lg border px-2 text-sm"
-                onChange={(event) => {
-                  setInstanceId(event.target.value);
-                  setSelectedRow(null);
-                }}
-                value={activeInstanceId ?? ""}
-              >
-                {instances.map((instance) => (
-                  <option key={instance.id} value={instance.id}>
-                    {instance.workflow.name} ·{" "}
-                    {new Date(instance.started_at).toLocaleDateString(
-                      locale === "ru" ? "ru-RU" : "en-GB",
-                    )}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-
-          {selectedInteractionId ? (
-            <Button
-              colorScheme={instances.length === 0 ? "accent" : "neutral"}
-              onClick={() => setIsStartingProcess(true)}
-              size="s"
-              type="button"
-              variant={instances.length === 0 ? "primary" : "outline"}
-            >
-              <Play aria-hidden="true" className="size-3.5" />
-              {text.startProcess}
-            </Button>
-          ) : null}
-
-          <div className="ml-auto flex items-center gap-2">
-            <div
-              aria-label={text.scale}
-              className="flex items-center gap-0.5 rounded-lg border p-0.5"
-              role="group"
-            >
-              {scaleOrder.map((value) => (
-                <Button
-                  aria-pressed={scale === value}
-                  className="min-w-8 px-2"
-                  colorScheme={scale === value ? "accent" : "neutral"}
-                  disabled={!hasBoard}
-                  key={value}
-                  onClick={() => setScale(value)}
-                  size="s"
-                  title={text.scaleTitles[value]}
-                  type="button"
-                  variant={scale === value ? "secondary" : "ghost"}
-                >
-                  {text.scales[value]}
-                </Button>
-              ))}
-            </div>
-
-            <Button
-              aria-label={text.today}
-              colorScheme="neutral"
-              disabled={!hasBoard}
-              onClick={() => ganttRef.current?.showToday()}
-              size="icon"
-              title={text.today}
-              type="button"
-              variant="outline"
-            >
-              <CalendarDays aria-hidden="true" className="size-4" />
-            </Button>
-
-            <Button
-              aria-label={showGrid ? text.hideGrid : text.showGrid}
-              aria-pressed={showGrid}
-              colorScheme={showGrid ? "accent" : "neutral"}
-              disabled={!hasBoard}
-              onClick={() => setShowGrid((visible) => !visible)}
-              size="icon"
-              title={showGrid ? text.hideGrid : text.showGrid}
-              type="button"
-              variant={showGrid ? "secondary" : "outline"}
-            >
-              <TableProperties aria-hidden="true" className="size-4" />
-            </Button>
-          </div>
-        </div>
-
-        {selectedInteraction ? (
-          <InteractionContactsPanel
-            key={selectedInteraction.id}
+        {isCreating && user ? (
+          <NewInteractionDialog
             csrfToken={csrfToken}
-            interaction={selectedInteraction}
+            currentUser={user}
+            onClose={() => setIsCreating(false)}
+            onCreated={(interactionId) => {
+              setIsCreating(false);
+              // Объект придёт из списка, когда обновлённая страница его вернёт.
+              setSelectedInteractionId(interactionId);
+              setSelectedInteraction(null);
+              setInstanceId(null);
+              setSelectedRow(null);
+            }}
           />
         ) : null}
 
-        <div className="relative flex min-h-0 flex-1">
-          <div className="relative min-h-0 min-w-0 flex-1">
-            {selectedInteractionId === null ? (
-              <BoardState label={text.noInteraction} />
-            ) : instancesQuery.isPending ? (
-              <BoardState label={text.loadingBoard} />
-            ) : instancesQuery.isError ? (
-              <BoardState
-                label={text.boardError}
-                onRetry={() => void instancesQuery.refetch()}
-                retryLabel={text.retry}
-              />
-            ) : instances.length === 0 ? (
-              <BoardState label={text.noProcess} />
-            ) : boardQuery.isPending ? (
-              <p className="text-muted-foreground flex h-full items-center justify-center gap-2 text-sm">
-                <LoaderCircle
-                  aria-hidden="true"
-                  className="size-4 animate-spin"
-                />
-                {text.loadingBoard}
-              </p>
-            ) : boardQuery.isError ? (
-              <BoardState
-                label={text.boardError}
-                onRetry={() => void boardQuery.refetch()}
-                retryLabel={text.retry}
-              />
-            ) : boardQuery.data ? (
-              <WorkflowGantt
-                board={boardQuery.data}
-                className="h-full"
-                onSelect={handleSelectRow}
-                ref={ganttRef}
-                scale={scale}
-                showGrid={showGrid}
-              />
+        {editingInteraction && user ? (
+          <NewInteractionDialog
+            key={editingInteraction.id}
+            csrfToken={csrfToken}
+            currentUser={user}
+            editInteraction={editingInteraction}
+            onClose={() => setEditingInteraction(null)}
+            onCreated={() => setEditingInteraction(null)}
+            onUpdated={() => setEditingInteraction(null)}
+          />
+        ) : null}
+
+        {isStartingProcess && selectedInteractionId ? (
+          <StartProcessDialog
+            audience={audience}
+            csrfToken={csrfToken}
+            interactionId={selectedInteractionId}
+            onClose={() => setIsStartingProcess(false)}
+            onStarted={(workflowInstanceId) => {
+              setIsStartingProcess(false);
+              // Показываем только что запущенный процесс, а не первый в списке.
+              setInstanceId(workflowInstanceId);
+              setSelectedRow(null);
+            }}
+          />
+        ) : null}
+
+        <aside
+          className={cn(
+            "bg-card flex min-h-0 shrink-0 flex-col overflow-hidden rounded-xl border shadow-sm",
+            isListCollapsed ? "w-14" : "w-80",
+          )}
+        >
+          <div
+            className={cn(
+              "flex h-12 shrink-0 items-center gap-2 border-b",
+              isListCollapsed ? "justify-center px-0" : "px-2",
+            )}
+          >
+            <Button
+              aria-controls="interactions-list"
+              aria-expanded={!isListCollapsed}
+              aria-label={isListCollapsed ? text.expandList : text.collapseList}
+              colorScheme="neutral"
+              onClick={toggleList}
+              size="icon"
+              title={isListCollapsed ? text.expandList : text.collapseList}
+              type="button"
+              variant="outline"
+            >
+              {isListCollapsed ? (
+                <PanelLeftOpen aria-hidden="true" className="size-4" />
+              ) : (
+                <PanelLeftClose aria-hidden="true" className="size-4" />
+              )}
+            </Button>
+            {!isListCollapsed && user ? (
+              <Button
+                className="flex-1"
+                onClick={() => setIsCreating(true)}
+                size="m"
+                type="button"
+              >
+                <Plus aria-hidden="true" className="size-4" />
+                {text.create}
+              </Button>
             ) : null}
           </div>
 
-          {selection && boardQuery.data ? (
-            <BoardDetailsDrawer
+          {/*
+          В свёрнутом виде список прячем стилями, а не размонтированием: он
+          продолжает отдавать наружу объект выбранного взаимодействия.
+        */}
+          <div
+            className={cn(
+              "flex min-h-0 flex-1 flex-col p-3",
+              isListCollapsed && "hidden",
+            )}
+            id="interactions-list"
+          >
+            <InteractionList
+              onResolve={setSelectedInteraction}
+              onEdit={setEditingInteraction}
+              onSelect={handleSelectInteraction}
+              selectedId={selectedInteractionId}
+            />
+          </div>
+        </aside>
+
+        <section className="bg-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border shadow-sm">
+          <div className="flex h-12 shrink-0 flex-wrap items-center gap-2 border-b px-3">
+            {selectedInteraction ? (
+              <p className="min-w-0 truncate text-sm font-medium">
+                {interactionTitle(selectedInteraction, text.unnamed)}
+              </p>
+            ) : null}
+
+            {instances.length > 1 ? (
+              <label className="flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground sr-only sm:not-sr-only">
+                  {text.process}
+                </span>
+                <select
+                  className="border-input bg-background h-8 max-w-56 rounded-lg border px-2 text-sm"
+                  onChange={(event) => {
+                    setInstanceId(event.target.value);
+                    setSelectedRow(null);
+                  }}
+                  value={activeInstanceId ?? ""}
+                >
+                  {instances.map((instance) => (
+                    <option key={instance.id} value={instance.id}>
+                      {instance.workflow.name} ·{" "}
+                      {new Date(instance.started_at).toLocaleDateString(
+                        locale === "ru" ? "ru-RU" : "en-GB",
+                      )}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+
+            {selectedInteractionId ? (
+              <Button
+                colorScheme={instances.length === 0 ? "accent" : "neutral"}
+                onClick={() => setIsStartingProcess(true)}
+                size="s"
+                type="button"
+                variant={instances.length === 0 ? "primary" : "outline"}
+              >
+                <Play aria-hidden="true" className="size-3.5" />
+                {text.startProcess}
+              </Button>
+            ) : null}
+
+            <div className="ml-auto flex items-center gap-2">
+              <div
+                aria-label={text.scale}
+                className="flex items-center gap-0.5 rounded-lg border p-0.5"
+                role="group"
+              >
+                {scaleOrder.map((value) => (
+                  <Button
+                    aria-pressed={scale === value}
+                    className="min-w-8 px-2"
+                    colorScheme={scale === value ? "accent" : "neutral"}
+                    disabled={!hasBoard}
+                    key={value}
+                    onClick={() => setScale(value)}
+                    size="s"
+                    title={text.scaleTitles[value]}
+                    type="button"
+                    variant={scale === value ? "secondary" : "ghost"}
+                  >
+                    {text.scales[value]}
+                  </Button>
+                ))}
+              </div>
+
+              <Button
+                aria-label={text.today}
+                colorScheme="neutral"
+                disabled={!hasBoard}
+                onClick={() => ganttRef.current?.showToday()}
+                size="icon"
+                title={text.today}
+                type="button"
+                variant="outline"
+              >
+                <CalendarDays aria-hidden="true" className="size-4" />
+              </Button>
+
+              <Button
+                aria-label={showGrid ? text.hideGrid : text.showGrid}
+                aria-pressed={showGrid}
+                colorScheme={showGrid ? "accent" : "neutral"}
+                disabled={!hasBoard}
+                onClick={() => setShowGrid((visible) => !visible)}
+                size="icon"
+                title={showGrid ? text.hideGrid : text.showGrid}
+                type="button"
+                variant={showGrid ? "secondary" : "outline"}
+              >
+                <TableProperties aria-hidden="true" className="size-4" />
+              </Button>
+            </div>
+          </div>
+
+          {selectedInteraction ? (
+            <InteractionContactsPanel
+              key={selectedInteraction.id}
               csrfToken={csrfToken}
-              onClose={closeDetails}
-              selection={selection}
-              workflowInstanceId={boardQuery.data.id}
-              interaction={boardQuery.data.interaction}
+              interaction={selectedInteraction}
             />
           ) : null}
-        </div>
-      </section>
+
+          <div className="relative flex min-h-0 flex-1">
+            <div className="relative min-h-0 min-w-0 flex-1">
+              {selectedInteractionId === null ? (
+                <BoardState label={text.noInteraction} />
+              ) : instancesQuery.isPending ? (
+                <BoardState label={text.loadingBoard} />
+              ) : instancesQuery.isError ? (
+                <BoardState
+                  label={text.boardError}
+                  onRetry={() => void instancesQuery.refetch()}
+                  retryLabel={text.retry}
+                />
+              ) : instances.length === 0 ? (
+                <BoardState label={text.noProcess} />
+              ) : boardQuery.isPending ? (
+                <p className="text-muted-foreground flex h-full items-center justify-center gap-2 text-sm">
+                  <LoaderCircle
+                    aria-hidden="true"
+                    className="size-4 animate-spin"
+                  />
+                  {text.loadingBoard}
+                </p>
+              ) : boardQuery.isError ? (
+                <BoardState
+                  label={text.boardError}
+                  onRetry={() => void boardQuery.refetch()}
+                  retryLabel={text.retry}
+                />
+              ) : boardQuery.data ? (
+                <WorkflowGantt
+                  board={boardQuery.data}
+                  className="h-full"
+                  onSelect={handleSelectRow}
+                  ref={ganttRef}
+                  scale={scale}
+                  showGrid={showGrid}
+                />
+              ) : null}
+            </div>
+
+            {selection && boardQuery.data ? (
+              <BoardDetailsDrawer
+                csrfToken={csrfToken}
+                onClose={closeDetails}
+                selection={selection}
+                workflowInstanceId={boardQuery.data.id}
+                interaction={boardQuery.data.interaction}
+              />
+            ) : null}
+          </div>
+        </section>
       </div>
     </div>
   );

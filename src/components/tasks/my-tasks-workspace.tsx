@@ -155,167 +155,171 @@ export function MyTasksWorkspace() {
       </div>
 
       <div className="flex min-h-0 flex-1 gap-4">
-      {isCreating && user ? (
-        <NewInteractionDialog
-          csrfToken={csrfToken}
-          currentUser={user}
-          onClose={() => setIsCreating(false)}
-          onCreated={(interactionId) => {
-            setIsCreating(false);
-            setSelectedInteraction(null);
-            setSelectedInteractionId(interactionId);
-          }}
-        />
-      ) : null}
-
-      {pending ? (
-        <CompleteActionDialog
-          action={pending.action}
-          csrfToken={csrfToken}
-          onClose={() => setPending(null)}
-          outcome={pending.outcome}
-        />
-      ) : null}
-
-      <aside
-        className={cn(
-          "bg-card flex min-h-0 shrink-0 flex-col overflow-hidden rounded-xl border shadow-sm",
-          isListCollapsed ? "w-14" : "w-80",
-        )}
-      >
-        <div
-          className={cn(
-            "flex h-12 shrink-0 items-center gap-2 border-b",
-            isListCollapsed ? "justify-center px-0" : "px-2",
-          )}
-        >
-          <Button
-            aria-expanded={!isListCollapsed}
-            aria-label={isListCollapsed ? text.expandList : text.collapseList}
-            colorScheme="neutral"
-            onClick={() => setIsListCollapsed(!isListCollapsed)}
-            size="icon"
-            title={isListCollapsed ? text.expandList : text.collapseList}
-            type="button"
-            variant="outline"
-          >
-            {isListCollapsed ? (
-              <PanelLeftOpen aria-hidden="true" className="size-4" />
-            ) : (
-              <PanelLeftClose aria-hidden="true" className="size-4" />
-            )}
-          </Button>
-          {!isListCollapsed && user ? (
-            <Button
-              className="flex-1"
-              onClick={() => setIsCreating(true)}
-              size="m"
-              type="button"
-            >
-              <Plus aria-hidden="true" className="size-4" />
-              {text.create}
-            </Button>
-          ) : null}
-        </div>
-
-        <div
-          className={cn(
-            "flex min-h-0 flex-1 flex-col gap-2 p-3",
-            isListCollapsed && "hidden",
-          )}
-        >
-          <Button
-            aria-pressed={selectedInteractionId === null}
-            colorScheme={selectedInteractionId === null ? "accent" : "neutral"}
-            onClick={clearInteraction}
-            size="s"
-            type="button"
-            variant={selectedInteractionId === null ? "secondary" : "ghost"}
-          >
-            {text.allInteractions}
-          </Button>
-          <InteractionList
-            onResolve={setSelectedInteraction}
-            onSelect={handleSelectInteraction}
-            selectedId={selectedInteractionId}
+        {isCreating && user ? (
+          <NewInteractionDialog
+            csrfToken={csrfToken}
+            currentUser={user}
+            onClose={() => setIsCreating(false)}
+            onCreated={(interactionId) => {
+              setIsCreating(false);
+              setSelectedInteraction(null);
+              setSelectedInteractionId(interactionId);
+            }}
           />
-        </div>
-      </aside>
+        ) : null}
 
-      <section className="bg-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border shadow-sm">
-        <div className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
-          {selectedInteraction ? (
-            <p className="min-w-0 truncate text-sm font-medium">
-              {interactionTitle(selectedInteraction, text.allInteractions)}
-            </p>
-          ) : null}
+        {pending ? (
+          <CompleteActionDialog
+            action={pending.action}
+            csrfToken={csrfToken}
+            onClose={() => setPending(null)}
+            outcome={pending.outcome}
+          />
+        ) : null}
 
-          {canSwitchScope ? (
-            <div
-              aria-label={text.scope}
-              className="ml-auto flex items-center gap-0.5 rounded-lg border p-0.5"
-              role="group"
+        <aside
+          className={cn(
+            "bg-card flex min-h-0 shrink-0 flex-col overflow-hidden rounded-xl border shadow-sm",
+            isListCollapsed ? "w-14" : "w-80",
+          )}
+        >
+          <div
+            className={cn(
+              "flex h-12 shrink-0 items-center gap-2 border-b",
+              isListCollapsed ? "justify-center px-0" : "px-2",
+            )}
+          >
+            <Button
+              aria-expanded={!isListCollapsed}
+              aria-label={isListCollapsed ? text.expandList : text.collapseList}
+              colorScheme="neutral"
+              onClick={() => setIsListCollapsed(!isListCollapsed)}
+              size="icon"
+              title={isListCollapsed ? text.expandList : text.collapseList}
+              type="button"
+              variant="outline"
             >
-              {(["mine", "all"] as const).map((value) => (
-                <Button
-                  aria-pressed={scope === value}
-                  colorScheme={scope === value ? "accent" : "neutral"}
-                  key={value}
-                  onClick={() => setScope(value)}
-                  size="s"
-                  type="button"
-                  variant={scope === value ? "secondary" : "ghost"}
-                >
-                  {value === "mine" ? text.scopeMine : text.scopeAll}
-                </Button>
-              ))}
-            </div>
-          ) : null}
-        </div>
-
-        <div className="relative flex min-h-0 flex-1">
-          <div className="flex min-w-0 flex-1 gap-3 overflow-x-auto p-3">
-            {columns.map(({ ordering, status }) => (
-              <TaskColumn
-                actualEndGte={status === "completed" ? actualEndGte : undefined}
-                interactionId={selectedInteractionId}
-                key={status}
-                onOpen={setOpenedAction}
-                onOutcome={handleOutcome}
-                ordering={ordering}
-                scope={scope}
-                status={status}
-                subtitle={
-                  status === "completed" ? (
-                    <button
-                      className="underline-offset-2 hover:underline"
-                      onClick={() => setIsWholeTime((whole) => !whole)}
-                      type="button"
-                    >
-                      {isWholeTime ? text.wholeTime : text.lastDays}
-                    </button>
-                  ) : undefined
-                }
-                title={text.columns[status]}
-              />
-            ))}
+              {isListCollapsed ? (
+                <PanelLeftOpen aria-hidden="true" className="size-4" />
+              ) : (
+                <PanelLeftClose aria-hidden="true" className="size-4" />
+              )}
+            </Button>
+            {!isListCollapsed && user ? (
+              <Button
+                className="flex-1"
+                onClick={() => setIsCreating(true)}
+                size="m"
+                type="button"
+              >
+                <Plus aria-hidden="true" className="size-4" />
+                {text.create}
+              </Button>
+            ) : null}
           </div>
 
-          {openedAction ? (
-            <BoardDetailsDrawer
-              csrfToken={csrfToken}
-              onActionChanged={() => setOpenedAction(null)}
-              onClose={() => setOpenedAction(null)}
-              selection={{
-                kind: "action",
-                action: actionInstanceToBoardAction(openedAction),
-              }}
-              workflowInstanceId={openedAction.workflow_instance}
-              interaction={openedAction.interaction}
+          <div
+            className={cn(
+              "flex min-h-0 flex-1 flex-col gap-2 p-3",
+              isListCollapsed && "hidden",
+            )}
+          >
+            <Button
+              aria-pressed={selectedInteractionId === null}
+              colorScheme={
+                selectedInteractionId === null ? "accent" : "neutral"
+              }
+              onClick={clearInteraction}
+              size="s"
+              type="button"
+              variant={selectedInteractionId === null ? "secondary" : "ghost"}
+            >
+              {text.allInteractions}
+            </Button>
+            <InteractionList
+              onResolve={setSelectedInteraction}
+              onSelect={handleSelectInteraction}
+              selectedId={selectedInteractionId}
             />
-          ) : null}
-        </div>
-      </section>
+          </div>
+        </aside>
+
+        <section className="bg-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border shadow-sm">
+          <div className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
+            {selectedInteraction ? (
+              <p className="min-w-0 truncate text-sm font-medium">
+                {interactionTitle(selectedInteraction, text.allInteractions)}
+              </p>
+            ) : null}
+
+            {canSwitchScope ? (
+              <div
+                aria-label={text.scope}
+                className="ml-auto flex items-center gap-0.5 rounded-lg border p-0.5"
+                role="group"
+              >
+                {(["mine", "all"] as const).map((value) => (
+                  <Button
+                    aria-pressed={scope === value}
+                    colorScheme={scope === value ? "accent" : "neutral"}
+                    key={value}
+                    onClick={() => setScope(value)}
+                    size="s"
+                    type="button"
+                    variant={scope === value ? "secondary" : "ghost"}
+                  >
+                    {value === "mine" ? text.scopeMine : text.scopeAll}
+                  </Button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="relative flex min-h-0 flex-1">
+            <div className="flex min-w-0 flex-1 gap-3 overflow-x-auto p-3">
+              {columns.map(({ ordering, status }) => (
+                <TaskColumn
+                  actualEndGte={
+                    status === "completed" ? actualEndGte : undefined
+                  }
+                  interactionId={selectedInteractionId}
+                  key={status}
+                  onOpen={setOpenedAction}
+                  onOutcome={handleOutcome}
+                  ordering={ordering}
+                  scope={scope}
+                  status={status}
+                  subtitle={
+                    status === "completed" ? (
+                      <button
+                        className="underline-offset-2 hover:underline"
+                        onClick={() => setIsWholeTime((whole) => !whole)}
+                        type="button"
+                      >
+                        {isWholeTime ? text.wholeTime : text.lastDays}
+                      </button>
+                    ) : undefined
+                  }
+                  title={text.columns[status]}
+                />
+              ))}
+            </div>
+
+            {openedAction ? (
+              <BoardDetailsDrawer
+                csrfToken={csrfToken}
+                onActionChanged={() => setOpenedAction(null)}
+                onClose={() => setOpenedAction(null)}
+                selection={{
+                  kind: "action",
+                  action: actionInstanceToBoardAction(openedAction),
+                }}
+                workflowInstanceId={openedAction.workflow_instance}
+                interaction={openedAction.interaction}
+              />
+            ) : null}
+          </div>
+        </section>
       </div>
     </div>
   );

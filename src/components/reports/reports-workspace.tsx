@@ -329,337 +329,342 @@ export function ReportsWorkspace() {
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col gap-4 md:flex-row">
-      <aside
-        className={cn(
-          "bg-card flex min-h-0 shrink-0 flex-col overflow-hidden rounded-xl border shadow-sm",
-          areFiltersCollapsed
-            ? "h-12 md:h-auto md:w-14"
-            : "max-h-[60svh] md:max-h-none md:w-80",
-        )}
-      >
-        <div
+        <aside
           className={cn(
-            "flex h-12 shrink-0 items-center gap-2 border-b",
-            areFiltersCollapsed ? "px-2 md:justify-center md:px-0" : "px-2",
+            "bg-card flex min-h-0 shrink-0 flex-col overflow-hidden rounded-xl border shadow-sm",
+            areFiltersCollapsed
+              ? "h-12 md:h-auto md:w-14"
+              : "max-h-[60svh] md:max-h-none md:w-80",
           )}
         >
-          <Button
-            aria-controls="report-filters"
-            aria-expanded={!areFiltersCollapsed}
-            aria-label={
-              areFiltersCollapsed ? text.expandFilters : text.collapseFilters
-            }
-            colorScheme="neutral"
-            onClick={() => setAreFiltersCollapsed(!areFiltersCollapsed)}
-            size="icon"
-            title={
-              areFiltersCollapsed ? text.expandFilters : text.collapseFilters
-            }
-            type="button"
-            variant="outline"
-          >
-            {areFiltersCollapsed ? (
-              <PanelLeftOpen aria-hidden="true" className="size-4" />
-            ) : (
-              <PanelLeftClose aria-hidden="true" className="size-4" />
+          <div
+            className={cn(
+              "flex h-12 shrink-0 items-center gap-2 border-b",
+              areFiltersCollapsed ? "px-2 md:justify-center md:px-0" : "px-2",
             )}
-          </Button>
-          {!areFiltersCollapsed ? (
-            <h2 className="text-sm font-medium">{text.filters}</h2>
-          ) : null}
-        </div>
-
-        <div
-          className={cn(
-            "min-h-0 flex-1 space-y-4 overflow-y-auto p-3 pb-64",
-            areFiltersCollapsed && "hidden",
-          )}
-          id="report-filters"
-        >
-          <div>
-            <div className="flex gap-2">
-              <label className="flex-1 text-sm">
-                <span className="text-muted-foreground mb-1 block">
-                  {text.dateFrom}
-                </span>
-                <input
-                  className="border-input bg-background h-9 w-full rounded-lg border px-3 text-sm"
-                  onChange={(e) =>
-                    updateFilters({
-                      ...filters,
-                      date_from: e.target.value || null,
-                    })
-                  }
-                  type="date"
-                  value={filters.date_from ?? ""}
-                />
-              </label>
-              <label className="flex-1 text-sm">
-                <span className="text-muted-foreground mb-1 block">
-                  {text.dateTo}
-                </span>
-                <input
-                  className="border-input bg-background h-9 w-full rounded-lg border px-3 text-sm"
-                  onChange={(e) =>
-                    updateFilters({
-                      ...filters,
-                      date_to: e.target.value || null,
-                    })
-                  }
-                  type="date"
-                  value={filters.date_to ?? ""}
-                />
-              </label>
-            </div>
-            {wrongOrder ? (
-              <p className="mt-1 text-sm text-[var(--atmr-accent-primary)]">
-                {text.periodOrder}
-              </p>
-            ) : tooLong ? (
-              <p className="mt-1 text-sm text-[var(--atmr-accent-primary)]">
-                {text.periodTooLong}
-              </p>
+          >
+            <Button
+              aria-controls="report-filters"
+              aria-expanded={!areFiltersCollapsed}
+              aria-label={
+                areFiltersCollapsed ? text.expandFilters : text.collapseFilters
+              }
+              colorScheme="neutral"
+              onClick={() => setAreFiltersCollapsed(!areFiltersCollapsed)}
+              size="icon"
+              title={
+                areFiltersCollapsed ? text.expandFilters : text.collapseFilters
+              }
+              type="button"
+              variant="outline"
+            >
+              {areFiltersCollapsed ? (
+                <PanelLeftOpen aria-hidden="true" className="size-4" />
+              ) : (
+                <PanelLeftClose aria-hidden="true" className="size-4" />
+              )}
+            </Button>
+            {!areFiltersCollapsed ? (
+              <h2 className="text-sm font-medium">{text.filters}</h2>
             ) : null}
           </div>
 
-          <MultiEntitySelect
-            id="report-universities"
-            label={text.universities}
-            onChange={(options) => {
-              setUniversities(options);
-              updateFilters({
-                ...filters,
-                universities: options.map((o) => o.id),
-              });
-            }}
-            placeholder={text.universities}
-            queryKey={["reports", "lookup", "universities"]}
-            search={searchUniversities}
-            value={universities}
-          />
-          <MultiEntitySelect
-            id="report-directions"
-            label={text.directions}
-            onChange={(options) => {
-              setDirections(options);
-              updateFilters({
-                ...filters,
-                directions: options.map((o) => o.id),
-              });
-            }}
-            placeholder={text.directions}
-            queryKey={["reports", "lookup", "directions"]}
-            search={searchDirections}
-            value={directions}
-          />
-          <MultiEntitySelect
-            id="report-programs"
-            label={text.programs}
-            onChange={(options) => {
-              setPrograms(options);
-              updateFilters({ ...filters, programs: options.map((o) => o.id) });
-            }}
-            placeholder={text.programs}
-            queryKey={["reports", "lookup", "programs"]}
-            search={searchAllPrograms}
-            value={programs}
-          />
-          <MultiEntitySelect
-            id="report-products"
-            label={text.products}
-            onChange={(options) => {
-              setProducts(options);
-              updateFilters({ ...filters, products: options.map((o) => o.id) });
-            }}
-            placeholder={text.products}
-            queryKey={["reports", "lookup", "products"]}
-            search={searchAllProducts}
-            value={products}
-          />
-          <MultiEntitySelect
-            id="report-responsibles"
-            label={text.responsibles}
-            onChange={(options) => {
-              setResponsibles(options);
-              updateFilters({
-                ...filters,
-                responsibles: options.map((o) => Number(o.id)),
-              });
-            }}
-            placeholder={text.responsibles}
-            queryKey={["reports", "lookup", "responsibles"]}
-            search={searchManagers}
-            value={responsibles}
-          />
+          <div
+            className={cn(
+              "min-h-0 flex-1 space-y-4 overflow-y-auto p-3 pb-64",
+              areFiltersCollapsed && "hidden",
+            )}
+            id="report-filters"
+          >
+            <div>
+              <div className="flex gap-2">
+                <label className="flex-1 text-sm">
+                  <span className="text-muted-foreground mb-1 block">
+                    {text.dateFrom}
+                  </span>
+                  <input
+                    className="border-input bg-background h-9 w-full rounded-lg border px-3 text-sm"
+                    onChange={(e) =>
+                      updateFilters({
+                        ...filters,
+                        date_from: e.target.value || null,
+                      })
+                    }
+                    type="date"
+                    value={filters.date_from ?? ""}
+                  />
+                </label>
+                <label className="flex-1 text-sm">
+                  <span className="text-muted-foreground mb-1 block">
+                    {text.dateTo}
+                  </span>
+                  <input
+                    className="border-input bg-background h-9 w-full rounded-lg border px-3 text-sm"
+                    onChange={(e) =>
+                      updateFilters({
+                        ...filters,
+                        date_to: e.target.value || null,
+                      })
+                    }
+                    type="date"
+                    value={filters.date_to ?? ""}
+                  />
+                </label>
+              </div>
+              {wrongOrder ? (
+                <p className="mt-1 text-sm text-[var(--atmr-accent-primary)]">
+                  {text.periodOrder}
+                </p>
+              ) : tooLong ? (
+                <p className="mt-1 text-sm text-[var(--atmr-accent-primary)]">
+                  {text.periodTooLong}
+                </p>
+              ) : null}
+            </div>
 
-          <label className="block text-sm">
-            <span className="text-muted-foreground mb-1 block">
-              {text.ordering}
-            </span>
-            <select
-              className="border-input bg-background h-9 w-full rounded-lg border px-3 text-sm"
-              onChange={(e) =>
+            <MultiEntitySelect
+              id="report-universities"
+              label={text.universities}
+              onChange={(options) => {
+                setUniversities(options);
                 updateFilters({
                   ...filters,
-                  ordering: e.target.value as ReportOrdering,
-                })
-              }
-              value={filters.ordering}
-            >
-              {orderingOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label[locale]}
-                </option>
-              ))}
-            </select>
-          </label>
+                  universities: options.map((o) => o.id),
+                });
+              }}
+              placeholder={text.universities}
+              queryKey={["reports", "lookup", "universities"]}
+              search={searchUniversities}
+              value={universities}
+            />
+            <MultiEntitySelect
+              id="report-directions"
+              label={text.directions}
+              onChange={(options) => {
+                setDirections(options);
+                updateFilters({
+                  ...filters,
+                  directions: options.map((o) => o.id),
+                });
+              }}
+              placeholder={text.directions}
+              queryKey={["reports", "lookup", "directions"]}
+              search={searchDirections}
+              value={directions}
+            />
+            <MultiEntitySelect
+              id="report-programs"
+              label={text.programs}
+              onChange={(options) => {
+                setPrograms(options);
+                updateFilters({
+                  ...filters,
+                  programs: options.map((o) => o.id),
+                });
+              }}
+              placeholder={text.programs}
+              queryKey={["reports", "lookup", "programs"]}
+              search={searchAllPrograms}
+              value={programs}
+            />
+            <MultiEntitySelect
+              id="report-products"
+              label={text.products}
+              onChange={(options) => {
+                setProducts(options);
+                updateFilters({
+                  ...filters,
+                  products: options.map((o) => o.id),
+                });
+              }}
+              placeholder={text.products}
+              queryKey={["reports", "lookup", "products"]}
+              search={searchAllProducts}
+              value={products}
+            />
+            <MultiEntitySelect
+              id="report-responsibles"
+              label={text.responsibles}
+              onChange={(options) => {
+                setResponsibles(options);
+                updateFilters({
+                  ...filters,
+                  responsibles: options.map((o) => Number(o.id)),
+                });
+              }}
+              placeholder={text.responsibles}
+              queryKey={["reports", "lookup", "responsibles"]}
+              search={searchManagers}
+              value={responsibles}
+            />
 
-          <MultiEntitySelect
-            id="report-columns"
-            label={text.columns}
-            onChange={(options) => {
-              updateFilters({
-                ...filters,
-                columns: options.length
-                  ? options.map((o) => o.id as ReportColumn)
-                  : null,
-              });
-            }}
-            placeholder={text.anyColumns}
-            queryKey={["reports", "columns", availableColumns]}
-            search={async (term) =>
-              availableColumns
-                .filter((c) =>
-                  c.title.toLowerCase().includes(term.toLowerCase()),
-                )
-                .map((c) => ({ id: c.key, name: c.title }))
-            }
-            value={selectedColumns.map((value) => ({
-              id: value,
-              name: columnLabel.get(value) ?? value,
-            }))}
-          />
-        </div>
-      </aside>
-
-      <section className="bg-card min-h-0 min-w-0 flex-1 overflow-y-auto rounded-xl border p-4 shadow-sm sm:p-6">
-        <div className="space-y-6">
-
-          {summaryQuery.data ? (
-            <>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {[
-                  {
-                    label: text.interactionsCount,
-                    value: summaryQuery.data.interactions_count,
-                  },
-                  {
-                    label: text.rowsCount,
-                    value: summaryQuery.data.rows_count,
-                  },
-                  {
-                    label: text.programsCount,
-                    value: summaryQuery.data.programs_count,
-                  },
-                  {
-                    label: text.productsCount,
-                    value: summaryQuery.data.products_count,
-                  },
-                ].map((card) => (
-                  <div
-                    className="bg-card rounded-xl border p-4 shadow-sm"
-                    key={card.label}
-                  >
-                    <p className="text-muted-foreground text-sm">
-                      {card.label}
-                    </p>
-                    <p className="mt-1 text-2xl font-medium">
-                      {card.value.toLocaleString(intlLocales[locale])}
-                    </p>
-                  </div>
+            <label className="block text-sm">
+              <span className="text-muted-foreground mb-1 block">
+                {text.ordering}
+              </span>
+              <select
+                className="border-input bg-background h-9 w-full rounded-lg border px-3 text-sm"
+                onChange={(e) =>
+                  updateFilters({
+                    ...filters,
+                    ordering: e.target.value as ReportOrdering,
+                  })
+                }
+                value={filters.ordering}
+              >
+                {orderingOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label[locale]}
+                  </option>
                 ))}
-              </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <ReportDistribution
-                  emptyLabel={text.distributionEmpty}
-                  entries={summaryQuery.data.by_responsible}
-                  title={text.byResponsible}
-                />
-                <ReportDistribution
-                  emptyLabel={text.distributionEmpty}
-                  entries={summaryQuery.data.by_university}
-                  title={text.byUniversity}
-                />
-                <ReportDistribution
-                  emptyLabel={text.distributionEmpty}
-                  entries={summaryQuery.data.by_process_status}
-                  title={text.byProcessStatus}
-                />
-                <ReportDistribution
-                  emptyLabel={text.distributionEmpty}
-                  entries={summaryQuery.data.by_active_stage}
-                  title={text.byActiveStage}
-                />
-              </div>
-            </>
-          ) : summaryQuery.isError ? (
-            <p className="text-sm text-[var(--atmr-accent-primary)]">
-              {resolveReportRequestError(summaryQuery.error, locale)}
-            </p>
-          ) : null}
+              </select>
+            </label>
 
-          <DataTable
-            caption={text.tableCaption}
-            columns={tableColumns}
-            footer={
-              previewQuery.data ? (
-                <TablePagination
-                  count={previewQuery.data.count}
-                  labels={{
-                    next: text.next,
-                    pageOf: text.pageOf,
-                    previous: text.previous,
-                    range: text.range,
-                  }}
-                  onPageChange={updatePage}
-                  page={page}
-                  pageSize={pageSize}
-                />
-              ) : null
-            }
-            getRowId={(row) =>
-              [
-                row.interaction_id,
-                row.interaction_direction_id ?? "",
-                row.interaction_program_id ?? "",
-                row.interaction_product_id ?? "",
-              ].join("|")
-            }
-            isError={previewQuery.isError}
-            isLoading={previewQuery.isPending}
-            labels={tableLabels}
-            onRetry={() => void previewQuery.refetch()}
-            rows={rows}
-          />
+            <MultiEntitySelect
+              id="report-columns"
+              label={text.columns}
+              onChange={(options) => {
+                updateFilters({
+                  ...filters,
+                  columns: options.length
+                    ? options.map((o) => o.id as ReportColumn)
+                    : null,
+                });
+              }}
+              placeholder={text.anyColumns}
+              queryKey={["reports", "columns", availableColumns]}
+              search={async (term) =>
+                availableColumns
+                  .filter((c) =>
+                    c.title.toLowerCase().includes(term.toLowerCase()),
+                  )
+                  .map((c) => ({ id: c.key, name: c.title }))
+              }
+              value={selectedColumns.map((value) => ({
+                id: value,
+                name: columnLabel.get(value) ?? value,
+              }))}
+            />
+          </div>
+        </aside>
 
-          {previewQuery.data?.meta.state_note ? (
-            <p className={cn("text-muted-foreground text-xs")}>
-              {previewQuery.data.meta.state_note} ·{" "}
-              {text.generatedAt(
-                new Date(previewQuery.data.meta.generated_at).toLocaleString(
-                  intlLocales[locale],
-                ),
-              )}
-            </p>
-          ) : null}
+        <section className="bg-card min-h-0 min-w-0 flex-1 overflow-y-auto rounded-xl border p-4 shadow-sm sm:p-6">
+          <div className="space-y-6">
+            {summaryQuery.data ? (
+              <>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {[
+                    {
+                      label: text.interactionsCount,
+                      value: summaryQuery.data.interactions_count,
+                    },
+                    {
+                      label: text.rowsCount,
+                      value: summaryQuery.data.rows_count,
+                    },
+                    {
+                      label: text.programsCount,
+                      value: summaryQuery.data.programs_count,
+                    },
+                    {
+                      label: text.productsCount,
+                      value: summaryQuery.data.products_count,
+                    },
+                  ].map((card) => (
+                    <div
+                      className="bg-card rounded-xl border p-4 shadow-sm"
+                      key={card.label}
+                    >
+                      <p className="text-muted-foreground text-sm">
+                        {card.label}
+                      </p>
+                      <p className="mt-1 text-2xl font-medium">
+                        {card.value.toLocaleString(intlLocales[locale])}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <ReportDistribution
+                    emptyLabel={text.distributionEmpty}
+                    entries={summaryQuery.data.by_responsible}
+                    title={text.byResponsible}
+                  />
+                  <ReportDistribution
+                    emptyLabel={text.distributionEmpty}
+                    entries={summaryQuery.data.by_university}
+                    title={text.byUniversity}
+                  />
+                  <ReportDistribution
+                    emptyLabel={text.distributionEmpty}
+                    entries={summaryQuery.data.by_process_status}
+                    title={text.byProcessStatus}
+                  />
+                  <ReportDistribution
+                    emptyLabel={text.distributionEmpty}
+                    entries={summaryQuery.data.by_active_stage}
+                    title={text.byActiveStage}
+                  />
+                </div>
+              </>
+            ) : summaryQuery.isError ? (
+              <p className="text-sm text-[var(--atmr-accent-primary)]">
+                {resolveReportRequestError(summaryQuery.error, locale)}
+              </p>
+            ) : null}
 
-          <ReportDownloadsPanel
-            jobs={jobs}
-            onRetry={startExport}
-            removeJob={removeJob}
-          />
-        </div>
-      </section>
+            <DataTable
+              caption={text.tableCaption}
+              columns={tableColumns}
+              footer={
+                previewQuery.data ? (
+                  <TablePagination
+                    count={previewQuery.data.count}
+                    labels={{
+                      next: text.next,
+                      pageOf: text.pageOf,
+                      previous: text.previous,
+                      range: text.range,
+                    }}
+                    onPageChange={updatePage}
+                    page={page}
+                    pageSize={pageSize}
+                  />
+                ) : null
+              }
+              getRowId={(row) =>
+                [
+                  row.interaction_id,
+                  row.interaction_direction_id ?? "",
+                  row.interaction_program_id ?? "",
+                  row.interaction_product_id ?? "",
+                ].join("|")
+              }
+              isError={previewQuery.isError}
+              isLoading={previewQuery.isPending}
+              labels={tableLabels}
+              onRetry={() => void previewQuery.refetch()}
+              rows={rows}
+            />
+
+            {previewQuery.data?.meta.state_note ? (
+              <p className={cn("text-muted-foreground text-xs")}>
+                {previewQuery.data.meta.state_note} ·{" "}
+                {text.generatedAt(
+                  new Date(previewQuery.data.meta.generated_at).toLocaleString(
+                    intlLocales[locale],
+                  ),
+                )}
+              </p>
+            ) : null}
+
+            <ReportDownloadsPanel
+              jobs={jobs}
+              onRetry={startExport}
+              removeJob={removeJob}
+            />
+          </div>
+        </section>
       </div>
     </div>
   );
