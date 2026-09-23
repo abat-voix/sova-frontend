@@ -1,7 +1,7 @@
 "use client";
 
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 import { TaskCard } from "@/components/tasks/task-card";
 import { Button } from "@/components/ui/button";
@@ -39,10 +39,14 @@ const copy = {
 type TaskColumnProps = {
   actualEndGte?: string;
   interactionId: string | null;
+  /** Сообщает родителю о загруженных задачах — нужно для выбора по id из query param. */
+  onActionsLoaded?: (actions: ActionInstance[]) => void;
   onOpen: (action: ActionInstance) => void;
   onOutcome: (action: ActionInstance, outcome: BoardOutcome) => void;
   ordering: string;
   scope: ActionInstanceScope;
+  /** Id выбранной задачи — открытой в панели или указанной в query param. */
+  selectedTaskId?: string | null;
   status: ActionInstanceStatus;
   /** Приписка под заголовком — например, окно дат у завершённых. */
   subtitle?: ReactNode;
@@ -52,10 +56,12 @@ type TaskColumnProps = {
 export function TaskColumn({
   actualEndGte,
   interactionId,
+  onActionsLoaded,
   onOpen,
   onOutcome,
   ordering,
   scope,
+  selectedTaskId,
   status,
   subtitle,
   title,
@@ -87,6 +93,13 @@ export function TaskColumn({
 
   const actions = query.data?.pages.flatMap((page) => page.results) ?? [];
   const total = query.data?.pages[0]?.count;
+
+  useEffect(() => {
+    if (actions.length > 0) {
+      onActionsLoaded?.(actions);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actions]);
 
   return (
     <section
@@ -135,6 +148,7 @@ export function TaskColumn({
           actions.map((action) => (
             <TaskCard
               action={action}
+              isSelected={selectedTaskId === action.id}
               key={action.id}
               onOpen={() => onOpen(action)}
               onOutcome={(outcome) => onOutcome(action, outcome)}

@@ -33,6 +33,8 @@ const copy = {
 
 type TaskCardProps = {
   action: ActionInstance;
+  /** Задача открыта в панели деталей или указана в query param. */
+  isSelected?: boolean;
   /** Открыть детали. Что именно открыть — решает рабочий стол. */
   onOpen: () => void;
   onOutcome: (outcome: BoardOutcome) => void;
@@ -42,6 +44,7 @@ type TaskCardProps = {
 
 export function TaskCard({
   action,
+  isSelected,
   onOpen,
   onOutcome,
   showResponsible,
@@ -57,6 +60,8 @@ export function TaskCard({
         "bg-card relative rounded-lg border p-3 shadow-sm",
         state === "overdue" && "border-[var(--atmr-brand-orange)]",
         isWaiting && "opacity-60",
+        isSelected &&
+          "border-[var(--atmr-accent-primary)] ring-2 ring-[var(--atmr-accent-primary)]",
       )}
     >
       {/*

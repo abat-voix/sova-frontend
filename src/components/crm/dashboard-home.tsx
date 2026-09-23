@@ -183,7 +183,7 @@ function MyTasksWidget({ text }: { text: CopyText }) {
           return (
             <Link
               className="hover:bg-secondary flex items-start gap-2.5 rounded-lg border border-transparent p-2 transition-colors"
-              href="/tasks"
+              href={`/tasks?task=${task.id}`}
               key={task.id}
             >
               <span className="min-w-0 flex-1">

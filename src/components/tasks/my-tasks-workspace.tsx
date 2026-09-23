@@ -1,7 +1,8 @@
 "use client";
 
 import { PanelLeftClose, PanelLeftOpen, Plus } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import { BoardDetailsDrawer } from "@/components/interactions/board-details-drawer";
 import {
@@ -68,10 +69,15 @@ function isoDate(daysAgo: number) {
   return date.toISOString().slice(0, 10);
 }
 
+const taskQueryParam = "task";
+
 export function MyTasksWorkspace() {
   const { locale, t } = useLocale();
   const { csrfToken, user } = useAuth();
   const text = copy[locale];
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [selectedInteraction, setSelectedInteraction] =
     useState<Interaction | null>(null);
   const [selectedInteractionId, setSelectedInteractionId] = useState<
@@ -85,8 +91,64 @@ export function MyTasksWorkspace() {
     outcome: BoardOutcome;
   } | null>(null);
   const [openedAction, setOpenedAction] = useState<ActionInstance | null>(null);
+  // Id из query param, который ещё предстоит найти среди загруженных задач
+  // и открыть — например, при переходе по ссылке на конкретную задачу.
+  const [pendingTaskId, setPendingTaskId] = useState(() =>
+    searchParams.get(taskQueryParam),
+  );
+  const loadedActionsRef = useRef(new Map<string, ActionInstance>());
   const [isListCollapsed, setIsListCollapsed] =
     usePersistedFlag(collapsedStorageKey);
+
+  const setTaskQueryParam = useCallback(
+    (taskId: string | null) => {
+      const params = new URLSearchParams(searchParams.toString());
+
+      if (taskId) {
+        params.set(taskQueryParam, taskId);
+      } else {
+        params.delete(taskQueryParam);
+      }
+
+      const query = params.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname, {
+        scroll: false,
+      });
+    },
+    [pathname, router, searchParams],
+  );
+
+  const openAction = useCallback(
+    (action: ActionInstance) => {
+      setOpenedAction(action);
+      setPendingTaskId(null);
+      setTaskQueryParam(action.id);
+    },
+    [setTaskQueryParam],
+  );
+
+  const closeAction = useCallback(() => {
+    setOpenedAction(null);
+    setTaskQueryParam(null);
+  }, [setTaskQueryParam]);
+
+  const handleActionsLoaded = useCallback(
+    (actions: ActionInstance[]) => {
+      for (const action of actions) {
+        loadedActionsRef.current.set(action.id, action);
+      }
+
+      if (pendingTaskId) {
+        const found = loadedActionsRef.current.get(pendingTaskId);
+
+        if (found) {
+          setOpenedAction(found);
+          setPendingTaskId(null);
+        }
+      }
+    },
+    [pendingTaskId],
+  );
 
   const mutation = useCompleteAction(csrfToken);
 
@@ -130,11 +192,11 @@ export function MyTasksWorkspace() {
       // Панель — снимок открытого действия: карточка сейчас продвинется
       // сама, а панель об этом не узнает и предложит завершить то же
       // действие повторно. Закрываем её сразу, не дожидаясь ответа.
-      setOpenedAction((current) =>
-        current?.id === action.id ? null : current,
-      );
+      if (openedAction?.id === action.id) {
+        closeAction();
+      }
     },
-    [mutation],
+    [closeAction, mutation, openedAction],
   );
 
   const columns = [
@@ -284,10 +346,12 @@ export function MyTasksWorkspace() {
                   }
                   interactionId={selectedInteractionId}
                   key={status}
-                  onOpen={setOpenedAction}
+                  onActionsLoaded={handleActionsLoaded}
+                  onOpen={openAction}
                   onOutcome={handleOutcome}
                   ordering={ordering}
                   scope={scope}
+                  selectedTaskId={openedAction?.id ?? pendingTaskId}
                   status={status}
                   subtitle={
                     status === "completed" ? (
@@ -308,8 +372,8 @@ export function MyTasksWorkspace() {
             {openedAction ? (
               <BoardDetailsDrawer
                 csrfToken={csrfToken}
-                onActionChanged={() => setOpenedAction(null)}
-                onClose={() => setOpenedAction(null)}
+                onActionChanged={closeAction}
+                onClose={closeAction}
                 selection={{
                   kind: "action",
                   action: actionInstanceToBoardAction(openedAction),

@@ -192,7 +192,7 @@ export function MessageThread({
         <div className="shrink-0 border-t pt-3">
           <div className="flex items-end gap-2">
             <textarea
-              className="border-input bg-background focus-visible:ring-ring max-h-32 min-h-10 flex-1 resize-none rounded-lg border px-3 py-2 text-sm outline-none focus-visible:ring-2"
+              className="border-input bg-background focus-visible:ring-ring max-h-[7.5rem] min-h-10 flex-1 resize-y rounded-lg border px-3 py-2 text-sm outline-none focus-visible:ring-2"
               onChange={(event) => setDraft(event.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={text.placeholder}
