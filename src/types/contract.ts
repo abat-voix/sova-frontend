@@ -7,12 +7,22 @@ import type { InteractionShort } from "./workflow-board";
  * Даты (`sent_at`, `corrected_at`, `signed_at`) — только дата без времени
  * (`format: date`, ГГГГ-ММ-ДД), в отличие от `created_at` / `updated_at`,
  * которые приходят как `date-time`. Файл договора передаётся как multipart.
+ *
+ * Файл в хранилище лежит под случайным ключом; при повторной загрузке ссылка
+ * в `download_url` меняется, но прежние файлы не пропадают — история всех
+ * загруженных файлов договора доступна через `/api/interactions/contract-files/?contract=<id>`
+ * (тип `ContractFile`, см. `src/types/contract-file.ts`).
  */
 
 /** `Contract` — представление для чтения (list/retrieve). */
 export type Contract = {
   id: string;
-  file: string | null;
+  /** Имя текущего файла, под которым его загрузил пользователь; пусто, если файла нет. */
+  file_name: string;
+  /** Ссылка на скачивание текущего файла; null, если файл не загружен. */
+  download_url: string | null;
+  /** Число загруженных файлов, включая прежние версии. */
+  files_count: number;
   contract_number: string;
   /** Отправлен на подписание (ГГГГ-ММ-ДД). */
   sent_at: string | null;
