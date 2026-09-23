@@ -73,6 +73,7 @@ describe("OrganizationsWorkspace", () => {
         </LocaleProvider>
       </QueryClientProvider>,
     );
+    fireEvent.click(screen.getByRole("button", { name: "Список" }));
 
     expect(await screen.findByText("Первый университет")).toBeInTheDocument();
     expect(screen.getByText("3 организаций")).toBeInTheDocument();
@@ -117,6 +118,7 @@ describe("OrganizationsWorkspace", () => {
         </LocaleProvider>
       </QueryClientProvider>,
     );
+    fireEvent.click(screen.getByRole("button", { name: "Список" }));
 
     expect(await screen.findByText("Первый университет")).toBeInTheDocument();
     fireEvent.change(
@@ -162,6 +164,7 @@ describe("OrganizationsWorkspace", () => {
         </LocaleProvider>
       </QueryClientProvider>,
     );
+    fireEvent.click(screen.getByRole("button", { name: "Список" }));
 
     expect(await screen.findByText("Первый университет")).toBeInTheDocument();
 

@@ -9,6 +9,15 @@ import type {
 
 export const universitiesPageSize = 20;
 
+type UniversityMapResponse =
+  UniversityMapPoint[] | PaginatedResponse<UniversityMapPoint>;
+
+function normalizeUniversityMapResponse(
+  response: UniversityMapResponse,
+): UniversityMapPoint[] {
+  return Array.isArray(response) ? response : response.results;
+}
+
 /** `all` параметр не отправляет: бэкенд отдаёт вузы в обоих состояниях. */
 function interactionsParam(filter: InteractionsFilter) {
   if (filter === "all") return undefined;
@@ -46,9 +55,9 @@ export function getUniversityMapPoints(
     search: search.trim(),
   });
 
-  return getJson<UniversityMapPoint[]>(
+  return getJson<UniversityMapResponse>(
     query
       ? `${apiEndpoints.catalog.universities.map}?${query}`
       : apiEndpoints.catalog.universities.map,
-  );
+  ).then(normalizeUniversityMapResponse);
 }

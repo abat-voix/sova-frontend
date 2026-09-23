@@ -154,6 +154,22 @@ export function postJson<T>(url: string, body: unknown, csrfToken: string) {
   });
 }
 
+export function putJson<T>(url: string, body: unknown, csrfToken: string) {
+  return request<T>(url, {
+    body: JSON.stringify(body),
+    headers: { "content-type": "application/json", "x-csrftoken": csrfToken },
+    method: "PUT",
+  });
+}
+
+export function patchJson<T>(url: string, body: unknown, csrfToken: string) {
+  return request<T>(url, {
+    body: JSON.stringify(body),
+    headers: { "content-type": "application/json", "x-csrftoken": csrfToken },
+    method: "PATCH",
+  });
+}
+
 export function deleteJson(url: string, csrfToken: string) {
   return request<void>(url, {
     headers: { "x-csrftoken": csrfToken },

@@ -90,7 +90,22 @@ export const apiEndpoints = {
   },
   workflows: {
     workflows: {
+      create: "/api/workflows/workflows/",
+      definition: (id: string) => `/api/workflows/workflows/${id}/definition/`,
+      detail: (id: string) => `/api/workflows/workflows/${id}/`,
       list: "/api/workflows/workflows/",
+      publish: (id: string) => `/api/workflows/workflows/${id}/publish/`,
+      unpublish: (id: string) => `/api/workflows/workflows/${id}/unpublish/`,
+      validate: (id: string) => `/api/workflows/workflows/${id}/validate/`,
+    },
+    stages: {
+      create: "/api/workflows/workflow-stages/",
+    },
+    stageTransitions: {
+      create: "/api/workflows/stage-transitions/",
+    },
+    actions: {
+      create: "/api/workflows/workflow-actions/",
     },
   },
 } as const;
