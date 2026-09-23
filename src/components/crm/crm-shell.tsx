@@ -2,7 +2,15 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { LogOut, Menu, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  LogOut,
+  Menu,
+  MessageCircle,
+  PanelLeftClose,
+  PanelLeftOpen,
+  X,
+} from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -16,6 +24,7 @@ import { ContactsWorkspace } from "@/components/contacts/contacts-workspace";
 import { ItCatalogWorkspace } from "@/components/catalog/it-catalog-workspace";
 import { InteractionsWorkspace } from "@/components/interactions/interactions-workspace";
 import { LanguageToggle } from "@/components/language-toggle";
+import { MessengerPanel } from "@/components/messaging/messenger-panel";
 import { OrganizationsWorkspace } from "@/components/organizations/organizations-workspace";
 import { ReportsWorkspace } from "@/components/reports/reports-workspace";
 import { MyTasksWorkspace } from "@/components/tasks/my-tasks-workspace";
@@ -24,6 +33,10 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { BuildVersion } from "@/components/build-version";
 import { Button } from "@/components/ui/button";
 import { usePersistedFlag } from "@/hooks/use-persisted-flag";
+import {
+  getUnreadCount,
+  unreadCountQueryKey,
+} from "@/lib/api/messaging/messaging";
 import { cn } from "@/lib/utils";
 import type { AuthenticatedUser } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
@@ -53,6 +66,7 @@ const fullHeightSections = new Set<CrmSection>([
 ]);
 
 const sidebarStorageKey = "sova-sidebar-collapsed";
+const messengerPanelWidth = "23rem";
 
 function Sidebar({
   activeSection,
@@ -263,7 +277,8 @@ export function CrmShell(props: CrmShellProps) {
   const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] =
     usePersistedFlag(sidebarStorageKey);
   const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState(false);
-  const { activeSection, user } = props;
+  const [isMessengerOpen, setIsMessengerOpen] = useState(false);
+  const { activeSection, csrfToken, user } = props;
   const { t } = useLocale();
   const currentSection =
     crmNavigationItems.find((item) => item.id === activeSection) ??
@@ -272,14 +287,21 @@ export function CrmShell(props: CrmShellProps) {
   const canManageWorkflows =
     user.role === "head" || user.role === "platform_admin";
 
+  const unreadCountQuery = useQuery({
+    queryKey: unreadCountQueryKey(),
+    queryFn: getUnreadCount,
+    refetchInterval: 30000,
+  });
+  const unreadCount = unreadCountQuery.data?.unread_count ?? 0;
+
   return (
     <div
       className={cn(
         "bg-background min-h-svh lg:grid lg:transition-[grid-template-columns] lg:duration-200",
-        isDesktopSidebarCollapsed
-          ? "lg:grid-cols-[5rem_minmax(0,1fr)]"
-          : "lg:grid-cols-[17.5rem_minmax(0,1fr)]",
       )}
+      style={{
+        gridTemplateColumns: `${isDesktopSidebarCollapsed ? "5rem" : "17.5rem"} minmax(0,1fr) ${isMessengerOpen ? messengerPanelWidth : "0px"}`,
+      }}
     >
       <aside
         className="bg-card relative z-40 hidden min-h-svh border-r lg:sticky lg:top-0 lg:flex lg:h-svh lg:flex-col"
@@ -368,6 +390,28 @@ export function CrmShell(props: CrmShellProps) {
           <div className="text-muted-foreground hidden items-center gap-2 text-sm sm:flex lg:hidden">
             <span className="max-w-44 truncate">{user.displayName}</span>
           </div>
+          <Button
+            aria-label={
+              isMessengerOpen ? t("closeMessenger") : t("openMessenger")
+            }
+            className="relative ml-2"
+            colorScheme="neutral"
+            onClick={() => setIsMessengerOpen((open) => !open)}
+            size="icon"
+            title={isMessengerOpen ? t("closeMessenger") : t("openMessenger")}
+            type="button"
+            variant={isMessengerOpen ? "secondary" : "outline"}
+          >
+            <MessageCircle aria-hidden="true" className="size-5" />
+            {unreadCount > 0 ? (
+              <span
+                aria-hidden="true"
+                className="absolute -top-1 -right-1 flex size-4 min-w-4 items-center justify-center rounded-full bg-[var(--atmr-accent-primary)] px-0.5 text-[0.625rem] font-bold text-[var(--atmr-text-on-accent)]"
+              >
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            ) : null}
+          </Button>
         </header>
 
         <main
@@ -401,6 +445,39 @@ export function CrmShell(props: CrmShellProps) {
           )}
         </main>
       </div>
+
+      <aside
+        className="bg-card sticky top-0 z-40 hidden h-svh overflow-hidden border-l lg:block"
+        id="desktop-messenger-panel"
+      >
+        {isMessengerOpen ? (
+          <div style={{ width: messengerPanelWidth }}>
+            <MessengerPanel
+              csrfToken={csrfToken}
+              currentUser={user}
+              onClose={() => setIsMessengerOpen(false)}
+            />
+          </div>
+        ) : null}
+      </aside>
+
+      {isMessengerOpen ? (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <button
+            aria-label={t("closeMessenger")}
+            className="absolute inset-0 bg-[var(--atmr-overlay)]"
+            onClick={() => setIsMessengerOpen(false)}
+            type="button"
+          />
+          <aside className="bg-card absolute inset-y-0 right-0 flex h-full w-[min(23rem,calc(100vw-3rem))] flex-col shadow-2xl">
+            <MessengerPanel
+              csrfToken={csrfToken}
+              currentUser={user}
+              onClose={() => setIsMessengerOpen(false)}
+            />
+          </aside>
+        </div>
+      ) : null}
     </div>
   );
 }

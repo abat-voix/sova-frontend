@@ -52,6 +52,9 @@ export const translations = {
     closeNavigation: "Закрыть навигацию",
     collapseSidebar: "Свернуть боковую панель",
     expandSidebar: "Развернуть боковую панель",
+    messengerTitle: "Сообщения",
+    openMessenger: "Открыть сообщения",
+    closeMessenger: "Закрыть сообщения",
   },
   en: {
     authChecking: "Checking sign-in…",
@@ -106,6 +109,9 @@ export const translations = {
     closeNavigation: "Close navigation",
     collapseSidebar: "Collapse sidebar",
     expandSidebar: "Expand sidebar",
+    messengerTitle: "Messages",
+    openMessenger: "Open messages",
+    closeMessenger: "Close messages",
   },
 } as const;
 

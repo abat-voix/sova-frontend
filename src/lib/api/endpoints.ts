@@ -48,6 +48,16 @@ export const apiEndpoints = {
         `/api/interactions/interactions/${id}/unassign-responsible/`,
     },
   },
+  messaging: {
+    conversations: {
+      detail: (id: string) => `/api/messaging/conversations/${id}/`,
+      direct: "/api/messaging/conversations/direct/",
+      list: "/api/messaging/conversations/",
+      messages: (id: string) => `/api/messaging/conversations/${id}/messages/`,
+      read: (id: string) => `/api/messaging/conversations/${id}/read/`,
+      unreadCount: "/api/messaging/conversations/unread-count/",
+    },
+  },
   processes: {
     actionAttachments: {
       list: "/api/processes/action-attachments/",

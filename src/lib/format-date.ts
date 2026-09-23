@@ -15,3 +15,25 @@ export function formatDate(value: string | null | undefined, locale: Locale) {
     year: "numeric",
   });
 }
+
+/**
+ * Время сообщения: часы:минуты для сегодняшних, иначе короткая дата без года —
+ * в узкой панели мессенджера году всё равно не хватит места.
+ */
+export function formatMessageTimestamp(value: string, locale: Locale) {
+  const date = new Date(value);
+  const now = new Date();
+  const isToday = date.toDateString() === now.toDateString();
+
+  if (isToday) {
+    return date.toLocaleTimeString(intlLocales[locale], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  return date.toLocaleDateString(intlLocales[locale], {
+    day: "numeric",
+    month: "short",
+  });
+}
