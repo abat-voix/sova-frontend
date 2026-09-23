@@ -121,7 +121,7 @@ function BoardState({
 }
 
 export function InteractionsWorkspace() {
-  const { locale } = useLocale();
+  const { locale, t } = useLocale();
   const { csrfToken, user } = useAuth();
   const text = copy[locale];
   // Id — источник правды (взаимодействие можно выбрать и без списка, сразу
@@ -204,7 +204,17 @@ export function InteractionsWorkspace() {
   const hasBoard = Boolean(boardQuery.data) && instances.length > 0;
 
   return (
-    <div className="flex min-h-0 flex-1 gap-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <div className="shrink-0">
+        <h1 className="text-2xl font-medium tracking-[-0.025em] sm:text-3xl">
+          {t("interactions")}
+        </h1>
+        <p className="text-muted-foreground mt-2 max-w-2xl text-base leading-7">
+          {t("interactionsDescription")}
+        </p>
+      </div>
+
+      <div className="flex min-h-0 flex-1 gap-4">
       {isCreating && user ? (
         <NewInteractionDialog
           csrfToken={csrfToken}
@@ -468,6 +478,7 @@ export function InteractionsWorkspace() {
           ) : null}
         </div>
       </section>
+      </div>
     </div>
   );
 }
