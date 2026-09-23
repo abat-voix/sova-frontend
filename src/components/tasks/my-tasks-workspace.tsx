@@ -69,7 +69,7 @@ function isoDate(daysAgo: number) {
 }
 
 export function MyTasksWorkspace() {
-  const { locale } = useLocale();
+  const { locale, t } = useLocale();
   const { csrfToken, user } = useAuth();
   const text = copy[locale];
   const [selectedInteraction, setSelectedInteraction] =
@@ -144,7 +144,17 @@ export function MyTasksWorkspace() {
   ];
 
   return (
-    <div className="flex min-h-0 flex-1 gap-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <div className="shrink-0">
+        <h1 className="text-2xl font-medium tracking-[-0.025em] sm:text-3xl">
+          {t("myTasks")}
+        </h1>
+        <p className="text-muted-foreground mt-2 max-w-2xl text-base leading-7">
+          {t("myTasksDescription")}
+        </p>
+      </div>
+
+      <div className="flex min-h-0 flex-1 gap-4">
       {isCreating && user ? (
         <NewInteractionDialog
           csrfToken={csrfToken}
@@ -306,6 +316,7 @@ export function MyTasksWorkspace() {
           ) : null}
         </div>
       </section>
+      </div>
     </div>
   );
 }

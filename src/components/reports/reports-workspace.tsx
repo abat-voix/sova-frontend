@@ -311,7 +311,24 @@ export function ReportsWorkspace() {
   const selectedColumns = filters.columns ?? availableColumns.map((c) => c.key);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 md:flex-row">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <header className="flex shrink-0 flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-medium tracking-[-0.025em] sm:text-3xl">
+            {text.title}
+          </h1>
+          <p className="text-muted-foreground mt-2 max-w-2xl text-base leading-7">
+            {text.description}
+          </p>
+        </div>
+        <ReportExportMenu
+          filters={filters}
+          onExport={startExport}
+          rowCount={previewQuery.data?.count}
+        />
+      </header>
+
+      <div className="flex min-h-0 flex-1 flex-col gap-4 md:flex-row">
       <aside
         className={cn(
           "bg-card flex min-h-0 shrink-0 flex-col overflow-hidden rounded-xl border shadow-sm",
@@ -527,21 +544,6 @@ export function ReportsWorkspace() {
 
       <section className="bg-card min-h-0 min-w-0 flex-1 overflow-y-auto rounded-xl border p-4 shadow-sm sm:p-6">
         <div className="space-y-6">
-          <header className="flex flex-wrap items-start justify-between gap-4">
-            <div className="min-w-0">
-              <h1 className="text-2xl font-medium tracking-[-0.025em] sm:text-3xl">
-                {text.title}
-              </h1>
-              <p className="text-muted-foreground mt-2 max-w-2xl text-base leading-7">
-                {text.description}
-              </p>
-            </div>
-            <ReportExportMenu
-              filters={filters}
-              onExport={startExport}
-              rowCount={previewQuery.data?.count}
-            />
-          </header>
 
           {summaryQuery.data ? (
             <>
@@ -658,6 +660,7 @@ export function ReportsWorkspace() {
           />
         </div>
       </section>
+      </div>
     </div>
   );
 }
