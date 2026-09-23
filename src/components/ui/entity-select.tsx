@@ -31,6 +31,8 @@ const copy = {
 } as const;
 
 type EntitySelectProps = {
+  /** Показывать кнопку очистки выбранного значения. */
+  clearable?: boolean;
   disabled?: boolean;
   /** Подсказка вместо плейсхолдера, когда выбор ещё невозможен. */
   disabledHint?: string;
@@ -40,6 +42,7 @@ type EntitySelectProps = {
   invalid?: boolean;
   label: string;
   onChange: (option: LookupOption | null) => void;
+  placement?: "bottom" | "top";
   placeholder: string;
   /** Ключ кэша без строки поиска — её компонент добавляет сам. */
   queryKey: readonly unknown[];
@@ -60,6 +63,7 @@ type EntitySelectProps = {
  * программ и продуктов.
  */
 export function EntitySelect({
+  clearable = true,
   disabled = false,
   disabledHint,
   excludeIds = [],
@@ -67,6 +71,7 @@ export function EntitySelect({
   invalid = false,
   label,
   onChange,
+  placement = "bottom",
   placeholder,
   queryKey,
   search,
@@ -136,7 +141,7 @@ export function EntitySelect({
           aria-haspopup="listbox"
           aria-label={label}
           className={cn(
-            "border-input bg-background flex h-9 min-w-0 flex-1 items-center justify-between gap-2 rounded-lg border px-3 text-left text-sm transition-colors outline-none",
+            "border-input bg-background flex h-9 min-w-0 flex-1 cursor-pointer items-center justify-between gap-2 rounded-lg border px-3 text-left text-sm transition-colors outline-none",
             "focus-visible:ring-ring focus-visible:ring-2",
             invalid && "border-[var(--atmr-accent-primary)]",
             disabled && "cursor-not-allowed opacity-50",
@@ -157,7 +162,7 @@ export function EntitySelect({
           />
         </button>
 
-        {value && !disabled ? (
+        {clearable && value && !disabled ? (
           <button
             aria-label={`${text.clear}: ${label}`}
             className="text-muted-foreground hover:bg-secondary hover:text-foreground flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors"
@@ -171,7 +176,10 @@ export function EntitySelect({
 
       {isOpen ? (
         <div
-          className="bg-card absolute z-20 mt-1 w-full rounded-xl border p-2 shadow-lg"
+          className={cn(
+            "bg-card absolute z-20 w-full rounded-xl border p-2 shadow-lg",
+            placement === "top" ? "bottom-full mb-1" : "mt-1",
+          )}
           onKeyDown={(event) => {
             // Первый Escape закрывает список, а не всё модальное окно.
             if (event.key !== "Escape") return;
@@ -191,7 +199,7 @@ export function EntitySelect({
 
           <div
             aria-label={label}
-            className="mt-2 h-56 overflow-y-auto"
+            className="mt-2 max-h-56 overflow-y-auto"
             id={`${id}-list`}
             role="listbox"
           >
@@ -211,7 +219,7 @@ export function EntitySelect({
               options.map((option) => (
                 <button
                   aria-selected={option.id === value?.id}
-                  className="hover:bg-secondary flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm"
+                  className="hover:bg-secondary flex w-full cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-left text-sm"
                   key={option.id}
                   onClick={() => choose(option)}
                   role="option"

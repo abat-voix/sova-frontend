@@ -38,6 +38,25 @@ export type WorkflowActionDefinition = {
   stage: { id: string; name: string; workflow: string };
 };
 
+export type ActionOutcomeDefinition = {
+  id: string;
+  code: string;
+  name: string;
+  is_active: boolean;
+  is_comment_required: boolean;
+  is_attachment_required: boolean;
+  action: { id: string; name: string };
+};
+
+export type ActionFeatureDefinition = {
+  id: string;
+  code: string;
+  sort_order: number;
+  is_active: boolean;
+  settings: Record<string, unknown>;
+  action: { id: string; name: string };
+};
+
 export type StageTransitionDefinition = {
   id: string;
   is_active: boolean;
@@ -45,14 +64,29 @@ export type StageTransitionDefinition = {
   to_stage: { id: string; name: string; workflow: string };
 };
 
+export type ActionTransitionDefinition = {
+  id: string;
+  is_active: boolean;
+  outcome: { id: string; code: string; name: string };
+  target_action: { id: string; name: string };
+};
+
+export type ActionDependencyDefinition = {
+  id: string;
+  is_active: boolean;
+  action: { id: string; name: string };
+  depends_on_action: { id: string; name: string };
+};
+
 export type WorkflowDefinition = {
   workflow: WorkflowTemplate;
   stages: WorkflowStageDefinition[];
   actions: WorkflowActionDefinition[];
-  outcomes: unknown[];
+  features: ActionFeatureDefinition[];
+  outcomes: ActionOutcomeDefinition[];
   stage_transitions: StageTransitionDefinition[];
-  action_transitions: unknown[];
-  action_dependencies: unknown[];
+  action_transitions: ActionTransitionDefinition[];
+  action_dependencies: ActionDependencyDefinition[];
 };
 
 export type WorkflowValidation = {
