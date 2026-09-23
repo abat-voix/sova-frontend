@@ -27,6 +27,9 @@ export const translations = {
     contractsDescription: "Договоры и связанные с ними процессы.",
     licenses: "Лицензии",
     licensesDescription: "Реестр лицензий, подписание и сроки действия.",
+    reports: "Отчёты",
+    reportsDescription:
+      "Отчёты по взаимодействиям с вузами: предпросмотр, сводка и выгрузка.",
     interactions: "Взаимодействия",
     interactionsDescription:
       "Взаимодействия с вузами и выполнение связанных workflow.",
@@ -84,6 +87,9 @@ export const translations = {
     contractsDescription: "Contracts and their related processes.",
     licenses: "Licenses",
     licensesDescription: "License register, signing, and validity periods.",
+    reports: "Reports",
+    reportsDescription:
+      "University interaction reports: preview, summary, and export.",
     interactions: "Interactions",
     interactionsDescription:
       "University interactions and their related workflows.",
