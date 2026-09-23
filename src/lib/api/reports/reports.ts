@@ -9,13 +9,20 @@ import type {
   ReportSummaryResponse,
 } from "@/types/report";
 
+function reportPayload<T extends ReportFilters>(filters: T) {
+  return {
+    ...filters,
+    columns: filters.columns?.length ? filters.columns : undefined,
+  };
+}
+
 export function getReportPreview(
   params: ReportPreviewParams,
   csrfToken: string,
 ) {
   return postJson<ReportPreviewResponse>(
     apiEndpoints.reports.interactions.preview,
-    params,
+    reportPayload(params),
     csrfToken,
   );
 }
@@ -23,7 +30,7 @@ export function getReportPreview(
 export function getReportSummary(filters: ReportFilters, csrfToken: string) {
   return postJson<ReportSummaryResponse>(
     apiEndpoints.reports.interactions.summary,
-    filters,
+    reportPayload(filters),
     csrfToken,
   );
 }
@@ -35,7 +42,7 @@ export function createReportExport(
 ) {
   return postJson<ReportJob>(
     apiEndpoints.reports.interactions.exports,
-    { ...filters, format },
+    { ...reportPayload(filters), format },
     csrfToken,
   );
 }

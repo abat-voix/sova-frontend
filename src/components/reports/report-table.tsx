@@ -120,7 +120,7 @@ export function ReportTable({
             <Button
               disabled={page <= 1}
               onClick={() => onPageChange(page - 1)}
-              size="default"
+              size="m"
               type="button"
               variant="ghost"
             >
@@ -132,7 +132,7 @@ export function ReportTable({
             <Button
               disabled={page >= pageCount}
               onClick={() => onPageChange(page + 1)}
-              size="default"
+              size="m"
               type="button"
               variant="ghost"
             >

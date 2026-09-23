@@ -24,6 +24,7 @@ const copy = {
     rowsAndSize: (rows: number, size: string) => `${rows} строк · ${size}`,
     running: "Выполняется",
     title: "Мои выгрузки",
+    save: "Сохранить",
     validUntil: (date: string) => `доступно до ${date}`,
   },
   en: {
@@ -38,6 +39,7 @@ const copy = {
     rowsAndSize: (rows: number, size: string) => `${rows} rows · ${size}`,
     running: "Running",
     title: "My exports",
+    save: "Save",
     validUntil: (date: string) => `available until ${date}`,
   },
 } as const;
@@ -132,7 +134,7 @@ export function ReportDownloadsPanel({
                         size="m"
                         variant="ghost"
                       >
-                        <a href={job.download_url}>{text.ready}</a>
+                        <a href={job.download_url}>{text.save}</a>
                       </Button>
                     ) : null}
                     {job.status === "failed" ? (

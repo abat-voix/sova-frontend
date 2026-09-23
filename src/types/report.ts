@@ -48,8 +48,8 @@ export type ReportPreviewParams = ReportFilters & {
 };
 
 export type ReportAvailableColumn = {
-  value: ReportColumn;
-  label: string;
+  key: ReportColumn;
+  title: string;
 };
 
 export type ReportMeta = {
@@ -60,7 +60,7 @@ export type ReportMeta = {
   /** Пояснение, на какой момент показано состояние — выводится под таблицей. */
   state_note: string;
   filters: Partial<ReportFilters>;
-  columns: ReportColumn[];
+  columns: ReportAvailableColumn[];
   available_columns: ReportAvailableColumn[];
 };
 

@@ -1,9 +1,9 @@
-import { publicEnv } from "@/lib/env";
+import { API_BASE_PATH } from "@/lib/env";
 
 import { getCsrfToken } from "./csrf";
 import { ReportApiError, type ApiErrorBody } from "./types";
 
-const BASE_URL = `${publicEnv.NEXT_PUBLIC_API_URL}/api/reports/`;
+const BASE_PATH = `${API_BASE_PATH}/reports/`;
 
 export async function reportsApi<T>(
   path: string,
@@ -15,7 +15,7 @@ export async function reportsApi<T>(
 ): Promise<T> {
   const { body, signal, method = body ? "POST" : "GET" } = options;
 
-  const res = await fetch(new URL(path, BASE_URL), {
+  const res = await fetch(`${BASE_PATH}${path}`, {
     method,
     credentials: "include",
     headers: body

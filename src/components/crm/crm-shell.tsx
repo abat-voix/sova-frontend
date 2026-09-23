@@ -61,6 +61,7 @@ const fullHeightSections = new Set<CrmSection>([
   "interactions",
   "itCatalog",
   "myTasks",
+  "reports",
 ]);
 
 const sidebarStorageKey = "sova-sidebar-collapsed";

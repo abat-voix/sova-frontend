@@ -19,10 +19,13 @@ import type {
 const meta: ReportMeta = {
   active_stage_status: "current",
   available_columns: [
-    { label: "Вуз", value: "university" },
-    { label: "Ответственный", value: "responsible" },
+    { key: "university", title: "Вуз" },
+    { key: "responsible", title: "Ответственный" },
   ],
-  columns: ["university", "responsible"],
+  columns: [
+    { key: "university", title: "Вуз" },
+    { key: "responsible", title: "Ответственный" },
+  ],
   filters: {},
   generated_at: "2026-09-22T10:00:00Z",
   period_basis: "created_at",

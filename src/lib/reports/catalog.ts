@@ -1,4 +1,4 @@
-import { publicEnv } from "@/lib/env";
+import { API_BASE_PATH } from "@/lib/env";
 
 export type CatalogKind =
   "universities" | "directions" | "programs" | "products" | "responsibles";
@@ -22,11 +22,10 @@ export async function fetchCatalogOptions(
   search: string,
   signal?: AbortSignal,
 ): Promise<CatalogOption[]> {
-  const url = new URL(
-    `${kind}/`,
-    `${publicEnv.NEXT_PUBLIC_API_URL}/api/catalog/`,
-  );
-  if (search.trim()) url.searchParams.set("search", search.trim());
+  const params = new URLSearchParams();
+  if (search.trim()) params.set("search", search.trim());
+  const query = params.toString();
+  const url = `${API_BASE_PATH}/catalog/${kind}/${query ? `?${query}` : ""}`;
 
   const res = await fetch(url, { credentials: "include", signal });
   if (!res.ok) return [];

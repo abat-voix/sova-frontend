@@ -83,7 +83,7 @@ export function DownloadsPanel({
 
                   <div className="flex shrink-0 items-center gap-1">
                     {job.status === "ready" && job.download_url && (
-                      <Button asChild size="default" variant="ghost">
+                      <Button asChild size="m" variant="ghost">
                         <a href={job.download_url}>Скачать</a>
                       </Button>
                     )}

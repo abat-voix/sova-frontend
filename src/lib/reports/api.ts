@@ -1,4 +1,4 @@
-import { publicEnv } from "@/lib/env";
+import { API_BASE_PATH } from "@/lib/env";
 
 import { reportsApi } from "./client";
 import type {
@@ -44,8 +44,5 @@ export function fetchReportJob(id: string): Promise<ReportJob> {
 }
 
 export function reportJobDownloadUrl(id: string): string {
-  return new URL(
-    `exports/${id}/download/`,
-    `${publicEnv.NEXT_PUBLIC_API_URL}/api/reports/`,
-  ).toString();
+  return `${API_BASE_PATH}/reports/exports/${encodeURIComponent(id)}/download/`;
 }
