@@ -6,6 +6,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { MessageMarkdown } from "@/components/messaging/message-markdown";
 import { ApiError } from "@/lib/api/http";
 import {
   conversationsQueryKey,
@@ -28,6 +29,8 @@ const copy = {
     systemHint: "Это лента системных уведомлений — ответить в неё нельзя.",
     empty: "Сообщений пока нет",
     placeholder: "Напишите сообщение…",
+    markdownHint:
+      "Поддерживается Markdown: **жирный**, *курсив*, `код`, списки, ссылки",
     send: "Отправить",
     loadError: "Не удалось загрузить сообщения.",
     sendError: "Не удалось отправить сообщение.",
@@ -38,6 +41,8 @@ const copy = {
     systemHint: "This is a system notifications feed — you can't reply here.",
     empty: "No messages yet",
     placeholder: "Write a message…",
+    markdownHint:
+      "Markdown supported: **bold**, *italic*, `code`, lists, links",
     send: "Send",
     loadError: "Couldn't load messages.",
     sendError: "Couldn't send the message.",
@@ -168,9 +173,7 @@ export function MessageThread({
                       : "bg-secondary text-foreground",
                   )}
                 >
-                  <p className="break-words whitespace-pre-wrap">
-                    {message.text}
-                  </p>
+                  <MessageMarkdown text={message.text} />
                   <p className="mt-1 text-[0.625rem] opacity-70">
                     {formatMessageTimestamp(message.created_at, locale)}
                   </p>
@@ -206,6 +209,9 @@ export function MessageThread({
               <Send aria-hidden="true" className="size-4" />
             </Button>
           </div>
+          <p className="text-muted-foreground mt-1.5 text-[0.6875rem]">
+            {text.markdownHint}
+          </p>
         </div>
       )}
     </div>
