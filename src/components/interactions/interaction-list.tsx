@@ -7,7 +7,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
-import { getInteractions } from "@/lib/api/interactions/interactions";
+import {
+  getInteractions,
+  interactionsInfiniteQueryKey,
+} from "@/lib/api/interactions/interactions";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/providers/locale-provider";
 import type { Interaction, InteractionShort } from "@/types/workflow-board";
@@ -120,7 +123,7 @@ export function InteractionList({
   }, [search]);
 
   const interactionsQuery = useInfiniteQuery({
-    queryKey: ["interactions", "list", { search: debouncedSearch }],
+    queryKey: interactionsInfiniteQueryKey(debouncedSearch),
     queryFn: ({ pageParam }) => getInteractions(pageParam, debouncedSearch),
     initialPageParam: 1,
     getNextPageParam: (lastPage, pages) =>

@@ -16,7 +16,11 @@ import type {
 export const interactionsPageSize = 20;
 
 export function interactionsQueryKey(search: string) {
-  return ["interactions", "list", { search }] as const;
+  return ["interactions", "list", "page", { search }] as const;
+}
+
+export function interactionsInfiniteQueryKey(search: string) {
+  return ["interactions", "list", "infinite", { search }] as const;
 }
 
 export function getInteractions(page: number, search = "") {

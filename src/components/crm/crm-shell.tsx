@@ -2,15 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import {
-  ArrowRight,
-  CircleDot,
-  LogOut,
-  Menu,
-  PanelLeftClose,
-  PanelLeftOpen,
-  X,
-} from "lucide-react";
+import { LogOut, Menu, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -19,6 +11,7 @@ import {
   type CrmNavigationItem,
   type CrmSection,
 } from "@/components/crm/crm-navigation";
+import { DashboardHome } from "@/components/crm/dashboard-home";
 import { ContactsWorkspace } from "@/components/contacts/contacts-workspace";
 import { ItCatalogWorkspace } from "@/components/catalog/it-catalog-workspace";
 import { InteractionsWorkspace } from "@/components/interactions/interactions-workspace";
@@ -46,12 +39,6 @@ type SidebarProps = CrmShellProps & {
   collapsed?: boolean;
   onNavigate?: () => void;
 };
-
-const dashboardSections = new Set<CrmSection>([
-  "contracts",
-  "organizations",
-  "processes",
-]);
 
 /**
  * Разделы-рабочие столы: занимают высоту окна целиком и скроллят содержимое
@@ -227,79 +214,6 @@ function Sidebar({
           <BuildVersion />
         </div>
       </div>
-    </div>
-  );
-}
-
-function DashboardHome({ user }: { user: AuthenticatedUser }) {
-  const { t } = useLocale();
-  const preferredName = user.firstName.trim() || user.displayName;
-  const sections = crmNavigationItems.filter((item) =>
-    dashboardSections.has(item.id),
-  );
-
-  return (
-    <div className="space-y-6">
-      <section className="bg-card relative overflow-hidden rounded-xl border p-6 shadow-sm sm:p-8">
-        <div
-          aria-hidden="true"
-          className="absolute inset-y-0 left-0 w-1 bg-[linear-gradient(180deg,var(--atmr-accent-primary),var(--atmr-brand-orange))]"
-        />
-        <p className="text-sm font-medium text-[var(--atmr-accent-primary)]">
-          {t("crmWorkspace")}
-        </p>
-        <h1 className="mt-2 text-3xl font-medium tracking-[-0.025em] sm:text-4xl">
-          {t("welcome")}, {preferredName}
-        </h1>
-        <p className="text-muted-foreground mt-3 max-w-2xl text-base leading-7">
-          {t("homeDescription")}
-        </p>
-      </section>
-
-      <section aria-labelledby="workspace-sections-title">
-        <div className="mb-3 flex items-center justify-between gap-4">
-          <h2 className="text-lg font-medium" id="workspace-sections-title">
-            {t("workspaceSections")}
-          </h2>
-        </div>
-        <div className="grid gap-3 md:grid-cols-3">
-          {sections.map((item) => {
-            const Icon = item.icon;
-
-            return (
-              <Link
-                className="group bg-card rounded-xl border p-5 shadow-sm transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-[var(--atmr-accent-primary)] hover:shadow-md"
-                href={item.href}
-                key={item.id}
-              >
-                <span className="flex size-10 items-center justify-center rounded-lg bg-[var(--atmr-background-accent-soft)] text-[var(--atmr-accent-primary)]">
-                  <Icon aria-hidden="true" className="size-5" />
-                </span>
-                <span className="mt-5 flex items-center justify-between gap-3">
-                  <span className="font-medium">{t(item.labelKey)}</span>
-                  <ArrowRight
-                    aria-hidden="true"
-                    className="text-muted-foreground size-4 transition-transform group-hover:translate-x-0.5"
-                  />
-                </span>
-                <span className="text-muted-foreground mt-1 block text-sm leading-6">
-                  {t(item.descriptionKey)}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="bg-card/50 rounded-xl border border-dashed px-6 py-10 text-center">
-        <span className="bg-secondary text-muted-foreground mx-auto flex size-10 items-center justify-center rounded-full">
-          <CircleDot aria-hidden="true" className="size-5" />
-        </span>
-        <h2 className="mt-4 text-lg font-medium">{t("activityPlaceholder")}</h2>
-        <p className="text-muted-foreground mx-auto mt-2 max-w-lg text-sm leading-6">
-          {t("activityPlaceholderDescription")}
-        </p>
-      </section>
     </div>
   );
 }

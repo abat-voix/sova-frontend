@@ -6,6 +6,7 @@ import { motion, MotionConfig } from "motion/react";
 
 import { CrmShell } from "@/components/crm/crm-shell";
 import type { CrmSection } from "@/components/crm/crm-navigation";
+import { LandingBackground } from "@/components/landing-background";
 import { LanguageToggle } from "@/components/language-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -32,14 +33,7 @@ export function SovaShell({ section = "home" }: { section?: CrmSection }) {
   return (
     <MotionConfig reducedMotion="user">
       <main className="bg-background relative isolate flex min-h-svh items-center justify-center overflow-hidden px-5 py-20 sm:px-8">
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 -z-20 bg-[radial-gradient(circle_at_18%_0%,color-mix(in_oklab,var(--atmr-accent-primary)_20%,transparent),transparent_40%),radial-gradient(circle_at_88%_100%,color-mix(in_oklab,var(--atmr-brand-orange)_12%,transparent),transparent_38%)]"
-        />
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 -z-10 [background-image:linear-gradient(to_right,currentColor_1px,transparent_1px),linear-gradient(to_bottom,currentColor_1px,transparent_1px)] [background-size:40px_40px] opacity-[0.025] dark:opacity-[0.04]"
-        />
+        <LandingBackground />
 
         <div className="absolute top-5 right-5 z-10 flex items-center gap-2 sm:top-8 sm:right-8">
           {auth.isLoading ? (

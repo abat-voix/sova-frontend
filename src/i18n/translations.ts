@@ -33,8 +33,6 @@ export const translations = {
     interactions: "Взаимодействия",
     interactionsDescription:
       "Взаимодействия с вузами и выполнение связанных workflow.",
-    processes: "Процессы",
-    processesDescription: "Ход работ, этапы и контроль сроков.",
     organizations: "Организации",
     organizationsDescription: "Университеты и партнёрские организации.",
     contacts: "Контакты",
@@ -47,10 +45,6 @@ export const translations = {
     workflowTemplatesDescription:
       "Настройка этапов, действий и переходов процесса.",
     welcome: "Добро пожаловать",
-    workspaceSections: "Разделы рабочего пространства",
-    activityPlaceholder: "Здесь появятся активные процессы",
-    activityPlaceholderDescription:
-      "Когда система получит рабочие данные, на главной будут видны задачи, требующие внимания, и ближайшие сроки.",
     sectionReady: "Каркас раздела готов",
     sectionReadyDescription:
       "Содержимое появится после проектирования сценариев и подключения API.",
@@ -93,8 +87,6 @@ export const translations = {
     interactions: "Interactions",
     interactionsDescription:
       "University interactions and their related workflows.",
-    processes: "Processes",
-    processesDescription: "Work progress, stages, and deadline control.",
     organizations: "Organizations",
     organizationsDescription: "Universities and partner organizations.",
     contacts: "Contacts",
@@ -107,10 +99,6 @@ export const translations = {
     workflowTemplatesDescription:
       "Configure process stages, actions, and transitions.",
     welcome: "Welcome",
-    workspaceSections: "Workspace sections",
-    activityPlaceholder: "Active processes will appear here",
-    activityPlaceholderDescription:
-      "Once operational data is available, the home page will surface items that need attention and upcoming deadlines.",
     sectionReady: "The section scaffold is ready",
     sectionReadyDescription:
       "Content will appear after its workflows are designed and the API is connected.",
