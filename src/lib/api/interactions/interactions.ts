@@ -15,12 +15,27 @@ import type {
 
 export const interactionsPageSize = 20;
 
+/** Максимум бэкенда (`max_page_size`); карточке взаимодействия хватает одной страницы. */
+const compositionPageSize = 200;
+
 export function interactionsQueryKey(search: string) {
   return ["interactions", "list", "page", { search }] as const;
 }
 
 export function interactionsInfiniteQueryKey(search: string) {
   return ["interactions", "list", "infinite", { search }] as const;
+}
+
+export function interactionDirectionsQueryKey(interactionId: string) {
+  return ["interactions", "directions", interactionId] as const;
+}
+
+export function interactionProgramsQueryKey(interactionId: string) {
+  return ["interactions", "programs", interactionId] as const;
+}
+
+export function interactionProductsQueryKey(interactionId: string) {
+  return ["interactions", "products", interactionId] as const;
 }
 
 export function getInteractions(page: number, search = "") {
@@ -70,6 +85,39 @@ export function unassignResponsible(interactionId: string, csrfToken: string) {
     apiEndpoints.interactions.interactions.unassignResponsible(interactionId),
     {},
     csrfToken,
+  );
+}
+
+export function getInteractionDirections(interactionId: string) {
+  const query = buildQuery({
+    interaction__ids: interactionId,
+    page_size: compositionPageSize,
+  });
+
+  return getJson<PaginatedResponse<InteractionDirection>>(
+    `${apiEndpoints.interactions.interactionDirections.list}?${query}`,
+  );
+}
+
+export function getInteractionPrograms(interactionId: string) {
+  const query = buildQuery({
+    interaction__ids: interactionId,
+    page_size: compositionPageSize,
+  });
+
+  return getJson<PaginatedResponse<InteractionProgram>>(
+    `${apiEndpoints.interactions.interactionPrograms.list}?${query}`,
+  );
+}
+
+export function getInteractionProducts(interactionId: string) {
+  const query = buildQuery({
+    interaction__ids: interactionId,
+    page_size: compositionPageSize,
+  });
+
+  return getJson<PaginatedResponse<InteractionProduct>>(
+    `${apiEndpoints.interactions.interactionProducts.list}?${query}`,
   );
 }
 

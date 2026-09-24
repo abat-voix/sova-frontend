@@ -1,5 +1,6 @@
 import { apiEndpoints } from "@/lib/api/endpoints";
 import { buildQuery, getJson, postFormData, postJson } from "@/lib/api/http";
+import type { ActionAttachment } from "@/types/action-attachment";
 import type {
   CancelActionPayload,
   CancelActionResult,
@@ -143,5 +144,33 @@ export function uploadActionAttachment(
     apiEndpoints.processes.actionAttachments.list,
     body,
     csrfToken,
+  );
+}
+
+export function interactionAttachmentsQueryKey(interactionId: string) {
+  return [
+    "processes",
+    "action-attachments",
+    "by-interaction",
+    interactionId,
+  ] as const;
+}
+
+/**
+ * Все вложения действий взаимодействия — для карточки взаимодействия.
+ *
+ * У `ActionAttachment` нет своей ссылки на взаимодействие: бэкенд фильтрует
+ * по цепочке `action_instance → stage_instance → workflow_instance →
+ * interaction`.
+ */
+export function getInteractionAttachments(interactionId: string) {
+  const query = buildQuery({
+    interaction__ids: interactionId,
+    ordering: "-uploaded_at",
+    page_size: 200,
+  });
+
+  return getJson<PaginatedResponse<ActionAttachment>>(
+    `${apiEndpoints.processes.actionAttachments.list}?${query}`,
   );
 }

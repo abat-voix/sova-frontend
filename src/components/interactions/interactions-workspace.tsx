@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   CalendarDays,
+  IdCard,
   LoaderCircle,
   PanelLeftClose,
   PanelLeftOpen,
@@ -14,6 +15,7 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { BoardDetailsDrawer } from "@/components/interactions/board-details-drawer";
+import { InteractionCardDialog } from "@/components/interactions/interaction-card-dialog";
 import { InteractionContactsPanel } from "@/components/interactions/interaction-contacts-panel";
 import {
   InteractionList,
@@ -66,6 +68,7 @@ const copy = {
     startProcess: "Запустить процесс",
     today: "Сегодня",
     unnamed: "Без названия",
+    viewCard: "Карточка",
   },
   en: {
     boardError: "The process could not be loaded.",
@@ -89,6 +92,7 @@ const copy = {
     startProcess: "Start a process",
     today: "Today",
     unnamed: "Untitled",
+    viewCard: "Card",
   },
 } as const;
 
@@ -140,6 +144,8 @@ export function InteractionsWorkspace() {
   const [instanceId, setInstanceId] = useState<string | null>(linked.processId);
   const [isCreating, setIsCreating] = useState(false);
   const [editingInteraction, setEditingInteraction] =
+    useState<Interaction | null>(null);
+  const [viewingInteraction, setViewingInteraction] =
     useState<Interaction | null>(null);
   const [isStartingProcess, setIsStartingProcess] = useState(false);
   // Рабочий стол виден только авторизованному пользователю, а сессия приходит
@@ -249,6 +255,18 @@ export function InteractionsWorkspace() {
           />
         ) : null}
 
+        {viewingInteraction ? (
+          <InteractionCardDialog
+            interaction={viewingInteraction}
+            key={viewingInteraction.id}
+            onClose={() => setViewingInteraction(null)}
+            onEdit={(interaction) => {
+              setViewingInteraction(null);
+              setEditingInteraction(interaction);
+            }}
+          />
+        ) : null}
+
         {isStartingProcess && selectedInteractionId ? (
           <StartProcessDialog
             audience={audience}
@@ -321,6 +339,7 @@ export function InteractionsWorkspace() {
               onResolve={setSelectedInteraction}
               onEdit={setEditingInteraction}
               onSelect={handleSelectInteraction}
+              onView={setViewingInteraction}
               selectedId={selectedInteractionId}
             />
           </div>
@@ -329,9 +348,21 @@ export function InteractionsWorkspace() {
         <section className="bg-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border shadow-sm">
           <div className="flex h-12 shrink-0 flex-wrap items-center gap-2 border-b px-3">
             {selectedInteraction ? (
-              <p className="min-w-0 truncate text-sm font-medium">
-                {interactionTitle(selectedInteraction, text.unnamed)}
-              </p>
+              <>
+                <p className="min-w-0 truncate text-sm font-medium">
+                  {interactionTitle(selectedInteraction, text.unnamed)}
+                </p>
+                <Button
+                  colorScheme="neutral"
+                  onClick={() => setViewingInteraction(selectedInteraction)}
+                  size="s"
+                  type="button"
+                  variant="outline"
+                >
+                  <IdCard aria-hidden="true" className="size-3.5" />
+                  {text.viewCard}
+                </Button>
+              </>
             ) : null}
 
             {instances.length > 1 ? (

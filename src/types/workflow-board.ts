@@ -122,6 +122,8 @@ export type InteractionProgram = {
   id: string;
   interaction: string;
   program: NamedRef;
+  /** Выводится из `program.direction` каталога. */
+  direction: NamedRef;
   is_active: boolean;
   added_at: string;
 };
