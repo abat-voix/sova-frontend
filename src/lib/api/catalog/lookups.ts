@@ -185,6 +185,20 @@ export function searchUsers(search: string) {
   );
 }
 
+/** Активные собеседники мессенджера; доступно всем авторизованным пользователям. */
+export function searchConversationRecipients(search: string) {
+  const query = buildQuery({
+    page: 1,
+    page_size: 50,
+    search: search.trim(),
+  });
+
+  return fetchOptions<{ id: number; full_name: string }>(
+    `${apiEndpoints.messaging.conversations.recipients}?${query}`,
+    (user) => ({ id: String(user.id), name: user.full_name }),
+  );
+}
+
 /** Кандидаты в ответственные — те же видимые пользователи. */
 export function searchManagers(search: string) {
   return searchUsers(search);

@@ -45,6 +45,10 @@ import {
 import { cn } from "@/lib/utils";
 import type { AuthenticatedUser } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
+import {
+  realtimePollingInterval,
+  useRealtime,
+} from "@/providers/realtime-provider";
 
 type CrmShellProps = {
   activeSection: CrmSection;
@@ -286,6 +290,7 @@ export function CrmShell(props: CrmShellProps) {
   const [isMessengerOpen, setIsMessengerOpen] = useState(false);
   const { activeSection, csrfToken, user } = props;
   const { t } = useLocale();
+  const { status: realtimeStatus } = useRealtime();
   const currentSection =
     crmNavigationItems.find((item) => item.id === activeSection) ??
     crmNavigationItems[0];
@@ -296,7 +301,7 @@ export function CrmShell(props: CrmShellProps) {
   const unreadCountQuery = useQuery({
     queryKey: unreadCountQueryKey(),
     queryFn: getUnreadCount,
-    refetchInterval: 30000,
+    refetchInterval: realtimePollingInterval(realtimeStatus, 30000),
   });
   const unreadCount = unreadCountQuery.data?.unread_count ?? 0;
 

@@ -1,7 +1,13 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  type ReactNode,
+} from "react";
 
 /** Прикладные роли СОВА (`accounts.SystemRole`). */
 export type SystemRole = "kam" | "head" | "platform_admin";
@@ -31,6 +37,7 @@ type AuthContextValue = {
   loginUrl: string;
   logoutUrl: string;
   user: AuthenticatedUser | null;
+  refreshSession: () => Promise<boolean>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -63,6 +70,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     retry: false,
     staleTime: 60_000,
   });
+  const refetchSession = session.refetch;
+
+  const refreshSession = useCallback(async () => {
+    const result = await refetchSession();
+    return result.data?.authenticated ?? false;
+  }, [refetchSession]);
 
   const value = useMemo<AuthContextValue>(() => {
     const data = session.data;
@@ -74,8 +87,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loginUrl: "/api/auth/oidc/authenticate/?next=/",
       logoutUrl: "/api/auth/oidc/logout/",
       user: data?.authenticated ? data.user : null,
+      refreshSession,
     };
-  }, [session.data, session.isLoading]);
+  }, [refreshSession, session.data, session.isLoading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

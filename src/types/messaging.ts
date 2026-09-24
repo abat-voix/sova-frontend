@@ -1,21 +1,9 @@
 export type ConversationKind = "direct" | "system";
 
 /** Пользователь во вложенном представлении сообщения/беседы (`UserShortSerializer`). */
-export type MessagingUser = {
-  id: number;
-  email: string;
-  full_name: string;
-};
+export type { Message, MessagingUser } from "@/lib/realtime/protocol";
 
-export type Message = {
-  id: string;
-  conversation: string;
-  /** `null` — системное сообщение. */
-  sender: MessagingUser | null;
-  text: string;
-  link: string;
-  created_at: string;
-};
+import type { Message, MessagingUser } from "@/lib/realtime/protocol";
 
 export type Conversation = {
   id: string;

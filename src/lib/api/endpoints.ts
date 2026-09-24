@@ -72,6 +72,7 @@ export const apiEndpoints = {
       detail: (id: string) => `/api/messaging/conversations/${id}/`,
       direct: "/api/messaging/conversations/direct/",
       list: "/api/messaging/conversations/",
+      recipients: "/api/messaging/conversations/recipients/",
       messages: (id: string) => `/api/messaging/conversations/${id}/messages/`,
       read: (id: string) => `/api/messaging/conversations/${id}/read/`,
       unreadCount: "/api/messaging/conversations/unread-count/",
