@@ -190,6 +190,18 @@ export function postFormData<T>(
   });
 }
 
+export function patchFormData<T>(
+  url: string,
+  body: FormData,
+  csrfToken: string,
+) {
+  return request<T>(url, {
+    body,
+    headers: { "x-csrftoken": csrfToken },
+    method: "PATCH",
+  });
+}
+
 export function buildQuery(
   params: Record<string, string | number | undefined>,
 ) {

@@ -20,6 +20,10 @@ import {
   type CrmSection,
 } from "@/components/crm/crm-navigation";
 import { DashboardHome } from "@/components/crm/dashboard-home";
+import { B2CClientsWorkspace } from "@/components/b2c-clients/b2c-clients-workspace";
+import { ContractsWorkspace } from "@/components/contracts/contracts-workspace";
+import { LicensesWorkspace } from "@/components/licenses/licenses-workspace";
+import { VendorsWorkspace } from "@/components/vendors/vendors-workspace";
 import { ContactsWorkspace } from "@/components/contacts/contacts-workspace";
 import { ItCatalogWorkspace } from "@/components/catalog/it-catalog-workspace";
 import { InteractionsWorkspace } from "@/components/interactions/interactions-workspace";
@@ -440,6 +444,14 @@ export function CrmShell(props: CrmShellProps) {
             <OrganizationsWorkspace />
           ) : activeSection === "reports" ? (
             <ReportsWorkspace />
+          ) : activeSection === "b2cClients" ? (
+            <B2CClientsWorkspace />
+          ) : activeSection === "contracts" ? (
+            <ContractsWorkspace />
+          ) : activeSection === "licenses" ? (
+            <LicensesWorkspace />
+          ) : activeSection === "vendors" ? (
+            <VendorsWorkspace />
           ) : (
             <SectionPlaceholder section={currentSection} />
           )}

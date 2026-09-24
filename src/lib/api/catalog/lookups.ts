@@ -10,9 +10,15 @@ import { apiEndpoints } from "@/lib/api/endpoints";
 import { buildQuery, getJson } from "@/lib/api/http";
 import type { PaginatedResponse } from "@/types/api";
 import type { B2CClient, Direction, Product, Program } from "@/types/catalog";
+import type { Contract } from "@/types/contract";
 import type { University } from "@/types/university";
 import type { SovaUser } from "@/types/user";
-import type { Workflow, WorkflowAudience } from "@/types/workflow-board";
+import type {
+  Interaction,
+  InteractionProduct,
+  Workflow,
+  WorkflowAudience,
+} from "@/types/workflow-board";
 
 export type LookupOption = {
   id: string;
@@ -82,6 +88,78 @@ export function searchProducts(search: string, programId: string) {
       program__ids: programId,
     })}`,
     (product) => ({ id: product.id, name: product.name }),
+  );
+}
+
+/** Любой продукт каталога — для отборов, где программа не важна. */
+export function searchCatalogProducts(search: string) {
+  return fetchOptions<Product>(
+    `${apiEndpoints.catalog.products.list}?${lookupQuery(search)}`,
+    (product) => ({ id: product.id, name: product.name }),
+  );
+}
+
+/**
+ * Взаимодействия, включая неактивные: договор мог быть заключён по уже
+ * закрытому взаимодействию. Подпись — контрагент, другого имени нет.
+ */
+export function searchInteractions(search: string) {
+  const query = buildQuery({
+    page: 1,
+    page_size: lookupPageSize,
+    search: search.trim(),
+  });
+
+  return fetchOptions<Interaction>(
+    `${apiEndpoints.interactions.interactions.list}?${query}`,
+    (interaction) => ({
+      id: interaction.id,
+      name:
+        interaction.university?.name ??
+        interaction.b2c_client?.full_name ??
+        "—",
+    }),
+  );
+}
+
+export function searchContracts(search: string) {
+  const query = buildQuery({
+    ordering: "contract_number",
+    page: 1,
+    page_size: lookupPageSize,
+    search: search.trim(),
+  });
+
+  return fetchOptions<Contract>(
+    `${apiEndpoints.interactions.contracts.list}?${query}`,
+    (contract) => ({
+      id: contract.id,
+      name: [
+        contract.contract_number || "б/н",
+        contract.interaction.university?.name ??
+          contract.interaction.b2c_client?.full_name,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    }),
+  );
+}
+
+/** Продукты конкретного взаимодействия — лицензия выдаётся только на них. */
+export function searchInteractionProducts(
+  search: string,
+  interactionId: string,
+) {
+  const query = buildQuery({
+    interaction__ids: interactionId,
+    page: 1,
+    page_size: 50,
+    search: search.trim(),
+  });
+
+  return fetchOptions<InteractionProduct>(
+    `${apiEndpoints.interactions.interactionProducts.list}?${query}`,
+    (item) => ({ id: item.id, name: item.product.name }),
   );
 }
 

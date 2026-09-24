@@ -30,20 +30,27 @@ const copy = {
 } as const;
 
 /**
- * Контактные лица выбранного вуза. Модуль скрывает пагинацию каталога и
- * состояния запроса, чтобы карточка организации знала только ID вуза.
+ * Контактные лица контрагента — вуза или B2C-клиента. Модуль скрывает
+ * пагинацию каталога и состояния запроса, чтобы карточка знала только ID.
  */
 export function OrganizationContacts({
+  b2cClientId,
   universityId,
 }: {
-  universityId: string;
+  b2cClientId?: string;
+  universityId?: string;
 }) {
   const { locale } = useLocale();
   const text = copy[locale];
   const contactsQuery = useInfiniteQuery({
-    queryKey: ["catalog", "contact-persons", "university", universityId],
+    queryKey: [
+      "catalog",
+      "contact-persons",
+      b2cClientId ? "b2c-client" : "university",
+      b2cClientId ?? universityId,
+    ],
     queryFn: ({ pageParam }) =>
-      getContactPersons({ page: pageParam, universityId }),
+      getContactPersons({ b2cClientId, page: pageParam, universityId }),
     initialPageParam: 1,
     getNextPageParam: (lastPage, pages) =>
       lastPage.next ? pages.length + 1 : undefined,

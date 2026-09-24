@@ -35,6 +35,8 @@ export const translations = {
       "Взаимодействия с вузами и выполнение связанных workflow.",
     organizations: "Организации",
     organizationsDescription: "Университеты и партнёрские организации.",
+    b2cClients: "B2C-клиенты",
+    b2cClientsDescription: "Физические и юридические лица вне вузовской сети.",
     contacts: "Контакты",
     contactsDescription: "Контактные лица и история взаимодействия.",
     itCatalog: "ИТ-каталог",
@@ -92,6 +94,9 @@ export const translations = {
       "University interactions and their related workflows.",
     organizations: "Organizations",
     organizationsDescription: "Universities and partner organizations.",
+    b2cClients: "B2C clients",
+    b2cClientsDescription:
+      "Individuals and companies outside the university network.",
     contacts: "Contacts",
     contactsDescription: "Contact people and interaction history.",
     itCatalog: "IT catalog",

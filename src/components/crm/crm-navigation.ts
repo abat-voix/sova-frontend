@@ -10,6 +10,7 @@ import {
   Layers,
   ListChecks,
   Settings2,
+  UserRound,
   type LucideIcon,
 } from "lucide-react";
 
@@ -23,6 +24,7 @@ export type CrmSection =
   | "reports"
   | "interactions"
   | "organizations"
+  | "b2cClients"
   | "contacts"
   | "itCatalog"
   | "vendors"
@@ -104,6 +106,13 @@ export const crmNavigation: CrmNavigationGroup[] = [
         descriptionKey: "organizationsDescription",
         href: "/organizations",
         icon: Building2,
+      },
+      {
+        id: "b2cClients",
+        labelKey: "b2cClients",
+        descriptionKey: "b2cClientsDescription",
+        href: "/b2c-clients",
+        icon: UserRound,
       },
       {
         id: "contacts",

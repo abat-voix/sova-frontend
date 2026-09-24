@@ -1,6 +1,7 @@
 export const apiEndpoints = {
   catalog: {
     b2cClients: {
+      detail: (id: string) => `/api/catalog/b2c-clients/${id}/`,
       list: "/api/catalog/b2c-clients/",
     },
     contactPersons: {
@@ -24,8 +25,26 @@ export const apiEndpoints = {
       list: "/api/catalog/universities/",
       map: "/api/catalog/universities/map/",
     },
+    vendors: {
+      detail: (id: string) => `/api/catalog/vendors/${id}/`,
+      list: "/api/catalog/vendors/",
+    },
   },
   interactions: {
+    contractFiles: {
+      download: (id: string) =>
+        `/api/interactions/contract-files/${id}/download/`,
+      list: "/api/interactions/contract-files/",
+    },
+    contracts: {
+      detail: (id: string) => `/api/interactions/contracts/${id}/`,
+      download: (id: string) => `/api/interactions/contracts/${id}/download/`,
+      list: "/api/interactions/contracts/",
+    },
+    licenses: {
+      detail: (id: string) => `/api/interactions/licenses/${id}/`,
+      list: "/api/interactions/licenses/",
+    },
     interactionDirections: {
       list: "/api/interactions/interaction-directions/",
     },
