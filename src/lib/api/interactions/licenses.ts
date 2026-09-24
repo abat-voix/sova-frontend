@@ -37,6 +37,10 @@ export function licensesQueryKey(params?: LicensesQuery) {
     : (["interactions", "licenses"] as const);
 }
 
+export function interactionLicensesQueryKey(interactionId: string) {
+  return ["interactions", "licenses", "by-interaction", interactionId] as const;
+}
+
 export function getLicenses({
   contractId,
   ordering,
@@ -68,6 +72,19 @@ export function getLicenses({
 
 export function getLicense(id: string) {
   return getJson<License>(apiEndpoints.interactions.licenses.detail(id));
+}
+
+/** Все лицензии взаимодействия без пагинации — для карточки взаимодействия. */
+export function getInteractionLicenses(interactionId: string) {
+  const query = buildQuery({
+    interaction__ids: interactionId,
+    ordering: "-created_at",
+    page_size: 200,
+  });
+
+  return getJson<PaginatedResponse<License>>(
+    `${apiEndpoints.interactions.licenses.list}?${query}`,
+  );
 }
 
 export function createLicense(payload: WriteLicense, csrfToken: string) {

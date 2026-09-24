@@ -1,7 +1,7 @@
 "use client";
 
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { Building2, Pencil, User } from "lucide-react";
+import { Building2, Eye, Pencil, User } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,7 @@ const copy = {
     searchPlaceholder: "Вуз, клиент или ответственный",
     unassigned: "не назначен",
     unnamed: "Без названия",
+    view: "Карточка взаимодействия",
   },
   en: {
     clearSearch: "Clear search",
@@ -45,6 +46,7 @@ const copy = {
     searchPlaceholder: "University, client, or responsible",
     unassigned: "unassigned",
     unnamed: "Untitled",
+    view: "Interaction card",
   },
 } as const;
 
@@ -96,6 +98,7 @@ type InteractionListProps = {
   onResolve: (interaction: Interaction) => void;
   onEdit?: (interaction: Interaction) => void;
   onSelect: (interaction: Interaction) => void;
+  onView?: (interaction: Interaction) => void;
   selectedId: string | null;
 };
 
@@ -107,6 +110,7 @@ export function InteractionList({
   onResolve,
   onEdit,
   onSelect,
+  onView,
   selectedId,
 }: InteractionListProps) {
   const { locale } = useLocale();
@@ -218,20 +222,34 @@ export function InteractionList({
                       </span>
                     </span>
                   </button>
-                  {onEdit ? (
-                    <Button
-                      aria-label={text.edit}
-                      className="-mt-2 -mr-2 shrink-0"
-                      colorScheme="neutral"
-                      onClick={() => onEdit(interaction)}
-                      size="icon"
-                      title={text.edit}
-                      type="button"
-                      variant="ghost"
-                    >
-                      <Pencil aria-hidden="true" className="size-3.5" />
-                    </Button>
-                  ) : null}
+                  <span className="-mt-2 -mr-2 flex shrink-0 items-start">
+                    {onView ? (
+                      <Button
+                        aria-label={text.view}
+                        colorScheme="neutral"
+                        onClick={() => onView(interaction)}
+                        size="icon"
+                        title={text.view}
+                        type="button"
+                        variant="ghost"
+                      >
+                        <Eye aria-hidden="true" className="size-3.5" />
+                      </Button>
+                    ) : null}
+                    {onEdit ? (
+                      <Button
+                        aria-label={text.edit}
+                        colorScheme="neutral"
+                        onClick={() => onEdit(interaction)}
+                        size="icon"
+                        title={text.edit}
+                        type="button"
+                        variant="ghost"
+                      >
+                        <Pencil aria-hidden="true" className="size-3.5" />
+                      </Button>
+                    ) : null}
+                  </span>
                 </div>
               </li>
             ))}
