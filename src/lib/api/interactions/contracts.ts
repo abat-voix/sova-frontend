@@ -40,6 +40,15 @@ export function contractFilesQueryKey(contractId: string) {
   return ["interactions", "contract-files", contractId] as const;
 }
 
+export function interactionContractsQueryKey(interactionId: string) {
+  return [
+    "interactions",
+    "contracts",
+    "by-interaction",
+    interactionId,
+  ] as const;
+}
+
 export function getContracts({
   interactionId,
   ordering,
@@ -58,6 +67,19 @@ export function getContracts({
     search: search.trim(),
     signed_at__gte: signedFrom,
     signed_at__lte: signedTo,
+  });
+
+  return getJson<PaginatedResponse<Contract>>(
+    `${apiEndpoints.interactions.contracts.list}?${query}`,
+  );
+}
+
+/** Все договоры взаимодействия без пагинации — для карточки взаимодействия. */
+export function getInteractionContracts(interactionId: string) {
+  const query = buildQuery({
+    interaction__ids: interactionId,
+    ordering: "-created_at",
+    page_size: 200,
   });
 
   return getJson<PaginatedResponse<Contract>>(
