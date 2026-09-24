@@ -10,6 +10,7 @@ import {
   Plus,
   TableProperties,
 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { BoardDetailsDrawer } from "@/components/interactions/board-details-drawer";
@@ -36,6 +37,7 @@ import {
   findBoardSelection,
   type BoardSelection,
 } from "@/lib/workflow/board-to-gantt";
+import { parseInteractionLink } from "@/lib/workflow/interaction-link";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
@@ -124,14 +126,18 @@ export function InteractionsWorkspace() {
   const { locale, t } = useLocale();
   const { csrfToken, user } = useAuth();
   const text = copy[locale];
+  // Ссылка из уведомления задаёт только начальный выбор: дальше пользователь
+  // ходит по странице сам, и адрес за ним не следит.
+  const searchParams = useSearchParams();
+  const [linked] = useState(() => parseInteractionLink(searchParams));
   // Id — источник правды (взаимодействие можно выбрать и без списка, сразу
   // после создания), объект нужен только для заголовка и аудитории шаблона.
   const [selectedInteractionId, setSelectedInteractionId] = useState<
     string | null
-  >(null);
+  >(linked.interactionId);
   const [selectedInteraction, setSelectedInteraction] =
     useState<Interaction | null>(null);
-  const [instanceId, setInstanceId] = useState<string | null>(null);
+  const [instanceId, setInstanceId] = useState<string | null>(linked.processId);
   const [isCreating, setIsCreating] = useState(false);
   const [editingInteraction, setEditingInteraction] =
     useState<Interaction | null>(null);
@@ -148,7 +154,7 @@ export function InteractionsWorkspace() {
   const [selectedRow, setSelectedRow] = useState<{
     id: string;
     kind: BoardSelection["kind"];
-  } | null>(null);
+  } | null>(linked.row);
 
   const toggleList = useCallback(
     () => setIsListCollapsed(!isListCollapsed),

@@ -33,6 +33,9 @@ export const translations = {
     interactions: "Взаимодействия",
     interactionsDescription:
       "Взаимодействия с вузами и выполнение связанных workflow.",
+    notifications: "Уведомления",
+    notificationsDescription:
+      "Напоминания о сроках, назначения и системные сообщения.",
     organizations: "Организации",
     organizationsDescription: "Университеты и партнёрские организации.",
     b2cClients: "B2C-клиенты",
@@ -92,6 +95,9 @@ export const translations = {
     interactions: "Interactions",
     interactionsDescription:
       "University interactions and their related workflows.",
+    notifications: "Notifications",
+    notificationsDescription:
+      "Deadline reminders, assignments, and system messages.",
     organizations: "Organizations",
     organizationsDescription: "Universities and partner organizations.",
     b2cClients: "B2C clients",

@@ -29,6 +29,7 @@ import { ItCatalogWorkspace } from "@/components/catalog/it-catalog-workspace";
 import { InteractionsWorkspace } from "@/components/interactions/interactions-workspace";
 import { LanguageToggle } from "@/components/language-toggle";
 import { MessengerPanel } from "@/components/messaging/messenger-panel";
+import { NotificationsWorkspace } from "@/components/notifications/notifications-workspace";
 import { OrganizationsWorkspace } from "@/components/organizations/organizations-workspace";
 import { ReportsWorkspace } from "@/components/reports/reports-workspace";
 import { MyTasksWorkspace } from "@/components/tasks/my-tasks-workspace";
@@ -66,6 +67,7 @@ const fullHeightSections = new Set<CrmSection>([
   "interactions",
   "itCatalog",
   "myTasks",
+  "notifications",
   "reports",
 ]);
 
@@ -440,6 +442,8 @@ export function CrmShell(props: CrmShellProps) {
             <InteractionsWorkspace />
           ) : activeSection === "myTasks" ? (
             <MyTasksWorkspace />
+          ) : activeSection === "notifications" ? (
+            <NotificationsWorkspace />
           ) : activeSection === "organizations" ? (
             <OrganizationsWorkspace />
           ) : activeSection === "reports" ? (

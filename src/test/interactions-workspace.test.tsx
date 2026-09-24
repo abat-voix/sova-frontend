@@ -15,6 +15,12 @@ import { LocaleProvider } from "@/providers/locale-provider";
 import type { BoardSelection } from "@/lib/workflow/board-to-gantt";
 import type { BoardAction } from "@/types/workflow-board";
 
+// Адрес страницы: ссылка из уведомления открывает объект через параметры.
+let searchParams = new URLSearchParams();
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => searchParams,
+}));
+
 // Диаграмму подменяем: dhtmlx рисует в реальный DOM и к разметке рабочего
 // стола отношения не имеет. Наружу от неё нужен только выбор строки.
 vi.mock("@/components/interactions/workflow-gantt", () => ({
@@ -274,6 +280,22 @@ describe("InteractionsWorkspace", () => {
         screen.queryByRole("complementary", { name: "Действие" }),
       ).toBeNull(),
     );
+  });
+
+  it("opens the linked action from the page address", async () => {
+    searchParams = new URLSearchParams(
+      "interaction=interaction-1&process=instance-1&action=action-1",
+    );
+    stubApi();
+    renderWorkspace();
+
+    expect(
+      await screen.findByRole("complementary", { name: "Действие" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Найти контакт" }),
+    ).toBeInTheDocument();
+    searchParams = new URLSearchParams();
   });
 
   it("restores the collapsed list from local storage", async () => {

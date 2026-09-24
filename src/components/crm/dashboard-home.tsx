@@ -2,19 +2,16 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import {
-  ArrowRight,
-  Bell,
-  Building2,
-  CalendarClock,
-  Handshake,
-  ListChecks,
-  type LucideIcon,
-} from "lucide-react";
-import type { ReactNode } from "react";
+import { Building2, CalendarClock, Handshake, ListChecks } from "lucide-react";
 
 import { interactionTitle } from "@/components/interactions/interaction-list";
 import { crmNavigationItems } from "@/components/crm/crm-navigation";
+import {
+  WidgetCard,
+  WidgetSkeleton,
+  WidgetState,
+} from "@/components/crm/widget-card";
+import { NotificationsWidget } from "@/components/notifications/notifications-widget";
 import { StatusChip } from "@/components/ui/status-chip";
 import {
   actionInstancesQueryKey,
@@ -51,10 +48,6 @@ const copy = {
     myTasksError: "Не удалось загрузить задачи.",
     myTasksTitle: "Мои задачи",
     noDeadline: "без срока",
-    notificationsBody:
-      "Здесь появятся напоминания о сроках, назначениях и системные сообщения.",
-    notificationsTitle: "Уведомления",
-    notificationsSoon: "Скоро",
     quickLinksTitle: "Другие разделы",
     unnamed: "Без названия",
     workspaceHint: "Личная Единая Среда",
@@ -69,10 +62,6 @@ const copy = {
     myTasksError: "The tasks could not be loaded.",
     myTasksTitle: "My tasks",
     noDeadline: "no deadline",
-    notificationsBody:
-      "Deadline reminders, assignments, and system messages will show up here.",
-    notificationsTitle: "Notifications",
-    notificationsSoon: "Coming soon",
     quickLinksTitle: "More sections",
     unnamed: "Untitled",
     workspaceHint: "Personal workspace",
@@ -80,73 +69,6 @@ const copy = {
 } as const;
 
 type CopyText = (typeof copy)[keyof typeof copy];
-
-function WidgetCard({
-  children,
-  count,
-  href,
-  icon: Icon,
-  linkLabel,
-  title,
-}: {
-  children: ReactNode;
-  count?: number;
-  href: string;
-  icon: LucideIcon;
-  linkLabel: string;
-  title: string;
-}) {
-  return (
-    <section className="bg-card flex min-h-0 flex-col rounded-xl border p-5 shadow-sm">
-      <header className="mb-4 flex shrink-0 items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--atmr-background-accent-soft)] text-[var(--atmr-accent-primary)]">
-            <Icon aria-hidden="true" className="size-4.5" />
-          </span>
-          <h2 className="text-base font-medium">{title}</h2>
-          {count !== undefined ? (
-            <span className="bg-secondary text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium">
-              {count}
-            </span>
-          ) : null}
-        </div>
-        <Link
-          className="text-muted-foreground hover:text-foreground group flex shrink-0 items-center gap-1 text-xs font-medium transition-colors"
-          href={href}
-        >
-          {linkLabel}
-          <ArrowRight
-            aria-hidden="true"
-            className="size-3.5 transition-transform group-hover:translate-x-0.5"
-          />
-        </Link>
-      </header>
-      <div className="min-h-0 flex-1 space-y-1.5">{children}</div>
-    </section>
-  );
-}
-
-function WidgetState({ label }: { label: string }) {
-  return (
-    <p className="text-muted-foreground px-1 py-6 text-center text-sm">
-      {label}
-    </p>
-  );
-}
-
-function WidgetSkeleton() {
-  return (
-    <div className="space-y-1.5">
-      {Array.from({ length: 3 }, (_, index) => (
-        <div
-          aria-hidden="true"
-          className="bg-secondary/60 h-14 animate-pulse rounded-lg"
-          key={index}
-        />
-      ))}
-    </div>
-  );
-}
 
 function MyTasksWidget({ text }: { text: CopyText }) {
   const { locale } = useLocale();
@@ -263,32 +185,6 @@ function InteractionsWidget({ text }: { text: CopyText }) {
   );
 }
 
-/**
- * Заглушка: у уведомлений пока нет ни бэкенда, ни модели данных. Карточка
- * зарезервирована в макете, чтобы виджет встал на своё место без переверстки,
- * когда канал появится.
- */
-function NotificationsWidget({ text }: { text: CopyText }) {
-  return (
-    <section className="bg-card/60 flex min-h-0 flex-col rounded-xl border border-dashed p-5">
-      <header className="mb-4 flex shrink-0 items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <span className="bg-secondary text-muted-foreground flex size-9 shrink-0 items-center justify-center rounded-lg">
-            <Bell aria-hidden="true" className="size-4.5" />
-          </span>
-          <h2 className="text-base font-medium">{text.notificationsTitle}</h2>
-        </div>
-        <span className="bg-secondary text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium">
-          {text.notificationsSoon}
-        </span>
-      </header>
-      <p className="text-muted-foreground flex-1 text-sm leading-6">
-        {text.notificationsBody}
-      </p>
-    </section>
-  );
-}
-
 function QuickLinks({ text }: { text: CopyText }) {
   const { t } = useLocale();
   const sections = crmNavigationItems.filter((item) =>
@@ -350,7 +246,7 @@ export function DashboardHome({ user }: { user: AuthenticatedUser }) {
       <div className="grid gap-4 lg:grid-cols-3">
         <MyTasksWidget text={text} />
         <InteractionsWidget text={text} />
-        <NotificationsWidget text={text} />
+        <NotificationsWidget />
       </div>
 
       <QuickLinks text={text} />

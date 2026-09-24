@@ -1,6 +1,7 @@
 import {
   BadgeCheck,
   BarChart3,
+  Bell,
   Building2,
   ContactRound,
   Factory,
@@ -23,6 +24,7 @@ export type CrmSection =
   | "licenses"
   | "reports"
   | "interactions"
+  | "notifications"
   | "organizations"
   | "b2cClients"
   | "contacts"
@@ -68,6 +70,13 @@ export const crmNavigation: CrmNavigationGroup[] = [
         descriptionKey: "interactionsDescription",
         href: "/interactions",
         icon: Handshake,
+      },
+      {
+        id: "notifications",
+        labelKey: "notifications",
+        descriptionKey: "notificationsDescription",
+        href: "/notifications",
+        icon: Bell,
       },
     ],
   },

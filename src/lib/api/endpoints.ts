@@ -77,6 +77,15 @@ export const apiEndpoints = {
       unreadCount: "/api/messaging/conversations/unread-count/",
     },
   },
+  notifications: {
+    inbox: {
+      detail: (id: string) => `/api/notifications/inbox/${id}/`,
+      kinds: "/api/notifications/inbox/kinds/",
+      list: "/api/notifications/inbox/",
+      read: (id: string) => `/api/notifications/inbox/${id}/read/`,
+      readAll: "/api/notifications/inbox/read-all/",
+    },
+  },
   processes: {
     actionAttachments: {
       list: "/api/processes/action-attachments/",
