@@ -7,7 +7,10 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { EntitySelect } from "@/components/ui/entity-select";
-import { searchUsers, type LookupOption } from "@/lib/api/catalog/lookups";
+import {
+  searchConversationRecipients,
+  type LookupOption,
+} from "@/lib/api/catalog/lookups";
 import { ApiError } from "@/lib/api/http";
 import {
   conversationsQueryKey,
@@ -16,8 +19,11 @@ import {
 } from "@/lib/api/messaging/messaging";
 import { formatMessageTimestamp } from "@/lib/format-date";
 import { cn } from "@/lib/utils";
-import type { AuthenticatedUser } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
+import {
+  realtimePollingInterval,
+  useRealtime,
+} from "@/providers/realtime-provider";
 import type { Conversation } from "@/types/messaging";
 
 const copy = {
@@ -47,7 +53,6 @@ const copy = {
 
 type ConversationListProps = {
   csrfToken: string;
-  currentUser: AuthenticatedUser;
   onSelect: (conversation: Conversation) => void;
 };
 
@@ -66,26 +71,20 @@ function conversationInitial(conversation: Conversation) {
 
 export function ConversationList({
   csrfToken,
-  currentUser,
   onSelect,
 }: ConversationListProps) {
   const { locale } = useLocale();
   const text = copy[locale];
   const queryClient = useQueryClient();
+  const { status: realtimeStatus } = useRealtime();
   const [isPickingUser, setIsPickingUser] = useState(false);
   const [pickedUser, setPickedUser] = useState<LookupOption | null>(null);
   const [isOpeningConversation, setIsOpeningConversation] = useState(false);
 
-  // Список пользователей отдаёт бэкенд только руководителю и администратору
-  // платформы (см. accounts.api.permissions.CanListUsers) — КАМ не может
-  // выбрать собеседника сам, но отвечает в уже открытых им беседах.
-  const canStartConversation =
-    currentUser.role === "head" || currentUser.role === "platform_admin";
-
   const conversationsQuery = useQuery({
     queryKey: conversationsQueryKey(),
     queryFn: getConversations,
-    refetchInterval: 15000,
+    refetchInterval: realtimePollingInterval(realtimeStatus, 15000),
   });
 
   async function handlePickUser(option: LookupOption | null) {
@@ -127,30 +126,28 @@ export function ConversationList({
 
   return (
     <div className="flex h-full flex-col">
-      {canStartConversation ? (
-        <div className="flex items-center justify-end gap-2 pb-3">
-          <Button
-            colorScheme={isPickingUser ? "neutral" : "accent"}
-            disabled={isOpeningConversation}
-            onClick={() => {
-              setIsPickingUser((open) => !open);
-              setPickedUser(null);
-            }}
-            size="s"
-            type="button"
-            variant={isPickingUser ? "ghost" : "secondary"}
-          >
-            {isPickingUser ? (
-              text.cancel
-            ) : (
-              <>
-                <MessageSquarePlus aria-hidden="true" className="size-3.5" />
-                {text.newConversation}
-              </>
-            )}
-          </Button>
-        </div>
-      ) : null}
+      <div className="flex items-center justify-end gap-2 pb-3">
+        <Button
+          colorScheme={isPickingUser ? "neutral" : "accent"}
+          disabled={isOpeningConversation}
+          onClick={() => {
+            setIsPickingUser((open) => !open);
+            setPickedUser(null);
+          }}
+          size="s"
+          type="button"
+          variant={isPickingUser ? "ghost" : "secondary"}
+        >
+          {isPickingUser ? (
+            text.cancel
+          ) : (
+            <>
+              <MessageSquarePlus aria-hidden="true" className="size-3.5" />
+              {text.newConversation}
+            </>
+          )}
+        </Button>
+      </div>
 
       {isPickingUser ? (
         <div className="pb-3">
@@ -159,8 +156,8 @@ export function ConversationList({
             label={text.selectUser}
             onChange={handlePickUser}
             placeholder={text.selectUserPlaceholder}
-            queryKey={["messaging", "users"]}
-            search={searchUsers}
+            queryKey={["messaging", "recipients"]}
+            search={searchConversationRecipients}
             value={pickedUser}
           />
         </div>

@@ -8,6 +8,7 @@ import { Toaster } from "sonner";
 import { SessionExpiredError } from "@/lib/api/http";
 import { AuthProvider } from "@/providers/auth-provider";
 import { LocaleProvider } from "@/providers/locale-provider";
+import { RealtimeProvider } from "@/providers/realtime-provider";
 
 function ThemedToaster() {
   const { resolvedTheme } = useTheme();
@@ -51,7 +52,9 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     >
       <QueryClientProvider client={queryClient}>
         <LocaleProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <RealtimeProvider>{children}</RealtimeProvider>
+          </AuthProvider>
         </LocaleProvider>
         <ThemedToaster />
       </QueryClientProvider>

@@ -17,8 +17,13 @@ import {
   unreadCountQueryKey,
 } from "@/lib/api/messaging/messaging";
 import { formatMessageTimestamp } from "@/lib/format-date";
+import { useRealtimeEvent } from "@/hooks/use-realtime-event";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/providers/locale-provider";
+import {
+  realtimePollingInterval,
+  useRealtime,
+} from "@/providers/realtime-provider";
 import type { PaginatedResponse } from "@/types/api";
 import type { Conversation, Message } from "@/types/messaging";
 
@@ -65,6 +70,7 @@ export function MessageThread({
   const { locale } = useLocale();
   const text = copy[locale];
   const queryClient = useQueryClient();
+  const { status: realtimeStatus } = useRealtime();
   const [draft, setDraft] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
   const isSystem = conversation.kind === "system";
@@ -73,7 +79,21 @@ export function MessageThread({
   const messagesQuery = useQuery({
     queryKey,
     queryFn: () => getMessages(conversation.id, 1),
-    refetchInterval: 5000,
+    refetchInterval: realtimePollingInterval(realtimeStatus, 5000),
+  });
+
+  useRealtimeEvent((event) => {
+    if (
+      event.type !== "messaging.message_created" ||
+      event.data.conversation_id !== conversation.id ||
+      event.data.message.sender?.id === currentUserId ||
+      document.visibilityState !== "visible"
+    )
+      return;
+    void markConversationRead(conversation.id, csrfToken).then(() => {
+      void queryClient.invalidateQueries({ queryKey: conversationsQueryKey() });
+      void queryClient.invalidateQueries({ queryKey: unreadCountQueryKey() });
+    });
   });
 
   // Ответы приходят от новых к старым (см. бэкенд) — для чтения переворачиваем.
@@ -101,7 +121,13 @@ export function MessageThread({
         queryKey,
         (previous) =>
           previous
-            ? { ...previous, results: [message, ...previous.results] }
+            ? previous.results.some((item) => item.id === message.id)
+              ? previous
+              : {
+                  ...previous,
+                  count: previous.count + 1,
+                  results: [message, ...previous.results],
+                }
             : previous,
       );
       void queryClient.invalidateQueries({ queryKey: conversationsQueryKey() });

@@ -51,6 +51,13 @@ pnpm dev
 Next.js проксирует запросы в development. На стенде тот же путь направляет в
 Django Caddy.
 
+Realtime-события приходят через одно session-authenticated WebSocket-соединение.
+Для локальной разработки запустите Daphne backend на порту 8001 и задайте
+`NEXT_PUBLIC_WS_URL=ws://localhost:8001/ws/events/`. Если переменная пуста,
+клиент использует same-origin `/ws/events/` (`wss` на HTTPS). Пока WebSocket
+подключён, polling сообщений, бесед и unread count выключен; при разрыве он
+автоматически включается как fallback, а после reconnect данные сверяются с REST.
+
 ## Авторизация
 
 Вход выполняется через Keycloak, но frontend не получает OIDC-токены. Он читает

@@ -60,7 +60,6 @@ export function MessengerPanel({
         ) : (
           <ConversationList
             csrfToken={csrfToken}
-            currentUser={currentUser}
             onSelect={setSelectedConversation}
           />
         )}
