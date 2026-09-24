@@ -12,7 +12,10 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 
-import { interactionTitle } from "@/components/interactions/interaction-list";
+import {
+  interactionTitle,
+  responsibleNames,
+} from "@/components/interactions/interaction-list";
 import {
   DetailRows,
   formatFileSize,
@@ -703,8 +706,7 @@ export function InteractionCardDialog({
               rows={[
                 [
                   text.responsible,
-                  interaction.current_responsible?.manager.full_name ??
-                    text.unassigned,
+                  responsibleNames(interaction) || text.unassigned,
                 ],
                 [text.comment, interaction.comment || null],
                 [text.createdAt, formatDate(interaction.created_at, locale)],

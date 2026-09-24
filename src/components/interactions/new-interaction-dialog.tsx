@@ -23,6 +23,7 @@ import { runCreationPlan } from "@/components/interactions/new-interaction-submi
 import { Button } from "@/components/ui/button";
 import { EntitySelect } from "@/components/ui/entity-select";
 import { Modal } from "@/components/ui/modal";
+import { MultiEntitySelect } from "@/components/ui/multi-entity-select";
 import {
   searchB2CClients,
   searchDirections,
@@ -56,7 +57,7 @@ const copy = {
     counterparty: "Контрагент",
     created: "Взаимодействие создано.",
     editTitle: "Редактировать взаимодействие",
-    edited: "Ответственный обновлён.",
+    edited: "Ответственные обновлены.",
     direction: "Направление",
     directionPlaceholder: "Выберите направление",
     failed: "Не удалось создать взаимодействие.",
@@ -72,11 +73,12 @@ const copy = {
     programNeedsDirection: "Сначала выберите направление",
     programPlaceholder: "Выберите программу",
     remove: "Удалить",
-    responsible: "Ответственный",
+    responsible: "Ответственные",
     responsibleIsYou: "Взаимодействие будет закреплено за вами.",
-    responsibleNone: "Не назначен",
-    responsibleOptional: "Необязательно — можно назначить позже.",
-    responsiblePlaceholder: "Выберите менеджера",
+    responsibleNone: "Не назначены",
+    responsibleOptional:
+      "Необязательно — можно назначить позже. КАМов может быть несколько.",
+    responsiblePlaceholder: "Выберите менеджеров",
     retry: "Повторить",
     submit: "Создать",
     save: "Сохранить",
@@ -99,7 +101,7 @@ const copy = {
     counterparty: "Counterparty",
     created: "The interaction was created.",
     editTitle: "Edit interaction",
-    edited: "Responsible updated.",
+    edited: "Responsibles updated.",
     direction: "Direction",
     directionPlaceholder: "Pick a direction",
     failed: "The interaction could not be created.",
@@ -115,11 +117,12 @@ const copy = {
     programNeedsDirection: "Pick a direction first",
     programPlaceholder: "Pick a program",
     remove: "Remove",
-    responsible: "Responsible",
+    responsible: "Responsibles",
     responsibleIsYou: "The interaction will be assigned to you.",
     responsibleNone: "Unassigned",
-    responsibleOptional: "Optional — you can assign it later.",
-    responsiblePlaceholder: "Pick a manager",
+    responsibleOptional:
+      "Optional — you can assign them later. There can be several KAMs.",
+    responsiblePlaceholder: "Pick managers",
     retry: "Retry",
     submit: "Create",
     save: "Save",
@@ -132,6 +135,10 @@ const copy = {
 /** Ширится до `string`: у ru и en одинаковые ключи, но разные литералы. */
 type Text = { [Key in keyof (typeof copy)["ru"]]: string };
 
+function responsibleNames(options: { name: string }[]) {
+  return options.map((option) => option.name).join(", ");
+}
+
 function resolveErrorDetail(error: unknown) {
   return error instanceof ApiError ? error.detail : null;
 }
@@ -139,7 +146,7 @@ function resolveErrorDetail(error: unknown) {
 function initialDraft(
   value: Interaction | { id: string; name: string } | null,
 ): InteractionDraft {
-  if (value && "current_responsible" in value) {
+  if (value && "current_responsibles" in value) {
     return {
       comment: value.comment ?? "",
       counterparty: value.university
@@ -151,17 +158,15 @@ function initialDraft(
       createdInteractionId: null,
       directions: [],
       isActive: value.is_active ?? true,
-      responsible: value.current_responsible
-        ? {
-            id: String(value.current_responsible.manager.id),
-            name: value.current_responsible.manager.full_name,
-          }
-        : null,
-      responsibleAssigned: false,
+      responsibles: value.current_responsibles.map((responsible) => ({
+        id: String(responsible.manager.id),
+        name: responsible.manager.full_name,
+      })),
+      assignedResponsibleIds: [],
     };
   }
 
-  return { ...emptyDraft, responsible: value };
+  return { ...emptyDraft, responsibles: value ? [value] : [] };
 }
 
 function RemoveButton({
@@ -396,17 +401,24 @@ export function NewInteractionDialog({
         };
       }
 
-      const previousId =
-        editInteraction.current_responsible?.manager.id ?? null;
-      const nextId = draft.responsible ? Number(draft.responsible.id) : null;
-      if (previousId === nextId)
-        return { kind: "edit" as const, changed: false };
-      if (nextId === null) {
-        await unassignResponsible(editInteraction.id, csrfToken);
-      } else {
-        await assignResponsible(editInteraction.id, nextId, csrfToken);
+      const previousIds = editInteraction.current_responsibles.map(
+        (responsible) => responsible.manager.id,
+      );
+      const nextIds = draft.responsibles.map((option) => Number(option.id));
+      const removed = previousIds.filter((id) => !nextIds.includes(id));
+      const added = nextIds.filter((id) => !previousIds.includes(id));
+      // Сначала добавляем, потом снимаем: взаимодействие не остаётся без КАМа
+      // между запросами и не становится на это время видно всем.
+      for (const managerId of added) {
+        await assignResponsible(editInteraction.id, managerId, csrfToken);
       }
-      return { kind: "edit" as const, changed: true };
+      for (const managerId of removed) {
+        await unassignResponsible(editInteraction.id, managerId, csrfToken);
+      }
+      return {
+        kind: "edit" as const,
+        changed: added.length > 0 || removed.length > 0,
+      };
     },
     onSuccess: (outcome) => {
       if (outcome.kind === "edit") {
@@ -434,7 +446,7 @@ export function NewInteractionDialog({
       dispatch({
         createdIds: creationOutcome.createdIds,
         interactionId: creationOutcome.interactionId,
-        responsibleAssigned: creationOutcome.responsibleAssigned,
+        assignedResponsibleIds: creationOutcome.assignedResponsibleIds,
         type: "mark-created",
       });
       void queryClient.invalidateQueries({
@@ -523,27 +535,32 @@ export function NewInteractionDialog({
 
           <div>
             <p className="text-muted-foreground text-xs">{text.responsible}</p>
-            {canChooseResponsible ? (
+            {/* При повторе назначенных уже не снять — состав правится редактированием. */}
+            {canChooseResponsible && !isRetry ? (
               <div className="mt-1">
-                <EntitySelect
-                  disabled={draft.responsibleAssigned}
+                <MultiEntitySelect
                   id="new-interaction-responsible"
                   label={text.responsible}
-                  onChange={(option) =>
-                    dispatch({ option, type: "set-responsible" })
+                  onChange={(options) =>
+                    dispatch({ options, type: "set-responsibles" })
                   }
                   placeholder={text.responsiblePlaceholder}
                   queryKey={["users", "managers", currentUser.id]}
                   search={searchManagers}
-                  value={draft.responsible}
+                  value={draft.responsibles}
                 />
+                {draft.responsibles.length > 0 ? (
+                  <p className="mt-1 text-sm">
+                    {responsibleNames(draft.responsibles)}
+                  </p>
+                ) : null}
                 <p className="text-muted-foreground mt-1 text-xs">
                   {text.responsibleOptional}
                 </p>
               </div>
             ) : (
               <p className="mt-1 text-sm">
-                {draft.responsible?.name ?? text.responsibleNone}
+                {responsibleNames(draft.responsibles) || text.responsibleNone}
                 {isKam ? (
                   <span className="text-muted-foreground block text-xs">
                     {text.responsibleIsYou}

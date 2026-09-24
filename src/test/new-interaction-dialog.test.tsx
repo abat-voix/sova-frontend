@@ -12,6 +12,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { NewInteractionDialog } from "@/components/interactions/new-interaction-dialog";
 import { LocaleProvider } from "@/providers/locale-provider";
 import type { AuthenticatedUser } from "@/providers/auth-provider";
+import type { Interaction } from "@/types/workflow-board";
 
 type Call = { body: unknown; url: string };
 
@@ -38,10 +39,13 @@ const catalog: Record<string, unknown> = {
     { id: "prod-2", name: "Демо-ПО 2" },
   ]),
   "/api/users/": {
-    count: 1,
+    count: 2,
     next: null,
     previous: null,
-    results: [{ full_name: "Ольга Филинова", id: 7, role: "kam" }],
+    results: [
+      { full_name: "Ольга Филинова", id: 7, role: "kam" },
+      { full_name: "Иван Петров", id: 9, role: "kam" },
+    ],
   },
 };
 
@@ -99,8 +103,12 @@ function stubFetch(failUrl?: string) {
   return calls;
 }
 
-function renderDialog(role: AuthenticatedUser["role"] = "head") {
+function renderDialog(
+  role: AuthenticatedUser["role"] = "head",
+  editInteraction?: Interaction,
+) {
   const onCreated = vi.fn();
+  const onUpdated = vi.fn();
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -111,14 +119,16 @@ function renderDialog(role: AuthenticatedUser["role"] = "head") {
         <NewInteractionDialog
           csrfToken="csrf"
           currentUser={user(role)}
+          editInteraction={editInteraction}
           onClose={() => undefined}
           onCreated={onCreated}
+          onUpdated={onUpdated}
         />
       </LocaleProvider>
     </QueryClientProvider>,
   );
 
-  return { onCreated };
+  return { onCreated, onUpdated };
 }
 
 /** Открывает выпадушку по её подписи и выбирает вариант по названию. */
@@ -167,7 +177,7 @@ describe("NewInteractionDialog", () => {
     renderDialog("head");
 
     await pick("Контрагент", "Демо-университет");
-    await pick("Ответственный", "Ольга Филинова");
+    await pick("Ответственные", "Ольга Филинова");
 
     await waitFor(() => expect(submitButton()).toBeEnabled());
     fireEvent.click(submitButton());
@@ -180,12 +190,78 @@ describe("NewInteractionDialog", () => {
     });
   });
 
+  it("assigns every picked manager after creation", async () => {
+    const calls = stubFetch();
+    renderDialog("head");
+
+    await pick("Контрагент", "Демо-университет");
+    await pick("Ответственные", "Ольга Филинова");
+    fireEvent.click(await screen.findByRole("option", { name: "Иван Петров" }));
+
+    expect(screen.getByText("Ольга Филинова, Иван Петров")).toBeInTheDocument();
+    await waitFor(() => expect(submitButton()).toBeEnabled());
+    fireEvent.click(submitButton());
+
+    await waitFor(() => expect(calls).toHaveLength(3));
+    expect(calls.slice(1)).toEqual([
+      {
+        body: { manager: 7 },
+        url: "/api/interactions/interactions/new-1/assign-responsible/",
+      },
+      {
+        body: { manager: 9 },
+        url: "/api/interactions/interactions/new-1/assign-responsible/",
+      },
+    ]);
+  });
+
+  it("adds new managers and unassigns removed ones when editing", async () => {
+    const calls = stubFetch();
+    const { onUpdated } = renderDialog("head", {
+      b2c_client: null,
+      comment: "",
+      created_at: "2026-01-10T10:00:00Z",
+      current_responsibles: [
+        {
+          assigned_at: "2026-01-10T10:00:00Z",
+          id: "resp-1",
+          manager: { full_name: "Ольга Филинова", id: 7 },
+        },
+      ],
+      directions_count: 0,
+      id: "int-1",
+      is_active: true,
+      products_count: 0,
+      programs_count: 0,
+      university: { id: "u-1", name: "Демо-университет" },
+      updated_at: "2026-01-10T10:00:00Z",
+    });
+
+    // Снимаем Ольгу и добавляем Ивана в одном мультиселекте.
+    await pick("Ответственные", "Ольга Филинова");
+    fireEvent.click(await screen.findByRole("option", { name: "Иван Петров" }));
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
+
+    await waitFor(() => expect(onUpdated).toHaveBeenCalled());
+    // Сначала назначение, потом снятие — взаимодействие не остаётся ничьим.
+    expect(calls).toEqual([
+      {
+        body: { manager: 9 },
+        url: "/api/interactions/interactions/int-1/assign-responsible/",
+      },
+      {
+        body: { manager: 7 },
+        url: "/api/interactions/interactions/int-1/unassign-responsible/",
+      },
+    ]);
+  });
+
   it("gives a platform admin the same manager picker", async () => {
     stubFetch();
     renderDialog("platform_admin");
 
     expect(
-      screen.getByRole("combobox", { name: "Ответственный" }),
+      screen.getByRole("combobox", { name: "Ответственные" }),
     ).toBeInTheDocument();
   });
 
@@ -194,7 +270,7 @@ describe("NewInteractionDialog", () => {
     renderDialog("kam");
 
     expect(
-      screen.queryByRole("combobox", { name: "Ответственный" }),
+      screen.queryByRole("combobox", { name: "Ответственные" }),
     ).toBeNull();
     expect(screen.getByText("Пётр Совин")).toBeInTheDocument();
 

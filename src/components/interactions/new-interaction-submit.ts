@@ -23,8 +23,8 @@ export type CreationOutcome = {
   error: unknown;
   /** `null` только если не удалось создать само взаимодействие. */
   interactionId: string | null;
-  /** Ответственный назначен — повтор его не дублирует. */
-  responsibleAssigned: boolean;
+  /** id назначенных менеджеров (строкой, как в черновике) — повтор их не дублирует. */
+  assignedResponsibleIds: string[];
 };
 
 export async function runCreationPlan(
@@ -39,30 +39,30 @@ export async function runCreationPlan(
   };
 
   let interactionId = plan.interactionId;
-  let responsibleAssigned = false;
+  const assignedResponsibleIds: string[] = [];
 
   if (plan.interaction) {
     try {
       const interaction = await createInteraction(plan.interaction, csrfToken);
       interactionId = interaction.id;
     } catch (error) {
-      return { createdIds, error, interactionId: null, responsibleAssigned };
+      return { assignedResponsibleIds, createdIds, error, interactionId: null };
     }
   }
 
   if (interactionId === null) {
     return {
+      assignedResponsibleIds,
       createdIds,
       error: new Error("missing-interaction"),
       interactionId,
-      responsibleAssigned,
     };
   }
 
-  if (plan.responsibleId !== null) {
+  for (const responsibleId of plan.responsibleIds) {
     try {
-      await assignResponsible(interactionId, plan.responsibleId, csrfToken);
-      responsibleAssigned = true;
+      await assignResponsible(interactionId, responsibleId, csrfToken);
+      assignedResponsibleIds.push(String(responsibleId));
     } catch (error) {
       // Взаимодействие уже создано — продолжаем, назначение доотправит повтор.
       remember(error);
@@ -117,5 +117,10 @@ export async function runCreationPlan(
     }
   }
 
-  return { createdIds, error: firstError, interactionId, responsibleAssigned };
+  return {
+    assignedResponsibleIds,
+    createdIds,
+    error: firstError,
+    interactionId,
+  };
 }

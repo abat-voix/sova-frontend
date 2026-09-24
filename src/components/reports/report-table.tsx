@@ -22,6 +22,8 @@ function formatCell(column: ReportColumn, row: ReportRow): string {
       return (row.process_status ?? []).map((p) => p.label).join(", ") || "—";
     case "active_stages":
       return (row.active_stages ?? []).map((s) => s.name).join(", ") || "—";
+    case "responsible":
+      return (row.responsible ?? []).join(", ") || "—";
     case "contract_numbers":
       return (row.contract_numbers ?? []).join(", ") || "—";
     case "contract_signed_at":

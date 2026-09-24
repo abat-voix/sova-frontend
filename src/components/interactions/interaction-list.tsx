@@ -62,6 +62,13 @@ export function interactionTitle(
   );
 }
 
+/** Имена действующих КАМов через запятую; пустая строка — никто не назначен. */
+export function responsibleNames(interaction: Interaction) {
+  return interaction.current_responsibles
+    .map((responsible) => responsible.manager.full_name)
+    .join(", ");
+}
+
 function ListState({
   label,
   onRetry,
@@ -209,8 +216,7 @@ export function InteractionList({
                               className="size-3 shrink-0"
                             />
                             <span className="truncate">
-                              {interaction.current_responsible?.manager
-                                .full_name ?? text.unassigned}
+                              {responsibleNames(interaction) || text.unassigned}
                             </span>
                           </span>
                           <Badge variant="neutral">

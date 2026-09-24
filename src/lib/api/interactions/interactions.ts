@@ -62,10 +62,10 @@ export function createInteraction(
 }
 
 /**
- * Назначает ответственного менеджера. Отдельный шаг: полем при создании
+ * Добавляет ответственного менеджера. Отдельный шаг: полем при создании
  * взаимодействия ответственного не задать.
  *
- * Действующий ответственный, если он был, закрывается и остаётся в истории;
+ * КАМов у взаимодействия может быть несколько: действующие остаются;
  * повторное назначение того же менеджера возвращает 200 и ничего не меняет.
  */
 export function assignResponsible(
@@ -80,10 +80,15 @@ export function assignResponsible(
   );
 }
 
-export function unassignResponsible(interactionId: string, csrfToken: string) {
+/** Снимает указанного менеджера; остальные КАМы взаимодействия остаются. */
+export function unassignResponsible(
+  interactionId: string,
+  managerId: number,
+  csrfToken: string,
+) {
   return postJson<InteractionResponsible>(
     apiEndpoints.interactions.interactions.unassignResponsible(interactionId),
-    {},
+    { manager: managerId },
     csrfToken,
   );
 }

@@ -47,12 +47,13 @@ export type InteractionDraft = {
   directions: DirectionNode[];
   isActive: boolean;
   /**
-   * Ответственный менеджер. `id` — число пользователя в виде строки: выпадушка
-   * работает со строковыми идентификаторами, назначение — с числовым.
+   * Ответственные менеджеры (КАМов может быть несколько). `id` — число
+   * пользователя в виде строки: выпадушка работает со строковыми
+   * идентификаторами, назначение — с числовым.
    */
-  responsible: LookupOption | null;
-  /** Назначение уже прошло — повтор его не дублирует. */
-  responsibleAssigned: boolean;
+  responsibles: LookupOption[];
+  /** Уже назначенные из `responsibles` — повтор их не дублирует. */
+  assignedResponsibleIds: string[];
 };
 
 export const emptyDraft: InteractionDraft = {
@@ -62,8 +63,8 @@ export const emptyDraft: InteractionDraft = {
   createdInteractionId: null,
   directions: [],
   isActive: true,
-  responsible: null,
-  responsibleAssigned: false,
+  responsibles: [],
+  assignedResponsibleIds: [],
 };
 
 /**
@@ -75,7 +76,7 @@ export const emptyDraft: InteractionDraft = {
 export function draftWithResponsible(
   responsible: LookupOption | null,
 ): InteractionDraft {
-  return { ...emptyDraft, responsible };
+  return { ...emptyDraft, responsibles: responsible ? [responsible] : [] };
 }
 
 export type DraftAction =
@@ -83,7 +84,7 @@ export type DraftAction =
   | { type: "set-counterparty"; option: LookupOption | null }
   | { type: "set-comment"; comment: string }
   | { type: "set-active"; isActive: boolean }
-  | { type: "set-responsible"; option: LookupOption | null }
+  | { type: "set-responsibles"; options: LookupOption[] }
   | { type: "add-direction"; key: string }
   | { type: "remove-direction"; key: string }
   | { type: "set-direction"; key: string; option: LookupOption | null }
@@ -97,7 +98,7 @@ export type DraftAction =
       type: "mark-created";
       createdIds: Record<string, string>;
       interactionId: string | null;
-      responsibleAssigned: boolean;
+      assignedResponsibleIds: string[];
     };
 
 const emptyProduct = (key: string): ProductNode => ({
@@ -153,8 +154,8 @@ export function draftReducer(
     case "set-active":
       return { ...draft, isActive: action.isActive };
 
-    case "set-responsible":
-      return { ...draft, responsible: action.option };
+    case "set-responsibles":
+      return { ...draft, responsibles: action.options };
 
     case "add-direction":
       return {
@@ -263,8 +264,12 @@ export function draftReducer(
         ...draft,
         createdInteractionId:
           action.interactionId ?? draft.createdInteractionId,
-        responsibleAssigned:
-          draft.responsibleAssigned || action.responsibleAssigned,
+        assignedResponsibleIds: [
+          ...new Set([
+            ...draft.assignedResponsibleIds,
+            ...action.assignedResponsibleIds,
+          ]),
+        ],
         directions: draft.directions.map((direction) => ({
           ...direction,
           createdId: created(direction),
@@ -353,8 +358,8 @@ export type CreationPlan = {
   interaction: CreateInteractionPayload | null;
   interactionId: string | null;
   programs: PlannedProgram[];
-  /** id менеджера; `null` — назначать некого либо уже назначен. */
-  responsibleId: number | null;
+  /** id менеджеров, которых осталось назначить; уже назначенные исключены. */
+  responsibleIds: number[];
 };
 
 function interactionPayload(draft: InteractionDraft): CreateInteractionPayload {
@@ -410,9 +415,8 @@ export function buildCreationPlan(draft: InteractionDraft): CreationPlan {
       draft.createdInteractionId === null ? interactionPayload(draft) : null,
     interactionId: draft.createdInteractionId,
     programs,
-    responsibleId:
-      draft.responsible && !draft.responsibleAssigned
-        ? Number(draft.responsible.id)
-        : null,
+    responsibleIds: draft.responsibles
+      .filter((option) => !draft.assignedResponsibleIds.includes(option.id))
+      .map((option) => Number(option.id)),
   };
 }

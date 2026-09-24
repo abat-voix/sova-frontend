@@ -75,7 +75,7 @@ const interaction = {
   b2c_client: null,
   created_at: "2026-09-01T09:00:00+03:00",
   updated_at: "2026-09-01T09:00:00+03:00",
-  current_responsible: null,
+  current_responsibles: [],
   directions_count: 1,
   programs_count: 2,
   products_count: 3,

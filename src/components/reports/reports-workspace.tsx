@@ -173,6 +173,8 @@ function formatCell(
       );
     case "active_stages":
       return (row.active_stages ?? []).map((s) => s.name).join(", ") || noValue;
+    case "responsible":
+      return (row.responsible ?? []).join(", ") || noValue;
     case "contract_numbers":
       return (row.contract_numbers ?? []).join(", ") || noValue;
     case "contract_signed_at":

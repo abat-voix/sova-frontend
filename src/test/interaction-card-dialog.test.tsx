@@ -14,11 +14,18 @@ const interaction: Interaction = {
   b2c_client: null,
   created_at: "2026-01-10T10:00:00Z",
   updated_at: "2026-02-01T10:00:00Z",
-  current_responsible: {
-    id: "resp-1",
-    manager: { id: 1, full_name: "Иван Иванов" },
-    assigned_at: "2026-01-10T10:00:00Z",
-  },
+  current_responsibles: [
+    {
+      id: "resp-1",
+      manager: { id: 1, full_name: "Иван Иванов" },
+      assigned_at: "2026-01-10T10:00:00Z",
+    },
+    {
+      id: "resp-2",
+      manager: { id: 2, full_name: "Мария Смирнова" },
+      assigned_at: "2026-01-11T10:00:00Z",
+    },
+  ],
   directions_count: 1,
   programs_count: 1,
   products_count: 1,
@@ -253,6 +260,14 @@ describe("InteractionCardDialog", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Редактировать" }));
     expect(onEdit).toHaveBeenCalledWith(interaction);
+  });
+
+  it("lists every current responsible in the overview", async () => {
+    renderDialog(vi.fn<typeof fetch>(async () => json(paginated([]))));
+
+    expect(
+      await screen.findByText("Иван Иванов, Мария Смирнова"),
+    ).toBeInTheDocument();
   });
 
   it("shows a retry button when a section fails to load", async () => {

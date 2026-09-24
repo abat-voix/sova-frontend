@@ -60,7 +60,8 @@ export type Interaction = {
   b2c_client: B2CClientShort | null;
   created_at: string;
   updated_at: string;
-  current_responsible: ResponsibleShort | null;
+  /** Действующие КАМы в порядке назначения; пусто — никто не назначен. */
+  current_responsibles: ResponsibleShort[];
   directions_count: number;
   programs_count: number;
   products_count: number;

@@ -61,32 +61,35 @@ describe("buildCreationPlan", () => {
     ]);
   });
 
-  it("turns the chosen responsible into a numeric manager id", () => {
+  it("turns the chosen responsibles into numeric manager ids", () => {
     const draft = reduce(filledDraft(), {
-      option: option("7", "Ольга Филинова"),
-      type: "set-responsible",
+      options: [option("7", "Ольга Филинова"), option("9", "Иван Петров")],
+      type: "set-responsibles",
     });
 
-    expect(buildCreationPlan(draft).responsibleId).toBe(7);
+    expect(buildCreationPlan(draft).responsibleIds).toEqual([7, 9]);
   });
 
-  it("does not assign the responsible twice", () => {
+  it("does not assign a responsible twice", () => {
     const draft = reduce(
       filledDraft(),
-      { option: option("7", "Ольга Филинова"), type: "set-responsible" },
       {
+        options: [option("7", "Ольга Филинова"), option("9", "Иван Петров")],
+        type: "set-responsibles",
+      },
+      {
+        assignedResponsibleIds: ["7"],
         createdIds: {},
         interactionId: "id-interaction",
-        responsibleAssigned: true,
         type: "mark-created",
       },
     );
 
-    expect(buildCreationPlan(draft).responsibleId).toBeNull();
+    expect(buildCreationPlan(draft).responsibleIds).toEqual([9]);
   });
 
   it("plans no assignment when nobody is chosen", () => {
-    expect(buildCreationPlan(filledDraft()).responsibleId).toBeNull();
+    expect(buildCreationPlan(filledDraft()).responsibleIds).toEqual([]);
   });
 
   it("sends b2c_client instead of university for a B2C counterparty", () => {
@@ -105,9 +108,9 @@ describe("buildCreationPlan", () => {
 
   it("omits everything already created so a retry only sends what is missing", () => {
     const draft = reduce(filledDraft(), {
+      assignedResponsibleIds: [],
       createdIds: { d1: "id-d1", p1: "id-p1", t1: "id-t1" },
       interactionId: "id-interaction",
-      responsibleAssigned: false,
       type: "mark-created",
     });
 
@@ -131,9 +134,9 @@ describe("buildCreationPlan", () => {
 
   it("skips a program whose products are all created", () => {
     const draft = reduce(filledDraft(), {
+      assignedResponsibleIds: [],
       createdIds: { p1: "id-p1", t1: "id-t1", t2: "id-t2" },
       interactionId: "id-interaction",
-      responsibleAssigned: false,
       type: "mark-created",
     });
 
@@ -205,8 +208,8 @@ describe("draftWithResponsible", () => {
   it("opens the form with the responsible already filled in", () => {
     const draft = draftWithResponsible(option("7", "Ольга Филинова"));
 
-    expect(draft.responsible).toEqual(option("7", "Ольга Филинова"));
-    expect(draft.responsibleAssigned).toBe(false);
+    expect(draft.responsibles).toEqual([option("7", "Ольга Филинова")]);
+    expect(draft.assignedResponsibleIds).toEqual([]);
   });
 });
 
@@ -216,7 +219,7 @@ describe("isDraftReady", () => {
   });
 
   it("does not require a responsible", () => {
-    expect(buildCreationPlan(filledDraft()).responsibleId).toBeNull();
+    expect(buildCreationPlan(filledDraft()).responsibleIds).toEqual([]);
     expect(isDraftReady(filledDraft())).toBe(true);
   });
 

@@ -43,7 +43,7 @@ const plan = (overrides: Partial<CreationPlan> = {}): CreationPlan => ({
   directions: [{ directionId: "dir-1", key: "d1" }],
   interaction: { comment: "", is_active: true, university: "u-1" },
   interactionId: null,
-  responsibleId: null,
+  responsibleIds: [],
   programs: [
     {
       createdId: null,
@@ -91,28 +91,33 @@ describe("runCreationPlan", () => {
     });
   });
 
-  it("assigns the responsible right after the interaction is created", async () => {
+  it("assigns every responsible right after the interaction is created", async () => {
     const calls = stubFetch();
 
     const outcome = await runCreationPlan(
-      plan({ directions: [], programs: [], responsibleId: 7 }),
+      plan({ directions: [], programs: [], responsibleIds: [7, 9] }),
       "csrf",
     );
 
-    expect(outcome.responsibleAssigned).toBe(true);
+    expect(outcome.assignedResponsibleIds).toEqual(["7", "9"]);
     expect(calls.map((call) => call.url)).toEqual([
       "/api/interactions/interactions/",
       "/api/interactions/interactions/new-1/assign-responsible/",
+      "/api/interactions/interactions/new-1/assign-responsible/",
     ]);
     expect(calls[1].body).toEqual({ manager: 7 });
+    expect(calls[2].body).toEqual({ manager: 9 });
   });
 
   it("keeps creating the tree when the assignment fails", async () => {
     const calls = stubFetch((url) => url.includes("assign-responsible"));
 
-    const outcome = await runCreationPlan(plan({ responsibleId: 7 }), "csrf");
+    const outcome = await runCreationPlan(
+      plan({ responsibleIds: [7] }),
+      "csrf",
+    );
 
-    expect(outcome.responsibleAssigned).toBe(false);
+    expect(outcome.assignedResponsibleIds).toEqual([]);
     expect(outcome.error).not.toBeNull();
     // Направление и программа всё равно созданы — повтор дошлёт назначение.
     expect(outcome.createdIds).toHaveProperty("d1");

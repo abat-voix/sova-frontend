@@ -89,14 +89,16 @@ export type ReportRow = {
   interaction_product_id: string | null;
   university_id: string | null;
   program_id: string | null;
-  responsible_id: number | null;
+  /** Действующие КАМы взаимодействия по алфавиту. */
+  responsible_ids: number[];
   university?: string;
   direction?: string;
   program?: string;
   product?: string;
   process_status?: ReportProcessStatus[];
   active_stages?: ReportActiveStage[];
-  responsible?: string;
+  /** Имена КАМов в порядке `responsible_ids`. */
+  responsible?: string[];
   created_at?: string;
   updated_at?: string;
   contract_numbers?: string[];
