@@ -13,10 +13,12 @@ import {
   PlugZap,
   Settings2,
   UserRound,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 
 import type { TranslationKey } from "@/i18n/translations";
+import type { SystemRole } from "@/providers/auth-provider";
 
 export type CrmSection =
   | "home"
@@ -32,7 +34,8 @@ export type CrmSection =
   | "itCatalog"
   | "vendors"
   | "workflowTemplates"
-  | "integrations";
+  | "integrations"
+  | "team";
 
 export type CrmNavigationItem = {
   adminOnly?: boolean;
@@ -41,6 +44,8 @@ export type CrmNavigationItem = {
   icon: LucideIcon;
   id: CrmSection;
   labelKey: TranslationKey;
+  /** Пункт виден только этим прикладным ролям СОВА; `isStaff` его не открывает. */
+  roles?: SystemRole[];
 };
 
 export type CrmNavigationGroup = {
@@ -66,6 +71,14 @@ export const crmNavigation: CrmNavigationGroup[] = [
         descriptionKey: "interactionsDescription",
         href: "/interactions",
         icon: Handshake,
+      },
+      {
+        id: "team",
+        labelKey: "team",
+        descriptionKey: "teamDescription",
+        href: "/team",
+        icon: Users,
+        roles: ["head", "platform_admin"],
       },
       {
         id: "myTasks",

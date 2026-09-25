@@ -34,6 +34,7 @@ import { NotificationsWorkspace } from "@/components/notifications/notifications
 import { OrganizationsWorkspace } from "@/components/organizations/organizations-workspace";
 import { ReportsWorkspace } from "@/components/reports/reports-workspace";
 import { MyTasksWorkspace } from "@/components/tasks/my-tasks-workspace";
+import { TeamSection } from "@/components/team/team-section";
 import { WorkflowTemplatesWorkspace } from "@/components/workflows/workflow-templates-workspace";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BuildVersion } from "@/components/build-version";
@@ -151,6 +152,11 @@ function Sidebar({
                       item.adminOnly &&
                       !user.isStaff &&
                       user.role !== "platform_admin"
+                    )
+                      return null;
+                    if (
+                      item.roles &&
+                      (user.role === null || !item.roles.includes(user.role))
                     )
                       return null;
                     const Icon = item.icon;
@@ -289,6 +295,17 @@ function WorkflowAccessDenied() {
   );
 }
 
+function TeamAccessDenied() {
+  return (
+    <div className="bg-card rounded-xl border border-dashed p-12 text-center">
+      <h1 className="text-2xl font-medium">Доступ ограничен</h1>
+      <p className="text-muted-foreground mt-2">
+        Раздел «Команда» доступен руководителю и администратору платформы.
+      </p>
+    </div>
+  );
+}
+
 function IntegrationAccessDenied() {
   return (
     <div className="bg-card rounded-xl border border-dashed p-12 text-center">
@@ -318,6 +335,7 @@ export function CrmShell(props: CrmShellProps) {
   const canManageWorkflows =
     user.role === "head" || user.role === "platform_admin";
   const canManageIntegrations = user.isStaff || user.role === "platform_admin";
+  const canManageTeam = user.role === "head" || user.role === "platform_admin";
 
   const unreadCountQuery = useQuery({
     queryKey: unreadCountQueryKey(),
@@ -462,6 +480,10 @@ export function CrmShell(props: CrmShellProps) {
             <WorkflowAccessDenied />
           ) : activeSection === "workflowTemplates" ? (
             <WorkflowTemplatesWorkspace />
+          ) : activeSection === "team" && !canManageTeam ? (
+            <TeamAccessDenied />
+          ) : activeSection === "team" ? (
+            <TeamSection csrfToken={csrfToken} user={user} />
           ) : activeSection === "home" ? (
             <DashboardHome user={user} />
           ) : activeSection === "contacts" ? (

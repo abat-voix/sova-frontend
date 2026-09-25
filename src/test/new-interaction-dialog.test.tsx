@@ -38,13 +38,19 @@ const catalog: Record<string, unknown> = {
     { id: "prod-1", name: "Демо-ПО 1" },
     { id: "prod-2", name: "Демо-ПО 2" },
   ]),
+  // Ольга — в команде текущего руководителя (id 3), Иван — свободный КАМ.
   "/api/users/": {
     count: 2,
     next: null,
     previous: null,
     results: [
-      { full_name: "Ольга Филинова", id: 7, role: "kam" },
-      { full_name: "Иван Петров", id: 9, role: "kam" },
+      {
+        full_name: "Ольга Филинова",
+        head: { email: "s@example.com", full_name: "Пётр Совин", id: 3 },
+        id: 7,
+        role: "kam",
+      },
+      { full_name: "Иван Петров", head: null, id: 9, role: "kam" },
     ],
   },
 };
@@ -61,7 +67,11 @@ const user = (role: AuthenticatedUser["role"]): AuthenticatedUser => ({
   roles: role ? [role] : [],
 });
 
-function stubFetch(failUrl?: string) {
+function stubFetch(
+  failUrl?: string,
+  urls: string[] = [],
+  failBody: unknown = { code: "invalid", detail: "Так нельзя." },
+) {
   const calls: Call[] = [];
   let nextId = 0;
 
@@ -69,18 +79,16 @@ function stubFetch(failUrl?: string) {
     async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       const path = url.split("?")[0];
+      if (init?.method !== "POST") urls.push(url);
 
       if (init?.method === "POST") {
         calls.push({ body: JSON.parse(String(init.body)), url: path });
 
         if (failUrl && path === failUrl) {
-          return new Response(
-            JSON.stringify({ code: "invalid", detail: "Так нельзя." }),
-            {
-              headers: { "content-type": "application/json" },
-              status: 400,
-            },
-          );
+          return new Response(JSON.stringify(failBody), {
+            headers: { "content-type": "application/json" },
+            status: 400,
+          });
         }
 
         nextId += 1;
@@ -89,6 +97,22 @@ function stubFetch(failUrl?: string) {
           headers: { "content-type": "application/json" },
           status: 201,
         });
+      }
+
+      // Команда руководителя (для блокировки снятия) — только Ольга.
+      if (
+        path === "/api/users/" &&
+        new URL(url, "http://localhost").searchParams.get("team") === "mine"
+      ) {
+        return new Response(
+          JSON.stringify({
+            count: 1,
+            next: null,
+            previous: null,
+            results: [(catalog[path] as { results: unknown[] }).results[0]],
+          }),
+          { headers: { "content-type": "application/json" }, status: 200 },
+        );
       }
 
       return new Response(JSON.stringify(catalog[path] ?? page([])), {
@@ -132,11 +156,33 @@ function renderDialog(
 }
 
 /** Открывает выпадушку по её подписи и выбирает вариант по названию. */
-async function pick(label: string, optionName: string) {
+async function pick(label: string, optionName: string | RegExp) {
   const comboboxes = screen.getAllByRole("combobox", { name: label });
   fireEvent.click(comboboxes[comboboxes.length - 1]);
   const option = await screen.findByRole("option", { name: optionName });
   fireEvent.click(option);
+}
+
+function interactionWith(
+  managers: { full_name: string; id: number }[],
+): Interaction {
+  return {
+    b2c_client: null,
+    comment: "",
+    created_at: "2026-01-10T10:00:00Z",
+    current_responsibles: managers.map((manager, index) => ({
+      assigned_at: "2026-01-10T10:00:00Z",
+      id: `resp-${index}`,
+      manager,
+    })),
+    directions_count: 0,
+    id: "int-1",
+    is_active: true,
+    products_count: 0,
+    programs_count: 0,
+    university: { id: "u-1", name: "Демо-университет" },
+    updated_at: "2026-01-10T10:00:00Z",
+  } as Interaction;
 }
 
 function submitButton() {
@@ -196,7 +242,7 @@ describe("NewInteractionDialog", () => {
 
     await pick("Контрагент", "Демо-университет");
     await pick("Ответственные", "Ольга Филинова");
-    fireEvent.click(await screen.findByRole("option", { name: "Иван Петров" }));
+    fireEvent.click(await screen.findByRole("option", { name: /Иван Петров/ }));
 
     expect(screen.getByText("Ольга Филинова, Иван Петров")).toBeInTheDocument();
     await waitFor(() => expect(submitButton()).toBeEnabled());
@@ -239,7 +285,7 @@ describe("NewInteractionDialog", () => {
 
     // Снимаем Ольгу и добавляем Ивана в одном мультиселекте.
     await pick("Ответственные", "Ольга Филинова");
-    fireEvent.click(await screen.findByRole("option", { name: "Иван Петров" }));
+    fireEvent.click(await screen.findByRole("option", { name: /Иван Петров/ }));
     fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
 
     await waitFor(() => expect(onUpdated).toHaveBeenCalled());
@@ -278,12 +324,68 @@ describe("NewInteractionDialog", () => {
     await waitFor(() => expect(submitButton()).toBeEnabled());
     fireEvent.click(submitButton());
 
+    await waitFor(() => expect(calls).toHaveLength(1));
+    // КАМа-автора бэк назначает сам — assign-responsible не отправляется.
+    expect(calls[0].url).toBe("/api/interactions/interactions/");
+    expect(
+      screen.getByText("Взаимодействие будет закреплено за вами."),
+    ).toBeInTheDocument();
+  });
+
+  it("marks a free kam as joining the head's team", async () => {
+    stubFetch();
+    renderDialog("head");
+
+    fireEvent.click(screen.getByRole("combobox", { name: "Ответственные" }));
+
+    expect(
+      await screen.findByText("войдёт в вашу команду"),
+    ).toBeInTheDocument();
+  });
+
+  it("lets a head assign themselves", async () => {
+    const calls = stubFetch();
+    renderDialog("head");
+
+    await pick("Контрагент", "Демо-университет");
+    fireEvent.click(screen.getByRole("button", { name: "Назначить себя" }));
+    expect(screen.queryByRole("button", { name: "Назначить себя" })).toBeNull();
+    await waitFor(() => expect(submitButton()).toBeEnabled());
+    fireEvent.click(submitButton());
+
     await waitFor(() => expect(calls).toHaveLength(2));
-    // КАМ назначается сам — id берётся из сессии, /api/users/ не запрашивается.
     expect(calls[1]).toEqual({
       body: { manager: 3 },
       url: "/api/interactions/interactions/new-1/assign-responsible/",
     });
+  });
+
+  it("asks the backend only for kams and heads when an admin picks", async () => {
+    const urls: string[] = [];
+    stubFetch(undefined, urls);
+    renderDialog("platform_admin");
+
+    fireEvent.click(screen.getByRole("combobox", { name: "Ответственные" }));
+    await screen.findByRole("option", { name: /Ольга Филинова/ });
+
+    const usersUrl = urls.find((url) => url.startsWith("/api/users/"));
+    expect(
+      new URL(String(usersUrl), "http://localhost").searchParams.getAll("role"),
+    ).toEqual(["kam", "head"]);
+  });
+
+  it("does not let a head remove a kam from another team", async () => {
+    stubFetch();
+    renderDialog("head", interactionWith([{ full_name: "Чужой КАМ", id: 11 }]));
+
+    expect(
+      await screen.findByText(
+        "Снять может руководитель этого КАМа или администратор.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Очистить: Ответственные" }),
+    ).toBeNull();
   });
 
   it("sends b2c_client when the counterparty kind is switched", async () => {
@@ -379,6 +481,49 @@ describe("NewInteractionDialog", () => {
     expect(
       within(list).queryByRole("option", { name: "Демо-ПО 1" }),
     ).toBeNull();
+  });
+
+  it("explains a taken kam and lets the head drop him before retrying", async () => {
+    const assignUrl =
+      "/api/interactions/interactions/new-1/assign-responsible/";
+    stubFetch(assignUrl, [], {
+      code: "kam_has_head",
+      detail: "У КАМа уже есть другой руководитель.",
+    });
+    const { onCreated } = renderDialog("head");
+
+    await pick("Контрагент", "Демо-университет");
+    await pick("Ответственные", /Иван Петров/);
+    await waitFor(() => expect(submitButton()).toBeEnabled());
+    fireEvent.click(submitButton());
+
+    expect(
+      await screen.findByText("Этого КАМа уже забрал другой руководитель."),
+    ).toBeInTheDocument();
+
+    // В повторе выпадушка доступна (она осталась открытой после выбора) — убираем Ивана
+    vi.unstubAllGlobals();
+    const retryCalls = stubFetch();
+    fireEvent.click(await screen.findByRole("option", { name: /Иван Петров/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Повторить" }));
+
+    await waitFor(() => expect(onCreated).toHaveBeenCalledWith("new-1"));
+    expect(retryCalls).toEqual([]);
+  });
+
+  it("refreshes the users cache after a head assigns managers", async () => {
+    const invalidate = vi.spyOn(QueryClient.prototype, "invalidateQueries");
+    stubFetch();
+    const { onCreated } = renderDialog("head");
+
+    await pick("Контрагент", "Демо-университет");
+    await pick("Ответственные", /Иван Петров/);
+    await waitFor(() => expect(submitButton()).toBeEnabled());
+    fireEvent.click(submitButton());
+
+    await waitFor(() => expect(onCreated).toHaveBeenCalled());
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["users"] });
+    invalidate.mockRestore();
   });
 
   it("offers a retry that only sends what is missing after a partial failure", async () => {

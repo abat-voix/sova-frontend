@@ -8,11 +8,12 @@
 
 import { apiEndpoints } from "@/lib/api/endpoints";
 import { buildQuery, getJson } from "@/lib/api/http";
+import { listUsers } from "@/lib/api/users/team";
+import type { SystemRole } from "@/providers/auth-provider";
 import type { PaginatedResponse } from "@/types/api";
 import type { B2CClient, Direction, Product, Program } from "@/types/catalog";
 import type { Contract } from "@/types/contract";
 import type { University } from "@/types/university";
-import type { SovaUser } from "@/types/user";
 import type {
   Interaction,
   InteractionProduct,
@@ -23,6 +24,8 @@ import type {
 export type LookupOption = {
   id: string;
   name: string;
+  /** Пояснение под названием варианта в выпадушке. */
+  hint?: string;
 };
 
 export const lookupPageSize = 20;
@@ -163,28 +166,6 @@ export function searchInteractionProducts(
   );
 }
 
-/**
- * Пользователи, видимые текущему пользователю по роли в СОВА (см. `visible_users`
- * на бэкенде): руководитель видит КАМов, администратор платформы — всех, кроме
- * администраторов. КАМу эндпоинт отвечает 403 — вызывающая форма для КАМа не
- * показывается.
- *
- * `id` пользователя — число; приводим к строке, потому что выпадушка работает
- * со строковыми идентификаторами, и разворачиваем обратно на месте вызова.
- */
-export function searchUsers(search: string) {
-  const query = buildQuery({
-    page: 1,
-    page_size: 50,
-    search: search.trim(),
-  });
-
-  return fetchOptions<SovaUser>(
-    `${apiEndpoints.users.list}?${query}`,
-    (user) => ({ id: String(user.id), name: user.full_name }),
-  );
-}
-
 /** Активные собеседники мессенджера; доступно всем авторизованным пользователям. */
 export function searchConversationRecipients(search: string) {
   const query = buildQuery({
@@ -199,9 +180,29 @@ export function searchConversationRecipients(search: string) {
   );
 }
 
-/** Кандидаты в ответственные — те же видимые пользователи. */
-export function searchManagers(search: string) {
-  return searchUsers(search);
+/**
+ * Кандидаты в ответственные по роли: руководителю бэк сам отдаёт
+ * его команду и свободных КАМов, администратору — только КАМов и
+ * руководителей. Свободного КАМа руководитель забирает в команду при
+ * назначении — `freeHint` подписывает такие варианты.
+ */
+export function searchManagers(role: SystemRole | null, freeHint?: string) {
+  return async (search: string): Promise<LookupOption[]> => {
+    const page = await listUsers({
+      pageSize: 50,
+      role: role === "platform_admin" ? ["kam", "head"] : undefined,
+      search,
+    });
+
+    return page.results.map((user) => ({
+      hint:
+        role === "head" && user.role === "kam" && user.head === null
+          ? freeHint
+          : undefined,
+      id: String(user.id),
+      name: user.full_name,
+    }));
+  };
 }
 
 /**

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
 import { useReducer, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -33,6 +33,7 @@ import {
   searchUniversities,
 } from "@/lib/api/catalog/lookups";
 import { ApiError } from "@/lib/api/http";
+import { listUsers, usersQueryKey, usersRootKey } from "@/lib/api/users/team";
 import {
   assignResponsible,
   unassignResponsible,
@@ -73,8 +74,12 @@ const copy = {
     programNeedsDirection: "Сначала выберите направление",
     programPlaceholder: "Выберите программу",
     remove: "Удалить",
+    assignSelf: "Назначить себя",
+    joinsYourTeam: "войдёт в вашу команду",
+    kamHasHead: "Этого КАМа уже забрал другой руководитель.",
     responsible: "Ответственные",
     responsibleIsYou: "Взаимодействие будет закреплено за вами.",
+    responsibleLocked: "Снять может руководитель этого КАМа или администратор.",
     responsibleNone: "Не назначены",
     responsibleOptional:
       "Необязательно — можно назначить позже. КАМов может быть несколько.",
@@ -117,8 +122,13 @@ const copy = {
     programNeedsDirection: "Pick a direction first",
     programPlaceholder: "Pick a program",
     remove: "Remove",
+    assignSelf: "Assign myself",
+    joinsYourTeam: "will join your team",
+    kamHasHead: "Another head has already taken this KAM.",
     responsible: "Responsibles",
     responsibleIsYou: "The interaction will be assigned to you.",
+    responsibleLocked:
+      "Only this KAM's head or an administrator can remove them.",
     responsibleNone: "Unassigned",
     responsibleOptional:
       "Optional — you can assign them later. There can be several KAMs.",
@@ -139,8 +149,19 @@ function responsibleNames(options: { name: string }[]) {
   return options.map((option) => option.name).join(", ");
 }
 
-function resolveErrorDetail(error: unknown) {
-  return error instanceof ApiError ? error.detail : null;
+/** Ошибка назначения ответственного: КАМа забрали или менеджер недопустим. */
+function isResponsibleError(error: unknown) {
+  return (
+    error instanceof ApiError &&
+    (error.code === "kam_has_head" || Boolean(error.fieldErrors.manager))
+  );
+}
+
+function resolveErrorDetail(error: unknown, kamHasHead: string) {
+  if (!(error instanceof ApiError)) return null;
+  if (error.code === "kam_has_head") return kamHasHead;
+  // Недопустимый ответственный: бэк объясняет причину в ошибке поля `manager`
+  return error.detail ?? error.fieldErrors.manager?.[0] ?? null;
 }
 
 function initialDraft(
@@ -166,7 +187,12 @@ function initialDraft(
     };
   }
 
-  return { ...emptyDraft, responsibles: value ? [value] : [] };
+  // КАМа-автора бэк назначает сам при создании — план не должен слать assign-responsible
+  return {
+    ...emptyDraft,
+    assignedResponsibleIds: value ? [value.id] : [],
+    responsibles: value ? [value] : [],
+  };
 }
 
 function RemoveButton({
@@ -383,6 +409,25 @@ export function NewInteractionDialog({
         : null),
     initialDraft,
   );
+  const isHead = currentUser.role === "head";
+  // Руководитель снимает только себя и свою команду: остальных блокируем в форме
+  const teamQuery = useQuery({
+    enabled: isHead && isEditing,
+    queryFn: () => listUsers({ pageSize: 200, team: "mine" }),
+    queryKey: usersQueryKey("team", { pageSize: 200, team: "mine" }),
+  });
+  const teamIds = new Set(
+    (teamQuery.data?.results ?? []).map((user) => String(user.id)),
+  );
+  const lockedIds =
+    isHead && teamQuery.isSuccess
+      ? (editInteraction?.current_responsibles ?? [])
+          .map((responsible) => String(responsible.manager.id))
+          .filter((id) => id !== String(currentUser.id) && !teamIds.has(id))
+      : [];
+  const hasSelf = draft.responsibles.some(
+    (option) => option.id === String(currentUser.id),
+  );
   const [error, setError] = useState<string | null>(null);
   const keyCounter = useRef(0);
 
@@ -431,13 +476,19 @@ export function NewInteractionDialog({
         void queryClient.invalidateQueries({
           queryKey: ["processes", "workflow-board"],
         });
+        if (isHead) {
+          void queryClient.invalidateQueries({ queryKey: usersRootKey });
+        }
         toast.success(text.edited);
         onUpdated?.();
         return;
       }
       const creationOutcome = outcome.outcome;
       if (creationOutcome.interactionId === null) {
-        setError(resolveErrorDetail(creationOutcome.error) ?? text.failed);
+        setError(
+          resolveErrorDetail(creationOutcome.error, text.kamHasHead) ??
+            text.failed,
+        );
 
         return;
       }
@@ -454,17 +505,38 @@ export function NewInteractionDialog({
       });
 
       if (creationOutcome.error) {
+        if (isResponsibleError(creationOutcome.error)) {
+          // Кандидаты устарели: КАМа забрали или он больше не доступен
+          void queryClient.invalidateQueries({ queryKey: usersRootKey });
+          setError(
+            resolveErrorDetail(creationOutcome.error, text.kamHasHead) ??
+              text.partial,
+          );
+          return;
+        }
         setError(text.partial);
 
         return;
       }
 
       setError(null);
+      if (isHead) {
+        // Назначенный свободный КАМ вступил в команду — списки пользователей устарели
+        void queryClient.invalidateQueries({ queryKey: usersRootKey });
+      }
       toast.success(text.created);
       onCreated(creationOutcome.interactionId);
     },
     onError: (mutationError) => {
-      setError(resolveErrorDetail(mutationError) ?? text.failed);
+      setError(
+        resolveErrorDetail(mutationError, text.kamHasHead) ?? text.failed,
+      );
+      if (
+        mutationError instanceof ApiError &&
+        mutationError.code === "kam_has_head"
+      ) {
+        void queryClient.invalidateQueries({ queryKey: usersRootKey });
+      }
     },
   });
 
@@ -535,8 +607,8 @@ export function NewInteractionDialog({
 
           <div>
             <p className="text-muted-foreground text-xs">{text.responsible}</p>
-            {/* При повторе назначенных уже не снять — состав правится редактированием. */}
-            {canChooseResponsible && !isRetry ? (
+            {/* При повторе уже назначенных не снять — состав правится редактированием. */}
+            {canChooseResponsible ? (
               <div className="mt-1">
                 <MultiEntitySelect
                   id="new-interaction-responsible"
@@ -546,12 +618,40 @@ export function NewInteractionDialog({
                   }
                   placeholder={text.responsiblePlaceholder}
                   queryKey={["users", "managers", currentUser.id]}
-                  search={searchManagers}
+                  lockedIds={isRetry ? draft.assignedResponsibleIds : lockedIds}
+                  search={searchManagers(currentUser.role, text.joinsYourTeam)}
                   value={draft.responsibles}
                 />
+                {isHead && !hasSelf ? (
+                  <Button
+                    className="mt-1"
+                    onClick={() =>
+                      dispatch({
+                        options: [
+                          ...draft.responsibles,
+                          {
+                            id: String(currentUser.id),
+                            name: currentUser.displayName,
+                          },
+                        ],
+                        type: "set-responsibles",
+                      })
+                    }
+                    size="s"
+                    type="button"
+                    variant="ghost"
+                  >
+                    {text.assignSelf}
+                  </Button>
+                ) : null}
                 {draft.responsibles.length > 0 ? (
                   <p className="mt-1 text-sm">
                     {responsibleNames(draft.responsibles)}
+                  </p>
+                ) : null}
+                {lockedIds.length > 0 ? (
+                  <p className="text-muted-foreground mt-1 text-xs">
+                    {text.responsibleLocked}
                   </p>
                 ) : null}
                 <p className="text-muted-foreground mt-1 text-xs">

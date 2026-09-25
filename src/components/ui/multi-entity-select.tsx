@@ -31,6 +31,11 @@ const copy = {
 type MultiEntitySelectProps = {
   id: string;
   label: string;
+  /**
+   * Выбранные значения, которые пользователю нельзя снять: права на это есть
+   * только у другого пользователя.
+   */
+  lockedIds?: string[];
   onChange: (values: LookupOption[]) => void;
   placeholder: string;
   /** Ключ кэша без строки поиска — её компонент добавляет сам. */
@@ -49,6 +54,7 @@ type MultiEntitySelectProps = {
 export function MultiEntitySelect({
   id,
   label,
+  lockedIds,
   onChange,
   placeholder,
   queryKey,
@@ -93,8 +99,11 @@ export function MultiEntitySelect({
 
   const options = optionsQuery.data ?? [];
   const selectedIds = new Set(value.map((option) => option.id));
+  const locked = new Set(lockedIds ?? []);
+  const hasRemovable = value.some((option) => !locked.has(option.id));
 
   function toggle(option: LookupOption) {
+    if (locked.has(option.id)) return;
     onChange(
       selectedIds.has(option.id)
         ? value.filter((selected) => selected.id !== option.id)
@@ -133,11 +142,13 @@ export function MultiEntitySelect({
           />
         </button>
 
-        {value.length > 0 ? (
+        {hasRemovable ? (
           <button
             aria-label={`${text.clearAll}: ${label}`}
             className="text-muted-foreground hover:bg-secondary hover:text-foreground flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors"
-            onClick={() => onChange([])}
+            onClick={() =>
+              onChange(value.filter((option) => locked.has(option.id)))
+            }
             type="button"
           >
             <X aria-hidden="true" className="size-4" />
@@ -185,11 +196,16 @@ export function MultiEntitySelect({
             ) : (
               options.map((option) => {
                 const isSelected = selectedIds.has(option.id);
+                const isLocked = locked.has(option.id);
 
                 return (
                   <button
+                    aria-disabled={isLocked}
                     aria-selected={isSelected}
-                    className="hover:bg-secondary flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm"
+                    className={cn(
+                      "hover:bg-secondary flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm",
+                      isLocked && "cursor-not-allowed opacity-60",
+                    )}
                     key={option.id}
                     onClick={() => toggle(option)}
                     role="option"
@@ -202,7 +218,14 @@ export function MultiEntitySelect({
                         isSelected ? "opacity-100" : "opacity-0",
                       )}
                     />
-                    <span className="truncate">{option.name}</span>
+                    <span className="min-w-0">
+                      <span className="block truncate">{option.name}</span>
+                      {option.hint ? (
+                        <span className="text-muted-foreground block truncate text-xs">
+                          {option.hint}
+                        </span>
+                      ) : null}
+                    </span>
                   </button>
                 );
               })

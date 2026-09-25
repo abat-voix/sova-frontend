@@ -135,6 +135,9 @@ export const apiEndpoints = {
   },
   users: {
     list: "/api/users/",
+    claim: (id: number) => `/api/users/${id}/claim/`,
+    release: (id: number) => `/api/users/${id}/release/`,
+    head: (id: number) => `/api/users/${id}/head/`,
   },
   workflows: {
     actionDependencies: {

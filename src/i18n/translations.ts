@@ -36,6 +36,8 @@ export const translations = {
     interactions: "Взаимодействия",
     interactionsDescription:
       "Взаимодействия с вузами и выполнение связанных workflow.",
+    team: "Команда",
+    teamDescription: "КАМы вашей команды и свободные КАМы.",
     notifications: "Уведомления",
     notificationsDescription:
       "Напоминания о сроках, назначения и системные сообщения.",
@@ -103,6 +105,8 @@ export const translations = {
     interactions: "Interactions",
     interactionsDescription:
       "University interactions and their related workflows.",
+    team: "Team",
+    teamDescription: "Your team's KAMs and KAMs without a head.",
     notifications: "Notifications",
     notificationsDescription:
       "Deadline reminders, assignments, and system messages.",
