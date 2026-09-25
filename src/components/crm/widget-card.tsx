@@ -27,13 +27,13 @@ export function WidgetCard({
   title: string;
 }) {
   return (
-    <section className="bg-card flex min-h-0 flex-col rounded-xl border p-5 shadow-sm">
+    <section className="bg-card flex min-h-0 min-w-0 flex-col rounded-xl border p-5 shadow-sm">
       <header className="mb-4 flex shrink-0 items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
+        <div className="flex min-w-0 items-center gap-2.5">
           <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--atmr-background-accent-soft)] text-[var(--atmr-accent-primary)]">
             <Icon aria-hidden="true" className="size-4.5" />
           </span>
-          <h2 className="text-base font-medium">{title}</h2>
+          <h2 className="min-w-0 truncate text-base font-medium">{title}</h2>
           {count !== undefined ? (
             <span
               aria-label={countLabel}
