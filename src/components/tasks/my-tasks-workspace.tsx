@@ -216,7 +216,7 @@ export function MyTasksWorkspace() {
         </p>
       </div>
 
-      <div className="flex min-h-0 flex-1 gap-4">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 lg:flex-row">
         {isCreating && user ? (
           <NewInteractionDialog
             csrfToken={csrfToken}
@@ -241,14 +241,18 @@ export function MyTasksWorkspace() {
 
         <aside
           className={cn(
-            "bg-card flex min-h-0 shrink-0 flex-col overflow-hidden rounded-xl border shadow-sm",
-            isListCollapsed ? "w-14" : "w-80",
+            "bg-card flex min-h-0 w-full shrink-0 flex-col overflow-hidden rounded-xl border shadow-sm transition-[height,width] duration-200 ease-in-out lg:w-80",
+            isListCollapsed
+              ? "h-12 lg:h-auto lg:w-14"
+              : "h-[min(24rem,45svh)] lg:h-auto",
           )}
         >
           <div
             className={cn(
               "flex h-12 shrink-0 items-center gap-2 border-b",
-              isListCollapsed ? "justify-center px-0" : "px-2",
+              isListCollapsed
+                ? "justify-between px-2 lg:justify-center lg:px-0"
+                : "px-2",
             )}
           >
             <Button
@@ -267,9 +271,9 @@ export function MyTasksWorkspace() {
                 <PanelLeftClose aria-hidden="true" className="size-4" />
               )}
             </Button>
-            {!isListCollapsed && user ? (
+            {user ? (
               <Button
-                className="flex-1"
+                className={cn("flex-1", isListCollapsed && "lg:hidden")}
                 onClick={() => setIsCreating(true)}
                 size="m"
                 type="button"
