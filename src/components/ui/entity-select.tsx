@@ -42,11 +42,13 @@ type EntitySelectProps = {
   invalid?: boolean;
   label: string;
   onChange: (option: LookupOption | null) => void;
+  /** Локальные варианты для небольших списков без API-справочника. */
+  options?: LookupOption[];
   placement?: "bottom" | "top";
   placeholder: string;
   /** Ключ кэша без строки поиска — её компонент добавляет сам. */
   queryKey: readonly unknown[];
-  search: (term: string) => Promise<LookupOption[]>;
+  search?: (term: string) => Promise<LookupOption[]>;
   /** Постраничный источник для больших справочников. */
   searchPage?: (
     term: string,
@@ -76,6 +78,7 @@ export function EntitySelect({
   queryKey,
   search,
   searchPage,
+  options: staticOptions,
   value,
 }: EntitySelectProps) {
   const { locale } = useLocale();
@@ -110,10 +113,25 @@ export function EntitySelect({
 
   const optionsQuery = useInfiniteQuery({
     queryKey: [...queryKey, debouncedTerm],
-    queryFn: async ({ pageParam }) =>
-      searchPage
-        ? searchPage(debouncedTerm, pageParam)
-        : { options: await search(debouncedTerm), hasNextPage: false },
+    queryFn: async ({ pageParam }) => {
+      if (staticOptions) {
+        const normalizedTerm = debouncedTerm.toLocaleLowerCase();
+
+        return {
+          hasNextPage: false,
+          options: staticOptions.filter((option) =>
+            option.name.toLocaleLowerCase().includes(normalizedTerm),
+          ),
+        };
+      }
+
+      if (searchPage) return searchPage(debouncedTerm, pageParam);
+      if (search) {
+        return { options: await search(debouncedTerm), hasNextPage: false };
+      }
+
+      return { options: [], hasNextPage: false };
+    },
     initialPageParam: 1,
     getNextPageParam: (lastPage, pages) =>
       lastPage.hasNextPage ? pages.length + 1 : undefined,

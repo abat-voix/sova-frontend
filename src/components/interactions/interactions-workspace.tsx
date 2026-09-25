@@ -12,7 +12,13 @@ import {
   TableProperties,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import { BoardDetailsDrawer } from "@/components/interactions/board-details-drawer";
 import { InteractionCardDialog } from "@/components/interactions/interaction-card-dialog";
@@ -23,12 +29,14 @@ import {
 } from "@/components/interactions/interaction-list";
 import { NewInteractionDialog } from "@/components/interactions/new-interaction-dialog";
 import { StartProcessDialog } from "@/components/interactions/start-process-dialog";
+import { WorkflowMobileBoard } from "@/components/interactions/workflow-mobile-board";
 import {
   GanttScale,
   WorkflowGantt,
   type WorkflowGanttHandle,
 } from "@/components/interactions/workflow-gantt";
 import { Button } from "@/components/ui/button";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { usePersistedFlag } from "@/hooks/use-persisted-flag";
 import {
   boardQueryKey,
@@ -67,6 +75,8 @@ const copy = {
     showGrid: "Показать таблицу",
     startProcess: "Запустить процесс",
     today: "Сегодня",
+    stages: "Этапы",
+    timeline: "Диаграмма",
     unnamed: "Без названия",
     viewCard: "Карточка",
   },
@@ -91,12 +101,15 @@ const copy = {
     showGrid: "Show the table",
     startProcess: "Start a process",
     today: "Today",
+    stages: "Stages",
+    timeline: "Timeline",
     unnamed: "Untitled",
     viewCard: "Card",
   },
 } as const;
 
 const collapsedStorageKey = "sova-interactions-list-collapsed";
+const compactViewportQuery = "(max-width: 1023.98px)";
 const scaleOrder: GanttScale[] = ["day", "week", "month"];
 
 function BoardState({
@@ -154,6 +167,13 @@ export function InteractionsWorkspace() {
     usePersistedFlag(collapsedStorageKey);
   const [scale, setScale] = useState<GanttScale>("week");
   const [showGrid, setShowGrid] = useState(true);
+  const [mobileView, setMobileView] = useState<"stages" | "timeline">("stages");
+  const isCompactViewport = useMediaQuery(compactViewportQuery);
+  const isViewportReady = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  );
   const ganttRef = useRef<WorkflowGanttHandle>(null);
   // Выбор храним идентификатором: объект из прошлого ответа доски устаревает
   // после каждой команды.
@@ -350,7 +370,7 @@ export function InteractionsWorkspace() {
         </aside>
 
         <section className="bg-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border shadow-sm">
-          <div className="flex h-12 shrink-0 flex-wrap items-center gap-2 border-b px-3">
+          <div className="flex min-h-12 shrink-0 flex-wrap items-center gap-2 border-b px-3 py-2">
             {selectedInteraction ? (
               <>
                 <p className="min-w-0 truncate text-sm font-medium">
@@ -407,7 +427,14 @@ export function InteractionsWorkspace() {
               </Button>
             ) : null}
 
-            <div className="ml-auto flex items-center gap-2">
+            <div
+              className={cn(
+                "ml-auto flex items-center gap-2",
+                (!isViewportReady ||
+                  (isCompactViewport && mobileView !== "timeline")) &&
+                  "hidden",
+              )}
+            >
               <div
                 aria-label={text.scale}
                 className="flex items-center gap-0.5 rounded-lg border p-0.5"
@@ -468,8 +495,50 @@ export function InteractionsWorkspace() {
             />
           ) : null}
 
-          <div className="relative flex min-h-0 flex-1">
-            <div className="relative min-h-0 min-w-0 flex-1">
+          {isCompactViewport || !isViewportReady ? (
+            <div
+              aria-label={text.timeline}
+              className="flex shrink-0 gap-1 border-b p-2"
+              role="tablist"
+            >
+              <Button
+                aria-controls="mobile-stages-panel"
+                aria-selected={mobileView === "stages"}
+                className="flex-1"
+                id="mobile-stages-tab"
+                onClick={() => setMobileView("stages")}
+                role="tab"
+                size="s"
+                type="button"
+                variant={mobileView === "stages" ? "secondary" : "ghost"}
+              >
+                {text.stages}
+              </Button>
+              <Button
+                aria-controls="mobile-timeline-panel"
+                aria-selected={mobileView === "timeline"}
+                className="flex-1"
+                id="mobile-timeline-tab"
+                onClick={() => setMobileView("timeline")}
+                role="tab"
+                size="s"
+                type="button"
+                variant={mobileView === "timeline" ? "secondary" : "ghost"}
+              >
+                {text.timeline}
+              </Button>
+            </div>
+          ) : null}
+
+          <div
+            aria-labelledby={
+              isCompactViewport ? `mobile-${mobileView}-tab` : undefined
+            }
+            className="relative flex min-h-0 flex-1"
+            id={isCompactViewport ? `mobile-${mobileView}-panel` : undefined}
+            role={isCompactViewport ? "tabpanel" : undefined}
+          >
+            <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
               {selectedInteractionId === null ? (
                 <BoardState label={text.noInteraction} />
               ) : instancesQuery.isPending ? (
@@ -496,15 +565,26 @@ export function InteractionsWorkspace() {
                   onRetry={() => void boardQuery.refetch()}
                   retryLabel={text.retry}
                 />
-              ) : boardQuery.data ? (
-                <WorkflowGantt
+              ) : !isViewportReady ||
+                (isCompactViewport && mobileView === "stages") ? (
+                <WorkflowMobileBoard
                   board={boardQuery.data}
-                  className="h-full"
                   onSelect={handleSelectRow}
-                  ref={ganttRef}
-                  scale={scale}
-                  showGrid={showGrid}
                 />
+              ) : boardQuery.data ? (
+                <div className="min-h-0 flex-1 overflow-auto">
+                  <WorkflowGantt
+                    board={boardQuery.data}
+                    className={cn(
+                      "h-full",
+                      isCompactViewport && "min-h-[28rem] min-w-[44rem]",
+                    )}
+                    onSelect={handleSelectRow}
+                    ref={ganttRef}
+                    scale={scale}
+                    showGrid={isCompactViewport ? false : showGrid}
+                  />
+                </div>
               ) : null}
             </div>
 

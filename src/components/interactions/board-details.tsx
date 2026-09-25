@@ -14,6 +14,7 @@ import {
 } from "@/components/interactions/rollback-history";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { EntitySelect } from "@/components/ui/entity-select";
 import { useCompleteAction } from "@/hooks/use-complete-action";
 import {
   boardQueryKey,
@@ -30,6 +31,7 @@ import {
   type BoardSelection,
 } from "@/lib/workflow/board-to-gantt";
 import { formatMoment, formatRange } from "@/lib/workflow/format-moment";
+import type { LookupOption } from "@/lib/api/catalog/lookups";
 import { useLocale } from "@/providers/locale-provider";
 import type {
   BoardAction,
@@ -52,6 +54,7 @@ const copy = {
     commentRequired: "Этот исход требует комментарий.",
     complete: "Завершить действие",
     completing: "Завершаем…",
+    chooseOutcome: "Выберите результат",
     confirmReturn: "Подтвердить возврат",
     confirmRollback: "Подтвердить откат",
     empty: "Выберите действие или этап на диаграмме.",
@@ -92,6 +95,7 @@ const copy = {
     commentRequired: "This outcome requires a comment.",
     complete: "Complete action",
     completing: "Completing…",
+    chooseOutcome: "Choose an outcome",
     confirmReturn: "Confirm return",
     confirmRollback: "Confirm rollback",
     empty: "Pick an action or a stage on the chart.",
@@ -190,6 +194,14 @@ function ActionPanel({
   const outcome = action.available_outcomes.find(
     (candidate) => candidate.id === outcomeId,
   );
+  const outcomeOptions: LookupOption[] = action.available_outcomes.map(
+    (candidate) => ({
+      id: candidate.id,
+      name: candidate.name,
+    }),
+  );
+  const selectedOutcome =
+    outcomeOptions.find((candidate) => candidate.id === outcomeId) ?? null;
   const needsComment = outcome?.is_comment_required ?? false;
   const needsAttachment =
     (outcome?.is_attachment_required ?? false) &&
@@ -311,20 +323,17 @@ function ActionPanel({
             >
               {text.outcome}
             </label>
-            <select
-              className="border-input bg-background mt-1 h-9 w-full rounded-lg border px-3 text-sm"
+            <EntitySelect
+              clearable={false}
               id="board-outcome"
-              onChange={(event) => setOutcomeId(event.target.value)}
-              required
-              value={outcomeId}
-            >
-              <option value="">—</option>
-              {action.available_outcomes.map((candidate) => (
-                <option key={candidate.id} value={candidate.id}>
-                  {candidate.name}
-                </option>
-              ))}
-            </select>
+              label={text.outcome}
+              onChange={(option) => setOutcomeId(option?.id ?? "")}
+              options={outcomeOptions}
+              placement="top"
+              placeholder={text.chooseOutcome}
+              queryKey={["workflow", "action-outcomes", action.id]}
+              value={selectedOutcome}
+            />
           </div>
 
           <div>

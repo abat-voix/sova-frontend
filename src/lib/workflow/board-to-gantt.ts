@@ -56,7 +56,7 @@ export type BoardSelection =
   | { kind: "stage"; stage: BoardStage };
 
 /** Все этапы доски: и общие по взаимодействию, и внутри контекстных групп. */
-function allStages(board: WorkflowBoard): BoardStage[] {
+export function allStages(board: WorkflowBoard): BoardStage[] {
   return [
     ...board.interaction_stages,
     ...board.context_groups.flatMap((group) => group.stages),

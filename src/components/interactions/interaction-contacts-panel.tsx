@@ -1,12 +1,13 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Unlink } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Unlink } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { ContactPicker } from "@/components/contacts/contact-picker";
 import { Button } from "@/components/ui/button";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { ApiError } from "@/lib/api/http";
 import {
   getInteractionContacts,
@@ -33,6 +34,8 @@ const copy = {
     linked: "Контакт привязан.",
     unlinked: "Контакт отвязан.",
     unlink: "Отвязать контакт",
+    expand: "Развернуть контакты",
+    collapse: "Свернуть контакты",
     retry: "Повторить",
   },
   en: {
@@ -49,6 +52,8 @@ const copy = {
     linked: "Contact linked.",
     unlinked: "Contact unlinked.",
     unlink: "Unlink contact",
+    expand: "Expand contacts",
+    collapse: "Collapse contacts",
     retry: "Retry",
   },
 } as const;
@@ -66,6 +71,11 @@ export function InteractionContactsPanel({
   const [isAdding, setIsAdding] = useState(false);
   const [selected, setSelected] = useState<LookupOption | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const isCompactViewport = useMediaQuery("(max-width: 1023.98px)");
+  const [isExpandedOverride, setIsExpandedOverride] = useState<boolean | null>(
+    null,
+  );
+  const isExpanded = isExpandedOverride ?? !isCompactViewport;
   const queryKey = interactionContactsQueryKey(interaction.id);
   const contactsQuery = useQuery({
     queryKey,
@@ -110,12 +120,28 @@ export function InteractionContactsPanel({
       className="relative z-10 shrink-0 border-b px-3 py-3"
     >
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-sm font-medium">{text.title}</h2>
+        <button
+          aria-label={isExpanded ? text.collapse : text.expand}
+          aria-expanded={isExpanded}
+          className="flex min-w-0 items-center gap-1 text-left text-sm font-medium"
+          onClick={() =>
+            setIsExpandedOverride((value) => !(value ?? isExpanded))
+          }
+          type="button"
+        >
+          {text.title}
+          {isExpanded ? (
+            <ChevronUp aria-hidden="true" className="size-4" />
+          ) : (
+            <ChevronDown aria-hidden="true" className="size-4" />
+          )}
+        </button>
         <Button
           colorScheme="neutral"
           onClick={() => {
             setSelected(null);
             setError(null);
+            setIsExpandedOverride(true);
             setIsAdding((value) => !value);
           }}
           size="s"
@@ -127,9 +153,9 @@ export function InteractionContactsPanel({
         </Button>
       </div>
 
-      {contactsQuery.isPending ? (
+      {isExpanded && contactsQuery.isPending ? (
         <p className="text-muted-foreground mt-2 text-xs">{text.loading}</p>
-      ) : contactsQuery.isError ? (
+      ) : isExpanded && contactsQuery.isError ? (
         <div className="mt-2 flex items-center gap-2 text-xs">
           <p className="text-muted-foreground">{text.error}</p>
           <Button
@@ -142,11 +168,11 @@ export function InteractionContactsPanel({
             {text.retry}
           </Button>
         </div>
-      ) : contactsQuery.data.length === 0 ? (
+      ) : isExpanded && (contactsQuery.data?.length ?? 0) === 0 ? (
         <p className="text-muted-foreground mt-2 text-xs">{text.empty}</p>
-      ) : (
+      ) : isExpanded ? (
         <ul className="mt-2 max-h-24 space-y-1 overflow-y-auto">
-          {contactsQuery.data.map((link) => {
+          {(contactsQuery.data ?? []).map((link) => {
             const contact = link.contact_person;
             return (
               <li
@@ -189,9 +215,9 @@ export function InteractionContactsPanel({
             );
           })}
         </ul>
-      )}
+      ) : null}
 
-      {isAdding ? (
+      {isExpanded && isAdding ? (
         <div className="mt-3 flex items-start gap-2">
           <div className="min-w-0 flex-1">
             <ContactPicker
@@ -217,7 +243,7 @@ export function InteractionContactsPanel({
           </Button>
         </div>
       ) : null}
-      {error ? (
+      {isExpanded && error ? (
         <p
           className="mt-2 text-xs text-[var(--atmr-brand-orange)]"
           role="alert"
