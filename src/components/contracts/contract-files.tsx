@@ -13,12 +13,12 @@ import { toast } from "sonner";
 
 import {
   apiErrorMessage,
-  formatFileSize,
   registryCopy,
 } from "@/components/registry/registry-shared";
 import { Button } from "@/components/ui/button";
 import { StatusChip } from "@/components/ui/status-chip";
 import { apiEndpoints } from "@/lib/api/endpoints";
+import { formatFileSize } from "@/lib/format-file-size";
 import {
   contractFilesQueryKey,
   contractQueryKey,

@@ -18,6 +18,16 @@ const message: Message = {
   text: "hello",
   link: "",
   created_at: "2026-09-24T12:00:00.000Z",
+  attachments: [
+    {
+      id: "0199f5db-2778-7000-8000-000000000004",
+      original_name: "document.pdf",
+      size: 2048,
+      content_type: "application/pdf",
+      download_url:
+        "/api/messaging/attachments/0199f5db-2778-7000-8000-000000000004/download/",
+    },
+  ],
 };
 const event: RealtimeEvent = {
   version: 1,
@@ -51,6 +61,11 @@ describe("syncMessagingEvent", () => {
       count: 1,
       results: [message],
     });
+    expect(
+      client.getQueryData<PaginatedResponse<Message>>(
+        messagesQueryKey(conversationId),
+      )?.results[0]?.attachments,
+    ).toEqual(message.attachments);
   });
 
   it("debounces list invalidation during a burst", async () => {
