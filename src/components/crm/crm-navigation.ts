@@ -61,18 +61,18 @@ export const crmNavigation: CrmNavigationGroup[] = [
         icon: House,
       },
       {
-        id: "myTasks",
-        labelKey: "myTasks",
-        descriptionKey: "myTasksDescription",
-        href: "/tasks",
-        icon: ListChecks,
-      },
-      {
         id: "interactions",
         labelKey: "interactions",
         descriptionKey: "interactionsDescription",
         href: "/interactions",
         icon: Handshake,
+      },
+      {
+        id: "myTasks",
+        labelKey: "myTasks",
+        descriptionKey: "myTasksDescription",
+        href: "/tasks",
+        icon: ListChecks,
       },
       {
         id: "notifications",
