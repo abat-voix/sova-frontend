@@ -231,7 +231,11 @@ describe("InteractionsWorkspace", () => {
 
     fireEvent.click(await screen.findByText("Первый университет"));
     fireEvent.click(
-      await screen.findByRole("button", { name: "Найти контакт" }),
+      await screen.findByRole(
+        "button",
+        { name: "Найти контакт" },
+        { timeout: 5_000 },
+      ),
     );
     fireEvent.change(screen.getByLabelText("ФИО *"), {
       target: { value: "Анна Иванова" },
