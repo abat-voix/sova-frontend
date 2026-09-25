@@ -27,6 +27,7 @@ import { VendorsWorkspace } from "@/components/vendors/vendors-workspace";
 import { ContactsWorkspace } from "@/components/contacts/contacts-workspace";
 import { ItCatalogWorkspace } from "@/components/catalog/it-catalog-workspace";
 import { InteractionsWorkspace } from "@/components/interactions/interactions-workspace";
+import { IntegrationsWorkspace } from "@/components/integrations/integrations-workspace";
 import { LanguageToggle } from "@/components/language-toggle";
 import { MessengerPanel } from "@/components/messaging/messenger-panel";
 import { NotificationsWorkspace } from "@/components/notifications/notifications-workspace";
@@ -127,6 +128,7 @@ function Sidebar({
           {crmNavigation.map((group) => {
             if (
               group.staffOnly &&
+              !user.isStaff &&
               user.role !== "head" &&
               user.role !== "platform_admin"
             ) {
@@ -145,6 +147,12 @@ function Sidebar({
                 </p>
                 <div className="space-y-1">
                   {group.items.map((item) => {
+                    if (
+                      item.adminOnly &&
+                      !user.isStaff &&
+                      user.role !== "platform_admin"
+                    )
+                      return null;
                     const Icon = item.icon;
                     const isActive = activeSection === item.id;
 
@@ -281,6 +289,18 @@ function WorkflowAccessDenied() {
   );
 }
 
+function IntegrationAccessDenied() {
+  return (
+    <div className="bg-card rounded-xl border border-dashed p-12 text-center">
+      <h1 className="text-2xl font-medium">Доступ ограничен</h1>
+      <p className="text-muted-foreground mt-2">
+        Управление интеграциями доступно только администратору платформы или
+        staff-пользователю.
+      </p>
+    </div>
+  );
+}
+
 export function CrmShell(props: CrmShellProps) {
   // Каждый раздел — отдельная страница, поэтому состояние сайдбара живёт в
   // хранилище: иначе переход разворачивал бы его заново.
@@ -297,6 +317,7 @@ export function CrmShell(props: CrmShellProps) {
   const isFullHeight = fullHeightSections.has(activeSection);
   const canManageWorkflows =
     user.role === "head" || user.role === "platform_admin";
+  const canManageIntegrations = user.isStaff || user.role === "platform_admin";
 
   const unreadCountQuery = useQuery({
     queryKey: unreadCountQueryKey(),
@@ -433,7 +454,11 @@ export function CrmShell(props: CrmShellProps) {
               : "p-3 sm:p-4 lg:p-4",
           )}
         >
-          {activeSection === "workflowTemplates" && !canManageWorkflows ? (
+          {activeSection === "integrations" && !canManageIntegrations ? (
+            <IntegrationAccessDenied />
+          ) : activeSection === "integrations" ? (
+            <IntegrationsWorkspace />
+          ) : activeSection === "workflowTemplates" && !canManageWorkflows ? (
             <WorkflowAccessDenied />
           ) : activeSection === "workflowTemplates" ? (
             <WorkflowTemplatesWorkspace />

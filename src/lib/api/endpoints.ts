@@ -1,4 +1,13 @@
 export const apiEndpoints = {
+  integrations: {
+    entities: "/api/integrations/v1/metadata/entities/",
+    systems: "/api/integrations/v1/systems/",
+    mappings: {
+      list: "/api/integrations/v1/mappings/",
+      detail: (id: string) => `/api/integrations/v1/mappings/${id}/`,
+      preview: "/api/integrations/v1/mappings/preview/",
+    },
+  },
   catalog: {
     b2cClients: {
       detail: (id: string) => `/api/catalog/b2c-clients/${id}/`,

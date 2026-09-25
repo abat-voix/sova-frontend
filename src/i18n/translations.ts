@@ -49,6 +49,8 @@ export const translations = {
     workflowTemplates: "Шаблоны процессов",
     workflowTemplatesDescription:
       "Настройка этапов, действий и переходов процесса.",
+    integrations: "Интеграции",
+    integrationsDescription: "Настройка обмена данными с внешними системами.",
     welcome: "Добро пожаловать",
     sectionReady: "Каркас раздела готов",
     sectionReadyDescription:
@@ -112,6 +114,8 @@ export const translations = {
     workflowTemplates: "Process templates",
     workflowTemplatesDescription:
       "Configure process stages, actions, and transitions.",
+    integrations: "Integrations",
+    integrationsDescription: "Configure data exchange with external systems.",
     welcome: "Welcome",
     sectionReady: "The section scaffold is ready",
     sectionReadyDescription:

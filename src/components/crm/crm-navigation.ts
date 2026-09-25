@@ -10,6 +10,7 @@ import {
   House,
   Layers,
   ListChecks,
+  PlugZap,
   Settings2,
   UserRound,
   type LucideIcon,
@@ -30,9 +31,11 @@ export type CrmSection =
   | "contacts"
   | "itCatalog"
   | "vendors"
-  | "workflowTemplates";
+  | "workflowTemplates"
+  | "integrations";
 
 export type CrmNavigationItem = {
+  adminOnly?: boolean;
   descriptionKey: TranslationKey;
   href: string;
   icon: LucideIcon;
@@ -161,6 +164,14 @@ export const crmNavigation: CrmNavigationGroup[] = [
         descriptionKey: "workflowTemplatesDescription",
         href: "/settings/workflows",
         icon: Settings2,
+      },
+      {
+        adminOnly: true,
+        id: "integrations",
+        labelKey: "integrations",
+        descriptionKey: "integrationsDescription",
+        href: "/settings/integrations",
+        icon: PlugZap,
       },
     ],
   },
