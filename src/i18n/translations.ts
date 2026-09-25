@@ -7,6 +7,9 @@ export const translations = {
     productName: "СОВА",
     productDescription:
       "Система организации взаимодействия с академической средой",
+    developedWith: "Разработано с",
+    byTeam: "командой",
+    developerCredit: "Разработано с любовью командой 1uup",
     platformStatus: "Базовая платформа готова к развитию",
     switchLanguage: "Переключить язык на английский",
     switchTheme: "Переключить тему",
@@ -71,6 +74,9 @@ export const translations = {
     productName: "SOVA",
     productDescription:
       "System for organizing collaboration with the academic community",
+    developedWith: "Made with",
+    byTeam: "by the team",
+    developerCredit: "Made with love by the 1uup team",
     platformStatus: "The core platform is ready for development",
     switchLanguage: "Switch language to Russian",
     switchTheme: "Switch theme",

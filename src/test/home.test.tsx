@@ -48,6 +48,11 @@ describe("Home", () => {
       "href",
       "/api/auth/oidc/authenticate/?next=/",
     );
+    expect(
+      screen.getByRole("contentinfo", {
+        name: "Разработано с любовью командой 1uup",
+      }),
+    ).toBeInTheDocument();
   });
 
   it("switches the interface to English and saves the locale", async () => {

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { LogIn } from "lucide-react";
+import { Heart, LogIn } from "lucide-react";
 import { motion, MotionConfig } from "motion/react";
 
 import { CrmShell } from "@/components/crm/crm-shell";
@@ -32,7 +32,7 @@ export function SovaShell({ section = "home" }: { section?: CrmSection }) {
 
   return (
     <MotionConfig reducedMotion="user">
-      <main className="bg-background relative isolate flex min-h-svh items-center justify-center overflow-hidden px-5 py-20 sm:px-8">
+      <main className="bg-background relative isolate flex min-h-svh flex-col items-center justify-center overflow-hidden px-5 py-20 sm:px-8">
         <LandingBackground />
 
         <div className="absolute top-5 right-5 z-10 flex items-center gap-2 sm:top-8 sm:right-8">
@@ -96,6 +96,23 @@ export function SovaShell({ section = "home" }: { section?: CrmSection }) {
             </p>
           </motion.div>
         </motion.section>
+
+        <motion.footer
+          animate={{ opacity: 1 }}
+          aria-label={t("developerCredit")}
+          className="text-muted-foreground mt-6 flex items-center gap-1.5 text-sm"
+          initial={{ opacity: 0 }}
+          transition={{ delay: 0.5, duration: 0.6 }}
+        >
+          <span>{t("developedWith")}</span>
+          <Heart
+            aria-hidden="true"
+            className="size-4 fill-[var(--atmr-brand-orange)] text-[var(--atmr-brand-orange)]"
+          />
+          <span>
+            {t("byTeam")} <strong className="text-foreground">1uup</strong>
+          </span>
+        </motion.footer>
       </main>
     </MotionConfig>
   );
