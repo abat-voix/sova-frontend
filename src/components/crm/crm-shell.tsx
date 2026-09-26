@@ -16,6 +16,8 @@ import { useState } from "react";
 import {
   crmNavigation,
   crmNavigationItems,
+  canAccessCrmGroup,
+  canAccessCrmSection,
   type CrmNavigationItem,
   type CrmSection,
 } from "@/components/crm/crm-navigation";
@@ -35,6 +37,7 @@ import { OrganizationsWorkspace } from "@/components/organizations/organizations
 import { ReportsWorkspace } from "@/components/reports/reports-workspace";
 import { MyTasksWorkspace } from "@/components/tasks/my-tasks-workspace";
 import { WorkflowTemplatesWorkspace } from "@/components/workflows/workflow-templates-workspace";
+import { UserRolesWorkspace } from "@/components/users/user-roles-workspace";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BuildVersion } from "@/components/build-version";
 import { Button } from "@/components/ui/button";
@@ -126,14 +129,7 @@ function Sidebar({
       >
         <div className={cn(collapsed ? "space-y-4" : "space-y-6")}>
           {crmNavigation.map((group) => {
-            if (
-              group.staffOnly &&
-              !user.isStaff &&
-              user.role !== "head" &&
-              user.role !== "platform_admin"
-            ) {
-              return null;
-            }
+            if (!canAccessCrmGroup(group, user)) return null;
 
             return (
               <div key={group.labelKey}>
@@ -147,12 +143,7 @@ function Sidebar({
                 </p>
                 <div className="space-y-1">
                   {group.items.map((item) => {
-                    if (
-                      item.adminOnly &&
-                      !user.isStaff &&
-                      user.role !== "platform_admin"
-                    )
-                      return null;
+                    if (!canAccessCrmSection(item, user)) return null;
                     const Icon = item.icon;
                     const isActive = activeSection === item.id;
 
@@ -301,6 +292,17 @@ function IntegrationAccessDenied() {
   );
 }
 
+function UserRolesAccessDenied() {
+  return (
+    <div className="bg-card rounded-xl border border-dashed p-12 text-center">
+      <h1 className="text-2xl font-medium">Доступ ограничен</h1>
+      <p className="text-muted-foreground mt-2">
+        Управление ролями доступно только администратору платформы.
+      </p>
+    </div>
+  );
+}
+
 export function CrmShell(props: CrmShellProps) {
   // Каждый раздел — отдельная страница, поэтому состояние сайдбара живёт в
   // хранилище: иначе переход разворачивал бы его заново.
@@ -321,6 +323,10 @@ export function CrmShell(props: CrmShellProps) {
   const canManageWorkflows =
     user.role === "head" || user.role === "platform_admin";
   const canManageIntegrations = user.isStaff || user.role === "platform_admin";
+  const canManageUserRoles = canAccessCrmSection(
+    crmNavigationItems.find((item) => item.id === "userRoles")!,
+    user,
+  );
 
   const unreadCountQuery = useQuery({
     queryKey: unreadCountQueryKey(),
@@ -464,7 +470,11 @@ export function CrmShell(props: CrmShellProps) {
               : "p-3 sm:p-4 lg:p-4",
           )}
         >
-          {activeSection === "integrations" && !canManageIntegrations ? (
+          {activeSection === "userRoles" && !canManageUserRoles ? (
+            <UserRolesAccessDenied />
+          ) : activeSection === "userRoles" ? (
+            <UserRolesWorkspace />
+          ) : activeSection === "integrations" && !canManageIntegrations ? (
             <IntegrationAccessDenied />
           ) : activeSection === "integrations" ? (
             <IntegrationsWorkspace />
