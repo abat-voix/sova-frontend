@@ -23,6 +23,7 @@ import {
   searchAllPrograms,
   searchAllProducts,
 } from "@/lib/api/reports/report-lookups";
+import { formatDateTime } from "@/lib/format-date";
 import { resolveReportRequestError } from "@/lib/reports/report-errors";
 import {
   reportFiltersFromSearchParams,
@@ -39,7 +40,7 @@ import type {
   ReportRow,
 } from "@/types/report";
 
-import { ReportDistribution } from "@/components/reports/report-distribution";
+import { ReportChartRenderer } from "@/components/reports/report-charts";
 import { ReportDownloadsPanel } from "@/components/reports/report-downloads-panel";
 import { ReportExportMenu } from "@/components/reports/report-export-menu";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,7 @@ const pageSize = 50;
 const filtersDebounceMs = 450;
 const maxPeriodDays = 1830;
 const filtersCollapsedStorageKey = "sova-reports-filters-collapsed";
+const intlLocales = { en: "en-GB", ru: "ru-RU" } as const;
 
 const orderingOptions: {
   label: { ru: string; en: string };
@@ -152,8 +154,6 @@ const copy = {
   },
 } as const;
 
-const intlLocales = { en: "en-GB", ru: "ru-RU" } as const;
-
 function daysBetween(from: string, to: string): number {
   const msPerDay = 24 * 60 * 60 * 1000;
   return Math.round(
@@ -165,6 +165,7 @@ function formatCell(
   column: ReportColumn,
   row: ReportRow,
   noValue: string,
+  locale: "ru" | "en",
 ): string {
   switch (column) {
     case "process_status":
@@ -183,6 +184,10 @@ function formatCell(
       return row.license_valid_until_year != null
         ? String(row.license_valid_until_year)
         : noValue;
+    case "created_at":
+      return formatDateTime(row.created_at, locale) ?? noValue;
+    case "updated_at":
+      return formatDateTime(row.updated_at, locale) ?? noValue;
     default: {
       const value = row[column];
       return value == null || value === "" ? noValue : String(value);
@@ -264,8 +269,8 @@ export function ReportsWorkspace() {
     placeholderData: keepPreviousData,
   });
   const summaryQuery = useQuery({
-    queryKey: ["reports", "summary", debouncedFilters],
-    queryFn: () => getReportSummary(debouncedFilters, csrfToken),
+    queryKey: ["reports", "summary", locale, debouncedFilters],
+    queryFn: () => getReportSummary(debouncedFilters, csrfToken, locale),
     placeholderData: keepPreviousData,
   });
   const { jobs, removeJob, startExport } = useReportExportJobs(csrfToken);
@@ -287,7 +292,7 @@ export function ReportsWorkspace() {
   const tableColumns: DataTableColumn<ReportRow>[] = dataColumns.map(
     (column) => ({
       name: column.key,
-      render: (row) => formatCell(column.key, row, text.noValue),
+      render: (row) => formatCell(column.key, row, text.noValue, locale),
       title: column.title,
     }),
   );
@@ -555,58 +560,24 @@ export function ReportsWorkspace() {
             {summaryQuery.data ? (
               <>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {[
-                    {
-                      label: text.interactionsCount,
-                      value: summaryQuery.data.interactions_count,
-                    },
-                    {
-                      label: text.rowsCount,
-                      value: summaryQuery.data.rows_count,
-                    },
-                    {
-                      label: text.programsCount,
-                      value: summaryQuery.data.programs_count,
-                    },
-                    {
-                      label: text.productsCount,
-                      value: summaryQuery.data.products_count,
-                    },
-                  ].map((card) => (
+                  {summaryQuery.data.metrics.map((metric) => (
                     <div
                       className="bg-card rounded-xl border p-4 shadow-sm"
-                      key={card.label}
+                      key={metric.id}
                     >
                       <p className="text-muted-foreground text-sm">
-                        {card.label}
+                        {metric.label}
                       </p>
                       <p className="mt-1 text-2xl font-medium">
-                        {card.value.toLocaleString(intlLocales[locale])}
+                        {metric.display_value}
                       </p>
                     </div>
                   ))}
                 </div>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <ReportDistribution
-                    emptyLabel={text.distributionEmpty}
-                    entries={summaryQuery.data.by_responsible}
-                    title={text.byResponsible}
-                  />
-                  <ReportDistribution
-                    emptyLabel={text.distributionEmpty}
-                    entries={summaryQuery.data.by_university}
-                    title={text.byUniversity}
-                  />
-                  <ReportDistribution
-                    emptyLabel={text.distributionEmpty}
-                    entries={summaryQuery.data.by_process_status}
-                    title={text.byProcessStatus}
-                  />
-                  <ReportDistribution
-                    emptyLabel={text.distributionEmpty}
-                    entries={summaryQuery.data.by_active_stage}
-                    title={text.byActiveStage}
-                  />
+                  {summaryQuery.data.charts.map((chart) => (
+                    <ReportChartRenderer chart={chart} key={chart.id} />
+                  ))}
                 </div>
               </>
             ) : summaryQuery.isError ? (

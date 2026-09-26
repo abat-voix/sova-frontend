@@ -1,6 +1,7 @@
 import type { Locale } from "@/i18n/translations";
 
 const intlLocales: Record<Locale, string> = { en: "en-GB", ru: "ru-RU" };
+const reportTimeZone = "Europe/Moscow";
 
 /**
  * Дата записи справочника — с годом, в отличие от моментов доски процесса:
@@ -12,6 +13,23 @@ export function formatDate(value: string | null | undefined, locale: Locale) {
   return new Date(value).toLocaleDateString(intlLocales[locale], {
     day: "numeric",
     month: "short",
+    year: "numeric",
+  });
+}
+
+/** Полный момент времени для табличных дат: дата, год и часы с минутами. */
+export function formatDateTime(
+  value: string | null | undefined,
+  locale: Locale,
+) {
+  if (!value) return null;
+
+  return new Date(value).toLocaleString(intlLocales[locale], {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "2-digit",
+    timeZone: reportTimeZone,
     year: "numeric",
   });
 }

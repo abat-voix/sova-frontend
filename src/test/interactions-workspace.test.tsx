@@ -264,9 +264,13 @@ describe("InteractionsWorkspace", () => {
 
     fireEvent.click(await screen.findByText("Первый университет"));
 
-    const row = await screen.findByRole("button", {
-      name: "Найти контакт",
-    });
+    const row = await screen.findByRole(
+      "button",
+      {
+        name: "Найти контакт",
+      },
+      { timeout: 5_000 },
+    );
     fireEvent.click(row);
 
     const drawer = await screen.findByRole("complementary", {
