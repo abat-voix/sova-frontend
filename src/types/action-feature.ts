@@ -69,6 +69,33 @@ export type SelectContactPersonFeaturePayload = {
   contact_person: string;
 };
 
+/**
+ * Состав взаимодействия в договоре. Бэкенд принимает выбранные элементы по `id`
+ * и перезаполняет остальные поля из своих данных.
+ */
+export type ContractDirection = { id: string; name: string };
+
+export type ContractProgram = { id: string; name: string; direction: string };
+
+export type ContractProduct = {
+  id: string;
+  name: string;
+  /** Программа взаимодействия; пусто — продукт вне программы. */
+  program: string;
+};
+
+export type ContractLicense = {
+  id: string;
+  product: string;
+  contract_number: string;
+  signed_at: string | null;
+  valid_until_year: number | null;
+  is_signed: boolean;
+};
+
+export type ContractScopeKey =
+  "directions" | "programs" | "products" | "licenses";
+
 /** Данные договора — контекст рендера шаблона docxtpl на бэкенде. */
 export type ContractDocument = {
   contract_number: string;
@@ -88,7 +115,10 @@ export type ContractDocument = {
     position: string;
     basis: string;
   };
-  products: string[];
+  directions: ContractDirection[];
+  programs: ContractProgram[];
+  products: ContractProduct[];
+  licenses: ContractLicense[];
   /** Десятичная строка, например "1000.50"; null — сумма не указана. */
   amount: string | null;
   comment: string;

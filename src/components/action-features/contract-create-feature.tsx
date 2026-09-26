@@ -19,6 +19,7 @@ import { useLocale } from "@/providers/locale-provider";
 import type {
   ActionFeatureExecution,
   ContractDocument,
+  ContractScopeKey,
   CreateContractFeatureInitial,
   ExecuteActionFeatureResult,
 } from "@/types/action-feature";
@@ -60,9 +61,17 @@ const copy = {
     position: "Должность",
     basis: "Действует на основании",
     basisPlaceholder: "Устава",
-    subject: "Предмет и сумма",
+    scope: "Состав договора",
+    scopeHint: "По умолчанию в договор входит всё, что есть во взаимодействии.",
+    directions: "Направления",
+    programs: "Программы",
     products: "Продукты",
-    noProducts: "У взаимодействия нет продуктов.",
+    licenses: "Лицензии",
+    empty: "Во взаимодействии нет.",
+    licenseContract: "договор",
+    licenseUntil: "до",
+    licenseSigned: "подписана",
+    subject: "Сумма и комментарий",
     amount: "Сумма, ₽",
     comment: "Комментарий",
   },
@@ -101,9 +110,18 @@ const copy = {
     position: "Position",
     basis: "Acting on the basis of",
     basisPlaceholder: "the Charter",
-    subject: "Subject and amount",
+    scope: "Contract scope",
+    scopeHint:
+      "By default the contract includes everything in the interaction.",
+    directions: "Directions",
+    programs: "Programs",
     products: "Products",
-    noProducts: "The interaction has no products.",
+    licenses: "Licenses",
+    empty: "None in the interaction.",
+    licenseContract: "contract",
+    licenseUntil: "until",
+    licenseSigned: "signed",
+    subject: "Amount and comment",
     amount: "Amount, ₽",
     comment: "Comment",
   },
@@ -245,7 +263,6 @@ function ContractForm({
   const [signatoryId, setSignatoryId] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [formError, setFormError] = useState<string | null>(null);
-  const availableProducts = initial.document.products;
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -309,15 +326,69 @@ function ContractForm({
     }));
   }
 
-  function toggleProduct(name: string, checked: boolean) {
-    setDraft((previous) => ({
-      ...previous,
-      // Порядок — как у продуктов взаимодействия, а не как их отмечали.
-      products: availableProducts.filter((item) =>
-        item === name ? checked : previous.products.includes(item),
-      ),
-    }));
+  function toggleScopeItem(
+    key: ContractScopeKey,
+    id: string,
+    checked: boolean,
+  ) {
+    setDraft((previous) => {
+      const selected = new Set(previous[key].map((item) => item.id));
+      if (checked) selected.add(id);
+      else selected.delete(id);
+      // Порядок — как во взаимодействии, а не как элементы отмечали.
+      const available: { id: string }[] = initial.document[key];
+      return {
+        ...previous,
+        [key]: available.filter((item) => selected.has(item.id)),
+      };
+    });
   }
+
+  const scopeGroups: {
+    key: ContractScopeKey;
+    title: string;
+    items: { id: string; label: string }[];
+  }[] = [
+    {
+      key: "directions",
+      title: text.directions,
+      items: initial.document.directions.map((item) => ({
+        id: item.id,
+        label: item.name,
+      })),
+    },
+    {
+      key: "programs",
+      title: text.programs,
+      items: initial.document.programs.map((item) => ({
+        id: item.id,
+        label: joinParts(item.name, item.direction),
+      })),
+    },
+    {
+      key: "products",
+      title: text.products,
+      items: initial.document.products.map((item) => ({
+        id: item.id,
+        label: joinParts(item.name, item.program),
+      })),
+    },
+    {
+      key: "licenses",
+      title: text.licenses,
+      items: initial.document.licenses.map((item) => ({
+        id: item.id,
+        label: joinParts(
+          item.product,
+          `${text.licenseContract} ${item.contract_number || text.noNumber}`,
+          item.valid_until_year
+            ? `${text.licenseUntil} ${item.valid_until_year}`
+            : "",
+          item.is_signed ? text.licenseSigned : "",
+        ),
+      })),
+    },
+  ];
 
   const fieldId = (name: string) =>
     `${actionInstanceId}-contract-${name.replaceAll(".", "-")}`;
@@ -522,30 +593,49 @@ function ContractForm({
         </fieldset>
 
         <fieldset className="space-y-3 border-t pt-4">
+          <legend className="mb-2 text-sm font-medium">{text.scope}</legend>
+          <p className="text-muted-foreground text-xs">{text.scopeHint}</p>
+          {scopeGroups.map((group) => (
+            <div key={group.key}>
+              <p className="text-muted-foreground text-xs">{group.title}</p>
+              {group.items.length === 0 ? (
+                <p className="text-muted-foreground mt-1 text-sm">
+                  {text.empty}
+                </p>
+              ) : (
+                <div className="mt-1 space-y-1">
+                  {group.items.map((item) => (
+                    <label
+                      className="flex items-center gap-2 text-sm"
+                      key={item.id}
+                    >
+                      <input
+                        checked={draft[group.key].some(
+                          (selected) => selected.id === item.id,
+                        )}
+                        onChange={(event) =>
+                          toggleScopeItem(
+                            group.key,
+                            item.id,
+                            event.target.checked,
+                          )
+                        }
+                        type="checkbox"
+                      />
+                      {item.label}
+                    </label>
+                  ))}
+                </div>
+              )}
+              <FieldErrors
+                messages={fieldErrors[`document.${group.key}`] ?? []}
+              />
+            </div>
+          ))}
+        </fieldset>
+
+        <fieldset className="space-y-3 border-t pt-4">
           <legend className="mb-2 text-sm font-medium">{text.subject}</legend>
-          <div>
-            <p className="text-muted-foreground text-xs">{text.products}</p>
-            {availableProducts.length === 0 ? (
-              <p className="text-muted-foreground mt-1 text-sm">
-                {text.noProducts}
-              </p>
-            ) : (
-              <div className="mt-1 space-y-1">
-                {availableProducts.map((name) => (
-                  <label className="flex items-center gap-2 text-sm" key={name}>
-                    <input
-                      checked={draft.products.includes(name)}
-                      onChange={(event) =>
-                        toggleProduct(name, event.target.checked)
-                      }
-                      type="checkbox"
-                    />
-                    {name}
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
           {field("amount", text.amount, {
             inputMode: "decimal",
             onChange: (value) =>
@@ -589,6 +679,10 @@ function ContractForm({
       </div>
     </form>
   );
+}
+
+function joinParts(...parts: string[]) {
+  return parts.filter(Boolean).join(" · ");
 }
 
 function FieldErrors({ messages }: { messages: string[] }) {

@@ -28,7 +28,22 @@ const initial: CreateContractFeatureInitial = {
       phone: "",
     },
     signatory: { full_name: "", position: "", basis: "" },
-    products: ["Продукт A", "Продукт B"],
+    directions: [{ id: "direction-1", name: "ИТ" }],
+    programs: [{ id: "program-1", name: "Python", direction: "ИТ" }],
+    products: [
+      { id: "product-a", name: "Продукт A", program: "Python" },
+      { id: "product-b", name: "Продукт B", program: "" },
+    ],
+    licenses: [
+      {
+        id: "license-1",
+        product: "Продукт A",
+        contract_number: "Л-1",
+        signed_at: null,
+        valid_until_year: 2027,
+        is_signed: true,
+      },
+    ],
     amount: null,
     comment: "",
   },
@@ -94,7 +109,15 @@ describe("contract create feature", () => {
     fireEvent.change(screen.getByLabelText("Из контактов взаимодействия"), {
       target: { value: "contact-1" },
     });
-    fireEvent.click(screen.getByRole("checkbox", { name: "Продукт A" }));
+    expect(
+      screen.getByRole("checkbox", {
+        name: "Продукт A · договор Л-1 · до 2027 · подписана",
+      }),
+    ).toHaveProperty("checked", true);
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Продукт A · Python" }),
+    );
+    fireEvent.click(screen.getByRole("checkbox", { name: "ИТ" }));
     fireEvent.change(screen.getByLabelText("Сумма, ₽"), {
       target: { value: "1000,50" },
     });
@@ -110,7 +133,8 @@ describe("contract create feature", () => {
           ...initial.document,
           contract_number: "Д-7",
           signatory: { full_name: "Колоков", position: "Ректор", basis: "" },
-          products: ["Продукт B"],
+          directions: [],
+          products: [{ id: "product-b", name: "Продукт B", program: "" }],
           amount: "1000.50",
         },
       });
