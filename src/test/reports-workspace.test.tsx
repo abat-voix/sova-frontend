@@ -51,6 +51,19 @@ const summary: ReportSummaryResponse = {
   products_count: 0,
   programs_count: 0,
   rows_count: 0,
+  metrics: [
+    {
+      id: "interactions",
+      label: "Взаимодействия",
+      value: 0,
+      display_value: "0",
+    },
+    { id: "rows", label: "Строки", value: 0, display_value: "0" },
+    { id: "programs", label: "Программы", value: 0, display_value: "0" },
+    { id: "products", label: "Продукты", value: 0, display_value: "0" },
+  ],
+  charts: [],
+  chart_meta: { locale: "ru", granularity: "month" },
 };
 
 function jsonResponse(body: unknown) {

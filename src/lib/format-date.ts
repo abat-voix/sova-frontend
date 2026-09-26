@@ -16,6 +16,22 @@ export function formatDate(value: string | null | undefined, locale: Locale) {
   });
 }
 
+/** Полный момент времени для табличных дат: дата, год и часы с минутами. */
+export function formatDateTime(
+  value: string | null | undefined,
+  locale: Locale,
+) {
+  if (!value) return null;
+
+  return new Date(value).toLocaleString(intlLocales[locale], {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
 /**
  * Время сообщения: часы:минуты для сегодняшних, иначе короткая дата без года —
  * в узкой панели мессенджера году всё равно не хватит места.

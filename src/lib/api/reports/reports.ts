@@ -1,5 +1,6 @@
 import { apiEndpoints } from "@/lib/api/endpoints";
 import { getJson, postJson } from "@/lib/api/http";
+import type { Locale } from "@/i18n/translations";
 import type {
   ReportFilters,
   ReportFormat,
@@ -27,10 +28,14 @@ export function getReportPreview(
   );
 }
 
-export function getReportSummary(filters: ReportFilters, csrfToken: string) {
+export function getReportSummary(
+  filters: ReportFilters,
+  csrfToken: string,
+  locale: Locale = "ru",
+) {
   return postJson<ReportSummaryResponse>(
     apiEndpoints.reports.interactions.summary,
-    reportPayload(filters),
+    { ...reportPayload(filters), locale },
     csrfToken,
   );
 }

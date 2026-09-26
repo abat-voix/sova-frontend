@@ -132,8 +132,56 @@ export type ReportSummaryResponse = {
   by_university: ReportDistributionEntry[];
   by_process_status: ReportDistributionEntry[];
   by_active_stage: ReportDistributionEntry[];
+  metrics: ReportMetric[];
+  charts: ReportChart[];
+  chart_meta: {
+    locale: "ru" | "en";
+    granularity: "day" | "week" | "month";
+  };
   meta: ReportMeta;
 };
+
+export type ReportMetric = {
+  id: string;
+  label: string;
+  value: number;
+  display_value: string;
+};
+
+export type ReportChartPoint = {
+  key: string;
+  label: string;
+  value: number;
+  display_value: string;
+};
+
+export type ReportChartItem = Omit<ReportChartPoint, "key"> & {
+  key: string | null;
+};
+
+export type ReportLineChart = {
+  id: string;
+  kind: "line";
+  title: string;
+  description: string;
+  value_label: string;
+  empty_message: string;
+  tone: string;
+  points: ReportChartPoint[];
+};
+
+export type ReportHorizontalBarChart = {
+  id: string;
+  kind: "horizontal_bar";
+  title: string;
+  description: string;
+  value_label: string;
+  empty_message: string;
+  tone: string;
+  items: ReportChartItem[];
+};
+
+export type ReportChart = ReportLineChart | ReportHorizontalBarChart;
 
 export type ReportJobStatus = "queued" | "running" | "ready" | "failed";
 
