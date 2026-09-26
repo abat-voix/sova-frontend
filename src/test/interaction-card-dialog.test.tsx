@@ -391,9 +391,7 @@ describe("InteractionCardDialog chat", () => {
     });
 
     expect(
-      await screen.findByText(
-        "У вас нет доступа к чату этого взаимодействия.",
-      ),
+      await screen.findByText("У вас нет доступа к чату этого взаимодействия."),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Создать чат" }),

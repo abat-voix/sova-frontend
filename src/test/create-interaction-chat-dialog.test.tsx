@@ -1,5 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CreateInteractionChatDialog } from "@/components/interactions/create-interaction-chat-dialog";
@@ -62,7 +68,9 @@ describe("CreateInteractionChatDialog", () => {
     expect(createButton).toBeEnabled();
     fireEvent.click(createButton);
 
-    await waitFor(() => expect(onCreated).toHaveBeenCalledWith("conversation-1"));
+    await waitFor(() =>
+      expect(onCreated).toHaveBeenCalledWith("conversation-1"),
+    );
     const createCall = fetchMock.mock.calls.find(
       ([input, init]) =>
         String(input) ===
@@ -110,8 +118,8 @@ describe("CreateInteractionChatDialog", () => {
         ),
       ).toBe(true),
     );
-    expect(screen.getByRole("combobox", { name: "Участники" })).toHaveTextContent(
-      "Участники · 1",
-    );
+    expect(
+      screen.getByRole("combobox", { name: "Участники" }),
+    ).toHaveTextContent("Участники · 1");
   });
 });

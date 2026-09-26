@@ -1,5 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MessageThread } from "@/components/messaging/message-thread";
@@ -87,6 +93,9 @@ function isRequest(
 }
 
 beforeEach(() => {
+  if (!HTMLElement.prototype.scrollTo) {
+    HTMLElement.prototype.scrollTo = () => {};
+  }
   vi.spyOn(HTMLElement.prototype, "scrollTo").mockImplementation(() => {});
   vi.spyOn(globalThis.crypto, "randomUUID").mockReturnValue(
     "0199f5db-2778-7000-8000-000000000099",
@@ -114,7 +123,7 @@ describe("MessageThread attachments", () => {
       if (url.endsWith("/messages/") && init?.method === "POST") {
         return Response.json(sentMessage());
       }
-      if (url.endsWith("/messages/")) return Response.json(page());
+      if (url.includes("/messages/")) return Response.json(page());
       return new Response(null, { status: 204 });
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -122,9 +131,8 @@ describe("MessageThread attachments", () => {
     const file = new File(["test"], "document.pdf", {
       type: "application/pdf",
     });
-    const fileInput = container.querySelector<HTMLInputElement>(
-      'input[type="file"]',
-    );
+    const fileInput =
+      container.querySelector<HTMLInputElement>('input[type="file"]');
     expect(fileInput).not.toBeNull();
 
     fireEvent.change(fileInput!, { target: { files: [file] } });
@@ -170,7 +178,7 @@ describe("MessageThread attachments", () => {
     });
     await waitFor(() =>
       expect(
-        screen.queryByRole("button", { name: "Удалить: document.pdf" }),
+        screen.queryByRole("button", { name: "Удалить document.pdf" }),
       ).not.toBeInTheDocument(),
     );
   });
@@ -182,7 +190,7 @@ describe("MessageThread attachments", () => {
       if (url.endsWith("/attachments/") && init?.method === "POST") {
         return Response.json(stagedAttachment);
       }
-      if (url.endsWith("/messages/")) return Response.json(page());
+      if (url.includes("/messages/")) return Response.json(page());
       return new Response(null, { status: 204 });
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -192,7 +200,7 @@ describe("MessageThread attachments", () => {
     });
 
     fireEvent.click(
-      await screen.findByRole("button", { name: "Удалить: document.pdf" }),
+      await screen.findByRole("button", { name: "Удалить document.pdf" }),
     );
 
     await waitFor(() =>
@@ -203,7 +211,7 @@ describe("MessageThread attachments", () => {
       ).toBe(true),
     );
     expect(
-      screen.queryByRole("button", { name: "Удалить: document.pdf" }),
+      screen.queryByRole("button", { name: "Удалить document.pdf" }),
     ).not.toBeInTheDocument();
   });
 
@@ -218,7 +226,7 @@ describe("MessageThread attachments", () => {
           ? Response.json({ detail: "failed" }, { status: 400 })
           : Response.json(stagedAttachment);
       }
-      if (url.endsWith("/messages/")) return Response.json(page());
+      if (url.includes("/messages/")) return Response.json(page());
       return new Response(null, { status: 204 });
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -231,12 +239,12 @@ describe("MessageThread attachments", () => {
       await screen.findByText("Не удалось загрузить файл"),
     ).toBeInTheDocument();
     fireEvent.click(
-      screen.getByRole("button", { name: "Повторить: document.pdf" }),
+      screen.getByRole("button", { name: "Повторить загрузку document.pdf" }),
     );
 
     await waitFor(() => expect(uploadCount).toBe(2));
     expect(
-      await screen.findByRole("button", { name: "Удалить: document.pdf" }),
+      await screen.findByRole("button", { name: "Удалить document.pdf" }),
     ).toBeInTheDocument();
     expect(screen.queryByText("Не удалось загрузить файл")).toBeNull();
   });
@@ -251,7 +259,7 @@ describe("MessageThread attachments", () => {
       if (url.endsWith("/messages/") && init?.method === "POST") {
         return Response.json({ detail: "send failed" }, { status: 400 });
       }
-      if (url.endsWith("/messages/")) return Response.json(page());
+      if (url.includes("/messages/")) return Response.json(page());
       return new Response(null, { status: 204 });
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -261,7 +269,7 @@ describe("MessageThread attachments", () => {
     fireEvent.change(container.querySelector('input[type="file"]')!, {
       target: { files: [new File(["test"], "document.pdf")] },
     });
-    await screen.findByRole("button", { name: "Удалить: document.pdf" });
+    await screen.findByRole("button", { name: "Удалить document.pdf" });
 
     fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
 
@@ -274,7 +282,7 @@ describe("MessageThread attachments", () => {
     );
     expect(textarea).toHaveValue("keep me");
     expect(
-      screen.getByRole("button", { name: "Удалить: document.pdf" }),
+      screen.getByRole("button", { name: "Удалить document.pdf" }),
     ).toBeInTheDocument();
   });
 
@@ -283,13 +291,11 @@ describe("MessageThread attachments", () => {
     const fetchMock = vi.fn<typeof fetch>(async (input) => {
       const url = String(input);
       if (conversationJsonFor(url)) return conversationJsonFor(url)!;
-      if (url.endsWith("/messages/")) {
+      if (url.includes("/messages/")) {
         return Response.json(
           page([
             sentMessage({
-              attachments: [
-                { ...stagedAttachment, download_url: serverUrl },
-              ],
+              attachments: [{ ...stagedAttachment, download_url: serverUrl }],
             }),
           ]),
         );
@@ -328,13 +334,17 @@ describe("MessageThread interaction chat", () => {
       if (url === `/api/messaging/conversations/${groupConversation.id}/`) {
         return Response.json(groupConversation);
       }
-      if (url.endsWith("/messages/")) {
+      if (url.includes("/messages/")) {
         return Response.json(
           page([
             sentMessage({
               id: "0199f5db-2778-7000-8000-000000000011",
               conversation: groupConversation.id,
-              sender: { id: 2, email: "other@example.com", full_name: "Other User" },
+              sender: {
+                id: 2,
+                email: "other@example.com",
+                full_name: "Other User",
+              },
               text: "Привет из группы",
             }),
           ]),
@@ -370,7 +380,7 @@ describe("MessageThread interaction chat", () => {
         if (url === `/api/messaging/conversations/${restricted.id}/`) {
           return Response.json(restricted);
         }
-        if (url.endsWith("/messages/")) return Response.json(page());
+        if (url.includes("/messages/")) return Response.json(page());
         return new Response(null, { status: 204 });
       }),
     );

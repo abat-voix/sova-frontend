@@ -700,7 +700,9 @@ function ChatSection({
       );
     }
     if (query.error instanceof ApiError && query.error.status === 403) {
-      return <p className="text-muted-foreground text-xs">{text.chatNoAccess}</p>;
+      return (
+        <p className="text-muted-foreground text-xs">{text.chatNoAccess}</p>
+      );
     }
     return (
       <SectionState

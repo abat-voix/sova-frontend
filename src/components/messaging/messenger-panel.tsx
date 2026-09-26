@@ -62,7 +62,10 @@ export function MessengerPanel({
             onBack={() => onSelectConversation(null)}
           />
         ) : (
-          <ConversationList csrfToken={csrfToken} onSelect={onSelectConversation} />
+          <ConversationList
+            csrfToken={csrfToken}
+            onSelect={onSelectConversation}
+          />
         )}
       </div>
     </div>

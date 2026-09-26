@@ -75,16 +75,25 @@ export function CreateInteractionChatDialog({
     },
     onError: (error) => {
       toast.error(
-        error instanceof ApiError ? (error.detail ?? text.createError) : text.createError,
+        error instanceof ApiError
+          ? (error.detail ?? text.createError)
+          : text.createError,
       );
     },
   });
 
   return (
-    <Modal closeLabel={text.cancel} labelledBy="create-interaction-chat-title" onClose={onClose}>
+    <Modal
+      closeLabel={text.cancel}
+      labelledBy="create-interaction-chat-title"
+      onClose={onClose}
+    >
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="border-b px-5 py-4 pr-14">
-          <h2 className="text-lg font-medium" id="create-interaction-chat-title">
+          <h2
+            className="text-lg font-medium"
+            id="create-interaction-chat-title"
+          >
             {text.title}
           </h2>
         </div>

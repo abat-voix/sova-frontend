@@ -37,7 +37,10 @@ describe("messaging attachments API", () => {
     expect(init?.method).toBe("POST");
     expect(init?.body).toBeInstanceOf(FormData);
     expect((init?.body as FormData).get("file")).toBe(file);
-    expect(init?.headers).toEqual({ "x-csrftoken": "csrf-token" });
+    expect(init?.headers).toEqual({
+      accept: "application/json",
+      "x-csrftoken": "csrf-token",
+    });
     expect(
       Object.keys(init?.headers as Record<string, string>).some(
         (name) => name.toLowerCase() === "content-type",
@@ -46,8 +49,8 @@ describe("messaging attachments API", () => {
   });
 
   it("deletes a staged attachment using its detail URL and CSRF", async () => {
-    const fetchMock = vi.fn<typeof fetch>(async () =>
-      new Response(null, { status: 204 }),
+    const fetchMock = vi.fn<typeof fetch>(
+      async () => new Response(null, { status: 204 }),
     );
     vi.stubGlobal("fetch", fetchMock);
     const id = "0199f5db-2778-7000-8000-000000000004";
@@ -58,7 +61,7 @@ describe("messaging attachments API", () => {
       apiEndpoints.messaging.attachments.detail(id),
       expect.objectContaining({
         method: "DELETE",
-        headers: { "x-csrftoken": "csrf-token" },
+        headers: { accept: "application/json", "x-csrftoken": "csrf-token" },
       }),
     );
   });
@@ -141,7 +144,9 @@ describe("interaction chat API", () => {
     await createInteractionChat("interaction-1", [1, 2], "csrf-token");
 
     const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe(apiEndpoints.interactions.interactions.chat("interaction-1"));
+    expect(url).toBe(
+      apiEndpoints.interactions.interactions.chat("interaction-1"),
+    );
     expect(init).toMatchObject({
       method: "POST",
       body: JSON.stringify({ participant_ids: [1, 2] }),

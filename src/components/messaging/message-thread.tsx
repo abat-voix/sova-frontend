@@ -425,8 +425,7 @@ export function MessageThread({
                 options.filter(
                   (option) =>
                     !conversation.participants?.some(
-                      (participant) =>
-                        String(participant.id) === option.id,
+                      (participant) => String(participant.id) === option.id,
                     ),
                 ),
               )
@@ -528,68 +527,68 @@ export function MessageThread({
           </div>
 
           {isSystem ? (
-        <p className="text-muted-foreground shrink-0 border-t pt-3 text-xs">
-          {text.systemHint}
-        </p>
-      ) : (
-        <div className="shrink-0 border-t pt-3">
-          {attachments.length > 0 ? (
-            <div className="mb-2 space-y-1.5">
-              {attachments.map((item) => (
-                <MessageDraftAttachment
-                  isRemoving={removingIds.has(item.localId)}
-                  item={item}
-                  key={item.localId}
-                  locale={locale}
-                  onRemove={() => void handleRemoveAttachment(item)}
-                  onRetry={() => handleRetryAttachment(item)}
+            <p className="text-muted-foreground shrink-0 border-t pt-3 text-xs">
+              {text.systemHint}
+            </p>
+          ) : (
+            <div className="shrink-0 border-t pt-3">
+              {attachments.length > 0 ? (
+                <div className="mb-2 space-y-1.5">
+                  {attachments.map((item) => (
+                    <MessageDraftAttachment
+                      isRemoving={removingIds.has(item.localId)}
+                      item={item}
+                      key={item.localId}
+                      locale={locale}
+                      onRemove={() => void handleRemoveAttachment(item)}
+                      onRetry={() => handleRetryAttachment(item)}
+                    />
+                  ))}
+                </div>
+              ) : null}
+              <div className="flex items-end gap-2">
+                <input
+                  accept=".png,.jpg,.jpeg,.pdf,.zip,.gz,.gzip,.rar,.doc,.docx,.xls,.xlsx"
+                  className="sr-only"
+                  disabled={sendMutation.isPending}
+                  multiple
+                  onChange={handleFilesSelected}
+                  ref={fileInputRef}
+                  type="file"
                 />
-              ))}
+                <Button
+                  aria-label={text.attach}
+                  colorScheme="neutral"
+                  disabled={sendMutation.isPending}
+                  onClick={() => fileInputRef.current?.click()}
+                  size="icon"
+                  type="button"
+                  variant="outline"
+                >
+                  <Paperclip aria-hidden="true" className="size-4" />
+                </Button>
+                <textarea
+                  className="border-input bg-background focus-visible:ring-ring max-h-[7.5rem] min-h-10 flex-1 resize-y rounded-lg border px-3 py-2 text-sm outline-none focus-visible:ring-2"
+                  onChange={(event) => setDraft(event.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={text.placeholder}
+                  rows={1}
+                  value={draft}
+                />
+                <Button
+                  aria-label={text.send}
+                  disabled={!canSend}
+                  onClick={handleSubmit}
+                  size="icon"
+                  type="button"
+                >
+                  <Send aria-hidden="true" className="size-4" />
+                </Button>
+              </div>
+              <p className="text-muted-foreground mt-1.5 text-[0.6875rem]">
+                {text.markdownHint}
+              </p>
             </div>
-          ) : null}
-          <div className="flex items-end gap-2">
-            <input
-              accept=".png,.jpg,.jpeg,.pdf,.zip,.gz,.gzip,.rar,.doc,.docx,.xls,.xlsx"
-              className="sr-only"
-              disabled={sendMutation.isPending}
-              multiple
-              onChange={handleFilesSelected}
-              ref={fileInputRef}
-              type="file"
-            />
-            <Button
-              aria-label={text.attach}
-              colorScheme="neutral"
-              disabled={sendMutation.isPending}
-              onClick={() => fileInputRef.current?.click()}
-              size="icon"
-              type="button"
-              variant="outline"
-            >
-              <Paperclip aria-hidden="true" className="size-4" />
-            </Button>
-            <textarea
-              className="border-input bg-background focus-visible:ring-ring max-h-[7.5rem] min-h-10 flex-1 resize-y rounded-lg border px-3 py-2 text-sm outline-none focus-visible:ring-2"
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={text.placeholder}
-              rows={1}
-              value={draft}
-            />
-            <Button
-              aria-label={text.send}
-              disabled={!canSend}
-              onClick={handleSubmit}
-              size="icon"
-              type="button"
-            >
-              <Send aria-hidden="true" className="size-4" />
-            </Button>
-          </div>
-          <p className="text-muted-foreground mt-1.5 text-[0.6875rem]">
-            {text.markdownHint}
-          </p>
-        </div>
           )}
         </>
       )}
