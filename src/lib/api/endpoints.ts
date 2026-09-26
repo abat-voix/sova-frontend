@@ -77,6 +77,11 @@ export const apiEndpoints = {
     },
   },
   messaging: {
+    attachments: {
+      list: "/api/messaging/attachments/",
+      detail: (id: string) => `/api/messaging/attachments/${id}/`,
+      download: (id: string) => `/api/messaging/attachments/${id}/download/`,
+    },
     conversations: {
       detail: (id: string) => `/api/messaging/conversations/${id}/`,
       direct: "/api/messaging/conversations/direct/",

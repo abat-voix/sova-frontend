@@ -18,7 +18,6 @@ import {
 } from "@/components/interactions/interaction-list";
 import {
   DetailRows,
-  formatFileSize,
   registryCopy,
 } from "@/components/registry/registry-shared";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +49,7 @@ import {
   interactionLicensesQueryKey,
 } from "@/lib/api/interactions/licenses";
 import { formatDate } from "@/lib/format-date";
+import { formatFileSize } from "@/lib/format-file-size";
 import { useLocale } from "@/providers/locale-provider";
 import type { ActionAttachment } from "@/types/action-attachment";
 import type { Contract } from "@/types/contract";
