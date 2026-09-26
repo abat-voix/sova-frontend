@@ -26,7 +26,10 @@ const user: AuthenticatedUser = {
   roles: [],
 };
 
-function renderShell(activeSection: CrmSection = "contracts") {
+function renderShell(
+  activeSection: CrmSection = "contracts",
+  currentUser: AuthenticatedUser = user,
+) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -39,7 +42,7 @@ function renderShell(activeSection: CrmSection = "contracts") {
             activeSection={activeSection}
             csrfToken="token"
             logoutUrl="/api/auth/oidc/logout/"
-            user={user}
+            user={currentUser}
           />
         </AuthProvider>
       </LocaleProvider>
@@ -71,6 +74,30 @@ describe("CrmShell", () => {
     expect(
       screen.getByRole("button", { name: "Развернуть боковую панель" }),
     ).toBeInTheDocument();
+  });
+
+  it.each([
+    ["head", true],
+    ["platform_admin", true],
+    ["kam", false],
+    [null, false],
+  ] as const)("shows the team item for role %s: %s", (role, visible) => {
+    renderShell("home", { ...user, role });
+
+    const link = screen.queryByRole("link", { name: /Команда/ });
+    expect(Boolean(link)).toBe(visible);
+  });
+
+  it("hides the team item from staff without a role", () => {
+    renderShell("home", { ...user, isStaff: true, role: null });
+
+    expect(screen.queryByRole("link", { name: /Команда/ })).toBeNull();
+  });
+
+  it("denies the team page to a kam", () => {
+    renderShell("team", { ...user, role: "kam" });
+
+    expect(screen.getByText("Доступ ограничен")).toBeInTheDocument();
   });
 
   it("renders the tasks workspace for the myTasks section", async () => {

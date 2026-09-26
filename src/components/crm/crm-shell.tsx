@@ -36,6 +36,7 @@ import { NotificationsWorkspace } from "@/components/notifications/notifications
 import { OrganizationsWorkspace } from "@/components/organizations/organizations-workspace";
 import { ReportsWorkspace } from "@/components/reports/reports-workspace";
 import { MyTasksWorkspace } from "@/components/tasks/my-tasks-workspace";
+import { TeamSection } from "@/components/team/team-section";
 import { WorkflowTemplatesWorkspace } from "@/components/workflows/workflow-templates-workspace";
 import { UserRolesWorkspace } from "@/components/users/user-roles-workspace";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -280,6 +281,17 @@ function WorkflowAccessDenied() {
   );
 }
 
+function TeamAccessDenied() {
+  return (
+    <div className="bg-card rounded-xl border border-dashed p-12 text-center">
+      <h1 className="text-2xl font-medium">Доступ ограничен</h1>
+      <p className="text-muted-foreground mt-2">
+        Раздел «Команда» доступен руководителю и администратору платформы.
+      </p>
+    </div>
+  );
+}
+
 function IntegrationAccessDenied() {
   return (
     <div className="bg-card rounded-xl border border-dashed p-12 text-center">
@@ -323,6 +335,10 @@ export function CrmShell(props: CrmShellProps) {
   const canManageWorkflows =
     user.role === "head" || user.role === "platform_admin";
   const canManageIntegrations = user.isStaff || user.role === "platform_admin";
+  const canManageTeam = canAccessCrmSection(
+    crmNavigationItems.find((item) => item.id === "team")!,
+    user,
+  );
   const canManageUserRoles = canAccessCrmSection(
     crmNavigationItems.find((item) => item.id === "userRoles")!,
     user,
@@ -482,6 +498,10 @@ export function CrmShell(props: CrmShellProps) {
             <WorkflowAccessDenied />
           ) : activeSection === "workflowTemplates" ? (
             <WorkflowTemplatesWorkspace />
+          ) : activeSection === "team" && !canManageTeam ? (
+            <TeamAccessDenied />
+          ) : activeSection === "team" ? (
+            <TeamSection csrfToken={csrfToken} user={user} />
           ) : activeSection === "home" ? (
             <DashboardHome user={user} />
           ) : activeSection === "contacts" ? (

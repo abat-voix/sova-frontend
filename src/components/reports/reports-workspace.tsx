@@ -202,7 +202,7 @@ function optionsFromIds(ids: string[]): LookupOption[] {
 export function ReportsWorkspace() {
   const { locale } = useLocale();
   const text = copy[locale];
-  const { csrfToken } = useAuth();
+  const { csrfToken, user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [areFiltersCollapsed, setAreFiltersCollapsed] = usePersistedFlag(
@@ -501,7 +501,7 @@ export function ReportsWorkspace() {
               }}
               placeholder={text.responsibles}
               queryKey={["reports", "lookup", "responsibles"]}
-              search={searchManagers}
+              search={searchManagers(user?.role ?? null)}
               value={responsibles}
             />
 

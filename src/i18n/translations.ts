@@ -36,6 +36,8 @@ export const translations = {
     interactions: "Взаимодействия",
     interactionsDescription:
       "Взаимодействия с вузами и выполнение связанных workflow.",
+    team: "Команда",
+    teamDescription: "КАМы вашей команды и свободные КАМы.",
     notifications: "Уведомления",
     notificationsDescription:
       "Напоминания о сроках, назначения и системные сообщения.",
@@ -74,6 +76,12 @@ export const translations = {
     userRolesRetry: "Повторить",
     userRolesPage: "Страница",
     userRolesRange: "Показаны",
+    userRolesSelf: "Свою роль изменить нельзя",
+    userRolesConfirmTeam:
+      "Руководитель потеряет команду: его КАМы останутся без руководителя.",
+    userRolesOrphaned: "Команда осталась без руководителя",
+    userRolesOrphanedHint: "Назначьте этим КАМам нового руководителя.",
+    userRolesOrphanedAction: "Перейти в «Команду»",
     welcome: "Добро пожаловать",
     sectionReady: "Каркас раздела готов",
     sectionReadyDescription:
@@ -123,6 +131,8 @@ export const translations = {
     interactions: "Interactions",
     interactionsDescription:
       "University interactions and their related workflows.",
+    team: "Team",
+    teamDescription: "Your team's KAMs and KAMs without a head.",
     notifications: "Notifications",
     notificationsDescription:
       "Deadline reminders, assignments, and system messages.",
@@ -162,6 +172,12 @@ export const translations = {
     userRolesRetry: "Retry",
     userRolesPage: "Page",
     userRolesRange: "Showing",
+    userRolesSelf: "You cannot change your own role",
+    userRolesConfirmTeam:
+      "The head will lose their team: their KAMs will be left without a head.",
+    userRolesOrphaned: "A team was left without a head",
+    userRolesOrphanedHint: "Assign a new head to these KAMs.",
+    userRolesOrphanedAction: "Go to Team",
     welcome: "Welcome",
     sectionReady: "The section scaffold is ready",
     sectionReadyDescription:

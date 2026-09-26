@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -15,16 +16,14 @@ import {
 import { TablePagination } from "@/components/ui/table-pagination";
 import { TableToolbar } from "@/components/ui/table-toolbar";
 import { Select } from "@/components/ui/select";
-import {
-  getSystemRoles,
-  getUsers,
-  setUserRole,
-  usersQueryKey,
-} from "@/lib/api/users/users";
 import { ApiError } from "@/lib/api/http";
-import { useAuth } from "@/providers/auth-provider";
+import { listUsers, usersQueryKey, usersRootKey } from "@/lib/api/users/team";
+import { getSystemRoles, setUserRole } from "@/lib/api/users/users";
+import { useAuth, type SystemRole } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
-import type { User, UserRole } from "@/types/user";
+import type { SovaUser, SovaUserShort } from "@/types/user";
+
+type UserRole = SystemRole | null;
 
 const pageSize = 20;
 
@@ -46,9 +45,11 @@ export function UserRolesWorkspace() {
   const [sort, setSort] = useState<DataTableSort | null>(null);
   const [draftRoles, setDraftRoles] = useState<Record<number, UserRole>>({});
   const [confirmation, setConfirmation] = useState<{
-    user: User;
+    user: SovaUser;
     role: UserRole;
   } | null>(null);
+  // Команда руководителя, распущенная сменой его роли: её нужно переназначить
+  const [orphans, setOrphans] = useState<SovaUserShort[]>([]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -58,40 +59,26 @@ export function UserRolesWorkspace() {
     return () => window.clearTimeout(timeout);
   }, [searchDraft]);
 
+  const ordering = sort
+    ? `${sort.direction === "desc" ? "-" : ""}${sort.field}`
+    : undefined;
   const usersQuery = useQuery({
-    queryKey: [
-      ...usersQueryKey,
-      user?.id ?? null,
-      {
-        search,
-        page,
-        ordering: sort
-          ? `${sort.direction === "desc" ? "-" : ""}${sort.field}`
-          : undefined,
-      },
-    ],
-    queryFn: () =>
-      getUsers({
-        search,
-        page,
-        page_size: pageSize,
-        ordering: sort
-          ? `${sort.direction === "desc" ? "-" : ""}${sort.field}`
-          : undefined,
-      }),
+    queryKey: usersQueryKey("roles", { ordering, page, search }),
+    queryFn: () => listUsers({ ordering, page, pageSize, search }),
   });
 
   const rolesQuery = useQuery({
-    queryKey: [...usersQueryKey, user?.id ?? null, "roles"],
+    queryKey: usersQueryKey("roleChoices"),
     queryFn: getSystemRoles,
   });
 
   const saveMutation = useMutation({
     mutationFn: ({ userId, role }: { userId: number; role: UserRole }) =>
       setUserRole(userId, role, csrfToken),
-    onSuccess: async (user) => {
+    onSuccess: async ({ orphaned_kams, user }) => {
       setDraftRoles((current) => ({ ...current, [user.id]: user.role }));
-      await queryClient.invalidateQueries({ queryKey: usersQueryKey });
+      setOrphans(orphaned_kams);
+      await queryClient.invalidateQueries({ queryKey: usersRootKey });
       setConfirmation(null);
       toast.success(t("userRolesSaved"));
     },
@@ -109,15 +96,20 @@ export function UserRolesWorkspace() {
     [rolesQuery.data, t],
   );
 
-  function save(user: User, role: UserRole) {
-    if (role === "platform_admin" || role === null) {
+  // Бэк не даёт администратору снять с себя роль администратора
+  function isSelf(row: SovaUser) {
+    return row.id === user?.id;
+  }
+
+  function save(user: SovaUser, role: UserRole) {
+    if (role === "platform_admin" || role === null || user.role === "head") {
       setConfirmation({ user, role });
       return;
     }
     saveMutation.mutate({ userId: user.id, role });
   }
 
-  const columns: DataTableColumn<User>[] = [
+  const columns: DataTableColumn<SovaUser>[] = [
     {
       name: "user",
       title: "Пользователь",
@@ -144,8 +136,11 @@ export function UserRolesWorkspace() {
         <Select
           aria-label={`Новая роль: ${user.full_name}`}
           disabled={
-            saveMutation.isPending && saveMutation.variables?.userId === user.id
+            isSelf(user) ||
+            (saveMutation.isPending &&
+              saveMutation.variables?.userId === user.id)
           }
+          title={isSelf(user) ? t("userRolesSelf") : undefined}
           onChange={(event) =>
             setDraftRoles((current) => ({
               ...current,
@@ -174,7 +169,9 @@ export function UserRolesWorkspace() {
         return (
           <Button
             colorScheme="accent"
-            disabled={!changed || saving || rolesQuery.isLoading}
+            disabled={
+              isSelf(user) || !changed || saving || rolesQuery.isLoading
+            }
             onClick={() => save(user, role)}
             size="m"
             type="button"
@@ -212,6 +209,36 @@ export function UserRolesWorkspace() {
           onChange: setSearchDraft,
         }}
       />
+
+      {orphans.length > 0 ? (
+        <div
+          className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm dark:border-amber-800 dark:bg-amber-950/40"
+          role="status"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <p className="font-medium">{t("userRolesOrphaned")}</p>
+              <p className="text-muted-foreground">
+                {t("userRolesOrphanedHint")}
+              </p>
+              <p>{orphans.map((kam) => kam.full_name).join(", ")}</p>
+              <Link className="text-primary font-medium underline" href="/team">
+                {t("userRolesOrphanedAction")}
+              </Link>
+            </div>
+            <Button
+              aria-label={t("userRolesClose")}
+              colorScheme="neutral"
+              onClick={() => setOrphans([])}
+              size="s"
+              type="button"
+              variant="ghost"
+            >
+              ×
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       <DataTable
         caption={t("userRolesTable")}
@@ -267,6 +294,11 @@ export function UserRolesWorkspace() {
                 {t("userRolesConfirmDescription")} «
                 {confirmation.user.full_name}»?
               </p>
+              {confirmation.user.role === "head" ? (
+                <p className="mt-2 text-sm leading-6 text-amber-700 dark:text-amber-400">
+                  {t("userRolesConfirmTeam")}
+                </p>
+              ) : null}
             </div>
             <div className="flex justify-end gap-2">
               <Button

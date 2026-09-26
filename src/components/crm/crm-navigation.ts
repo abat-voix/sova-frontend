@@ -13,6 +13,7 @@ import {
   PlugZap,
   Settings2,
   UserRound,
+  Users,
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
@@ -35,10 +36,15 @@ export type CrmSection =
   | "vendors"
   | "workflowTemplates"
   | "integrations"
-  | "userRoles";
+  | "userRoles"
+  | "team";
 
 export type SectionAccess =
-  "authenticated" | "workflow_manager" | "platform_operator" | "platform_admin";
+  | "authenticated"
+  | "workflow_manager"
+  | "team_manager"
+  | "platform_operator"
+  | "platform_admin";
 
 export type CrmNavigationItem = {
   access?: SectionAccess;
@@ -71,6 +77,14 @@ export const crmNavigation: CrmNavigationGroup[] = [
         descriptionKey: "interactionsDescription",
         href: "/interactions",
         icon: Handshake,
+      },
+      {
+        access: "team_manager",
+        id: "team",
+        labelKey: "team",
+        descriptionKey: "teamDescription",
+        href: "/team",
+        icon: Users,
       },
       {
         id: "myTasks",
@@ -199,7 +213,8 @@ export function canAccessCrmSection(
   const access = item.access ?? "authenticated";
 
   if (access === "authenticated") return true;
-  if (access === "workflow_manager") {
+  // Команду ведёт руководитель, администратор — команды всех руководителей
+  if (access === "workflow_manager" || access === "team_manager") {
     return user.role === "head" || user.role === "platform_admin";
   }
   if (access === "platform_operator") {
