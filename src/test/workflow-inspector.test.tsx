@@ -24,14 +24,18 @@ const definition: WorkflowDefinition = {
   stages: [
     {
       description: "",
+      height: null,
       id: "stage-1",
       is_active: true,
       is_final: true,
       is_initial: true,
       is_optional: false,
       name: "Контакт",
+      position_x: null,
+      position_y: null,
       sort_order: 1,
       type: "interaction",
+      width: null,
       workflow: { code: "onboarding", id: "workflow-1", name: "Онбординг" },
     },
   ],

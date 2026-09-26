@@ -23,6 +23,12 @@ export type WorkflowStageDefinition = {
   is_final: boolean;
   is_optional: boolean;
   is_active: boolean;
+  /** Позиция узла на графе редактора. Пусто — позиция ещё не задана вручную. */
+  position_x: number | null;
+  position_y: number | null;
+  /** Размер блока на графе редактора. Пусто — используется размер по умолчанию. */
+  width: number | null;
+  height: number | null;
   workflow: { id: string; name: string; code: string };
 };
 
