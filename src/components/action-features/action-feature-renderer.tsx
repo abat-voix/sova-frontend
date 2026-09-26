@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import type { ComponentType } from "react";
 
 import { ContactPersonCreateFeature } from "@/components/action-features/contact-person-create-feature";
+import { ContractCreateFeature } from "@/components/action-features/contract-create-feature";
 import { useLocale } from "@/providers/locale-provider";
 import type {
   ActionFeatureCode,
@@ -42,6 +43,10 @@ export const actionFeatureDefinitions: Record<string, ActionFeatureDefinition> =
     "contact_person.link": {
       code: "contact_person.link",
       Component: ContactPersonSelectFeature,
+    },
+    "contract.create": {
+      code: "contract.create",
+      Component: ContractCreateFeature,
     },
   };
 
@@ -122,6 +127,14 @@ export function ActionFeatureRenderer(props: Props) {
   );
 }
 
+function executionTitle(execution: ActionFeatureExecution) {
+  const { full_name: fullName, contract_number: contractNumber } =
+    execution.target.data;
+  if (fullName) return String(fullName);
+  if (contractNumber) return String(contractNumber);
+  return execution.feature_code;
+}
+
 export function FeatureExecutionHistory({
   executions,
 }: Pick<Props, "executions">) {
@@ -141,11 +154,7 @@ export function FeatureExecutionHistory({
             className="bg-secondary rounded-lg p-3 text-sm"
             key={execution.id}
           >
-            <p className="font-medium">
-              {execution.target.data.full_name
-                ? String(execution.target.data.full_name)
-                : execution.feature_code}
-            </p>
+            <p className="font-medium">{executionTitle(execution)}</p>
             <p className="text-muted-foreground mt-1 text-xs">
               {text.executed}:{" "}
               {new Date(execution.performed_at).toLocaleString(locale)}
