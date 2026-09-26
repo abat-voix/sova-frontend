@@ -75,7 +75,7 @@ describe("contract create feature", () => {
           target: {
             type: "contract",
             id: "contract-1",
-            data: { contract_number: "Д-7", file_generated: false },
+            data: { contract_number: "Д-7", file_generated: true },
           },
         });
       }
@@ -139,9 +139,11 @@ describe("contract create feature", () => {
         },
       });
     });
-    expect(
-      await screen.findByText(/Создан договор: Д-7 · файл пока не сформирован/),
-    ).toBeTruthy();
+    expect(await screen.findByText(/Создан договор: Д-7/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Скачать DOCX" })).toHaveAttribute(
+      "href",
+      "/api/interactions/contracts/contract-1/download/",
+    );
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 });

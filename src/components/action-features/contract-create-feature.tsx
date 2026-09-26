@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
+import { apiEndpoints } from "@/lib/api/endpoints";
 import { ApiError } from "@/lib/api/http";
+import { contractsQueryKey } from "@/lib/api/interactions/contracts";
 import {
   actionFeatureInitialQueryKey,
   boardQueryKey,
@@ -37,11 +39,12 @@ const copy = {
     loading: "Загружаем данные взаимодействия…",
     loadError: "Не удалось загрузить данные для договора.",
     error: "Не удалось создать договор.",
-    success: "Данные договора приняты. Файл будет сформирован позже.",
+    success: "Договор и файл созданы.",
     created: "Создан договор",
     noNumber: "без номера",
-    fileLater: "файл пока не сформирован",
-    noTemplates: "Нет активных шаблонов договора. Добавьте шаблон в админке.",
+    download: "Скачать DOCX",
+    noTemplates:
+      "Нет активных шаблонов договора с файлом DOCX. Добавьте шаблон в админке.",
     template: "Шаблон",
     general: "Основное",
     contractNumber: "Номер договора",
@@ -86,11 +89,12 @@ const copy = {
     loading: "Loading interaction data…",
     loadError: "Could not load contract data.",
     error: "Could not create the contract.",
-    success: "Contract data accepted. The file will be generated later.",
+    success: "Contract and file created.",
     created: "Created contract",
     noNumber: "no number",
-    fileLater: "file not generated yet",
-    noTemplates: "No active contract templates. Add one in the admin.",
+    download: "Download DOCX",
+    noTemplates:
+      "No active contract templates with a DOCX file. Add one in the admin.",
     template: "Template",
     general: "General",
     contractNumber: "Contract number",
@@ -164,7 +168,13 @@ export function ContractCreateFeature({
 
       {saved ? (
         <p aria-live="polite" className="bg-secondary rounded-lg p-3 text-sm">
-          {text.created}: {savedNumber || text.noNumber} · {text.fileLater}
+          {text.created}: {savedNumber || text.noNumber} ·{" "}
+          <a
+            className="underline"
+            href={apiEndpoints.interactions.contracts.download(saved.target.id)}
+          >
+            {text.download}
+          </a>
         </p>
       ) : null}
 
@@ -291,6 +301,7 @@ function ContractForm({
       void queryClient.invalidateQueries({
         queryKey: ["processes", "action-instances"],
       });
+      void queryClient.invalidateQueries({ queryKey: contractsQueryKey() });
       onCreated(result);
     },
   });
