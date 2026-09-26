@@ -1,6 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 
 import {
+  conversationQueryKey,
   conversationsQueryKey,
   messagesQueryKey,
   unreadCountQueryKey,
@@ -75,5 +76,11 @@ export function syncMessagingEvent(
     event.type === "messaging.conversation_read"
   ) {
     debounceMessagingInvalidation(queryClient);
+  }
+  if (event.type === "messaging.conversation_participants_changed") {
+    debounceMessagingInvalidation(queryClient);
+    void queryClient.invalidateQueries({
+      queryKey: conversationQueryKey(event.data.conversation_id),
+    });
   }
 }

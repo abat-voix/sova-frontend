@@ -21,6 +21,7 @@ import {
 } from "react";
 
 import { BoardDetailsDrawer } from "@/components/interactions/board-details-drawer";
+import { CreateInteractionChatDialog } from "@/components/interactions/create-interaction-chat-dialog";
 import { InteractionCardDialog } from "@/components/interactions/interaction-card-dialog";
 import { InteractionContactsPanel } from "@/components/interactions/interaction-contacts-panel";
 import {
@@ -139,7 +140,11 @@ function BoardState({
   );
 }
 
-export function InteractionsWorkspace() {
+export function InteractionsWorkspace({
+  onOpenConversation,
+}: {
+  onOpenConversation: (conversationId: string) => void;
+}) {
   const { locale, t } = useLocale();
   const { csrfToken, user } = useAuth();
   const text = copy[locale];
@@ -159,6 +164,8 @@ export function InteractionsWorkspace() {
   const [editingInteraction, setEditingInteraction] =
     useState<Interaction | null>(null);
   const [viewingInteraction, setViewingInteraction] =
+    useState<Interaction | null>(null);
+  const [creatingChatForInteraction, setCreatingChatForInteraction] =
     useState<Interaction | null>(null);
   const [isStartingProcess, setIsStartingProcess] = useState(false);
   // Рабочий стол виден только авторизованному пользователю, а сессия приходит
@@ -280,9 +287,24 @@ export function InteractionsWorkspace() {
             interaction={viewingInteraction}
             key={viewingInteraction.id}
             onClose={() => setViewingInteraction(null)}
+            onCreateChat={setCreatingChatForInteraction}
             onEdit={(interaction) => {
               setViewingInteraction(null);
               setEditingInteraction(interaction);
+            }}
+            onOpenChat={onOpenConversation}
+          />
+        ) : null}
+
+        {creatingChatForInteraction ? (
+          <CreateInteractionChatDialog
+            csrfToken={csrfToken}
+            interactionId={creatingChatForInteraction.id}
+            key={creatingChatForInteraction.id}
+            onClose={() => setCreatingChatForInteraction(null)}
+            onCreated={(conversationId) => {
+              setCreatingChatForInteraction(null);
+              onOpenConversation(conversationId);
             }}
           />
         ) : null}
