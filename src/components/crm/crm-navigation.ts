@@ -13,10 +13,12 @@ import {
   PlugZap,
   Settings2,
   UserRound,
+  UsersRound,
   type LucideIcon,
 } from "lucide-react";
 
 import type { TranslationKey } from "@/i18n/translations";
+import type { AuthenticatedUser } from "@/providers/auth-provider";
 
 export type CrmSection =
   | "home"
@@ -32,10 +34,14 @@ export type CrmSection =
   | "itCatalog"
   | "vendors"
   | "workflowTemplates"
-  | "integrations";
+  | "integrations"
+  | "userRoles";
+
+export type SectionAccess =
+  "authenticated" | "workflow_manager" | "platform_operator" | "platform_admin";
 
 export type CrmNavigationItem = {
-  adminOnly?: boolean;
+  access?: SectionAccess;
   descriptionKey: TranslationKey;
   href: string;
   icon: LucideIcon;
@@ -46,7 +52,6 @@ export type CrmNavigationItem = {
 export type CrmNavigationGroup = {
   labelKey: TranslationKey;
   items: CrmNavigationItem[];
-  staffOnly?: boolean;
 };
 
 export const crmNavigation: CrmNavigationGroup[] = [
@@ -156,9 +161,9 @@ export const crmNavigation: CrmNavigationGroup[] = [
   },
   {
     labelKey: "navAdministration",
-    staffOnly: true,
     items: [
       {
+        access: "workflow_manager",
         id: "workflowTemplates",
         labelKey: "workflowTemplates",
         descriptionKey: "workflowTemplatesDescription",
@@ -166,15 +171,46 @@ export const crmNavigation: CrmNavigationGroup[] = [
         icon: Settings2,
       },
       {
-        adminOnly: true,
+        access: "platform_operator",
         id: "integrations",
         labelKey: "integrations",
         descriptionKey: "integrationsDescription",
         href: "/settings/integrations",
         icon: PlugZap,
       },
+      {
+        access: "platform_admin",
+        id: "userRoles",
+        labelKey: "userRoles",
+        descriptionKey: "userRolesDescription",
+        href: "/settings/users",
+        icon: UsersRound,
+      },
     ],
   },
 ];
 
 export const crmNavigationItems = crmNavigation.flatMap((group) => group.items);
+
+export function canAccessCrmSection(
+  item: CrmNavigationItem,
+  user: Pick<AuthenticatedUser, "isStaff" | "role">,
+): boolean {
+  const access = item.access ?? "authenticated";
+
+  if (access === "authenticated") return true;
+  if (access === "workflow_manager") {
+    return user.role === "head" || user.role === "platform_admin";
+  }
+  if (access === "platform_operator") {
+    return user.isStaff || user.role === "platform_admin";
+  }
+  return user.role === "platform_admin";
+}
+
+export function canAccessCrmGroup(
+  group: CrmNavigationGroup,
+  user: Pick<AuthenticatedUser, "isStaff" | "role">,
+): boolean {
+  return group.items.some((item) => canAccessCrmSection(item, user));
+}

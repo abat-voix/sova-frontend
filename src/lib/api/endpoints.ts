@@ -143,6 +143,8 @@ export const apiEndpoints = {
   },
   users: {
     list: "/api/users/",
+    roles: "/api/users/roles/",
+    role: (id: number) => `/api/users/${id}/role/`,
   },
   workflows: {
     actionDependencies: {

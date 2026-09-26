@@ -1,18 +1,28 @@
-import type { SystemRole } from "@/providers/auth-provider";
+export type SystemRole = "kam" | "head" | "platform_admin";
 
-/**
- * Пользователь из `GET /api/users/`.
- *
- * `id` — число, в отличие от UUID справочников каталога: назначение
- * ответственного принимает именно его.
- */
-export type SovaUser = {
+export type UserRole = SystemRole | null;
+
+export type User = {
   id: number;
   email: string;
-  /** ФИО, а при его отсутствии — логин. Всегда непустая строка. */
   full_name: string;
   first_name: string;
   last_name: string;
-  role: SystemRole | null;
+  role: UserRole;
   role_display: string | null;
+};
+
+/** Совместимое имя для существующих lookup-адаптеров. */
+export type SovaUser = User;
+
+export type Page<T> = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+};
+
+export type RoleChoice = {
+  value: SystemRole;
+  label: string;
 };
