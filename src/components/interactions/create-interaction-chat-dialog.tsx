@@ -84,6 +84,7 @@ export function CreateInteractionChatDialog({
 
   return (
     <Modal
+      allowContentOverflow
       closeLabel={text.cancel}
       labelledBy="create-interaction-chat-title"
       onClose={onClose}

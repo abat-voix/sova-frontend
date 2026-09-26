@@ -383,7 +383,9 @@ export function InteractionsWorkspace({
           >
             <InteractionList
               onResolve={setSelectedInteraction}
+              onCreateChat={setCreatingChatForInteraction}
               onEdit={setEditingInteraction}
+              onOpenChat={onOpenConversation}
               onSelect={handleSelectInteraction}
               onView={setViewingInteraction}
               selectedId={selectedInteractionId}
