@@ -1,6 +1,7 @@
 import type { Locale } from "@/i18n/translations";
 
 const intlLocales: Record<Locale, string> = { en: "en-GB", ru: "ru-RU" };
+const reportTimeZone = "Europe/Moscow";
 
 /**
  * Дата записи справочника — с годом, в отличие от моментов доски процесса:
@@ -28,6 +29,7 @@ export function formatDateTime(
     hour: "2-digit",
     minute: "2-digit",
     month: "2-digit",
+    timeZone: reportTimeZone,
     year: "numeric",
   });
 }
