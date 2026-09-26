@@ -204,7 +204,7 @@ function renderWorkspace({ withDashboardCache = false } = {}) {
     <QueryClientProvider client={queryClient}>
       <LocaleProvider>
         <AuthProvider>
-          <InteractionsWorkspace />
+          <InteractionsWorkspace onOpenConversation={vi.fn()} />
         </AuthProvider>
       </LocaleProvider>
     </QueryClientProvider>,

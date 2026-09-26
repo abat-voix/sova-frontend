@@ -1,22 +1,41 @@
 "use client";
 
-import { useInfiniteQuery } from "@tanstack/react-query";
-import { Building2, Eye, Pencil, User } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import {
+  Building2,
+  Eye,
+  LoaderCircle,
+  MessageCircle,
+  MoreVertical,
+  Pencil,
+  User,
+} from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
+import { ApiError } from "@/lib/api/http";
 import {
   getInteractions,
   interactionsInfiniteQueryKey,
 } from "@/lib/api/interactions/interactions";
+import {
+  getInteractionChat,
+  interactionChatQueryKey,
+} from "@/lib/api/messaging/messaging";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/providers/locale-provider";
 import type { Interaction, InteractionShort } from "@/types/workflow-board";
 
 const copy = {
   ru: {
+    actions: "Действия",
+    chatCreate: "Создать чат",
+    chatError: "Не удалось узнать о чате.",
+    chatLoading: "Проверяем чат…",
+    chatNoAccess: "Нет доступа к чату этого взаимодействия.",
+    chatOpen: "Открыть чат",
     clearSearch: "Очистить поиск",
     interactionsCount: "взаимодействий",
     edit: "Редактировать взаимодействие",
@@ -33,6 +52,12 @@ const copy = {
     view: "Карточка взаимодействия",
   },
   en: {
+    actions: "Actions",
+    chatCreate: "Create chat",
+    chatError: "Couldn't check the chat.",
+    chatLoading: "Checking the chat…",
+    chatNoAccess: "You don't have access to this interaction's chat.",
+    chatOpen: "Open chat",
     clearSearch: "Clear search",
     interactionsCount: "interactions",
     edit: "Edit interaction",
@@ -103,11 +128,184 @@ type InteractionListProps = {
    * например, только что созданное.
    */
   onResolve: (interaction: Interaction) => void;
+  onCreateChat?: (interaction: Interaction) => void;
   onEdit?: (interaction: Interaction) => void;
+  onOpenChat?: (conversationId: string) => void;
   onSelect: (interaction: Interaction) => void;
   onView?: (interaction: Interaction) => void;
   selectedId: string | null;
 };
+
+/** Пункт «Чат»: сам решает, предложить создание чата или открыть существующий. */
+function ChatMenuItem({
+  interaction,
+  onCreateChat,
+  onOpenChat,
+}: {
+  interaction: Interaction;
+  onCreateChat: (interaction: Interaction) => void;
+  onOpenChat: (conversationId: string) => void;
+}) {
+  const { locale } = useLocale();
+  const text = copy[locale];
+  const query = useQuery({
+    queryKey: interactionChatQueryKey(interaction.id),
+    queryFn: () => getInteractionChat(interaction.id),
+    retry: false,
+  });
+
+  if (query.isPending) {
+    return (
+      <p className="text-muted-foreground flex items-center gap-2 px-2.5 py-2 text-sm">
+        <LoaderCircle aria-hidden="true" className="size-3.5 animate-spin" />
+        {text.chatLoading}
+      </p>
+    );
+  }
+
+  if (query.isError) {
+    if (query.error instanceof ApiError && query.error.status === 404) {
+      return (
+        <button
+          className="hover:bg-secondary flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm"
+          onClick={() => onCreateChat(interaction)}
+          role="menuitem"
+          type="button"
+        >
+          <MessageCircle aria-hidden="true" className="size-3.5" />
+          {text.chatCreate}
+        </button>
+      );
+    }
+    if (query.error instanceof ApiError && query.error.status === 403) {
+      return (
+        <p className="text-muted-foreground px-2.5 py-2 text-xs">
+          {text.chatNoAccess}
+        </p>
+      );
+    }
+    return (
+      <p className="text-muted-foreground px-2.5 py-2 text-xs">
+        {text.chatError}
+      </p>
+    );
+  }
+
+  if (!query.data) return null;
+
+  return (
+    <button
+      className="hover:bg-secondary flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm"
+      onClick={() => onOpenChat(query.data.id)}
+      role="menuitem"
+      type="button"
+    >
+      <MessageCircle aria-hidden="true" className="size-3.5" />
+      {text.chatOpen}
+    </button>
+  );
+}
+
+/** Меню «три точки» карточки взаимодействия: просмотр, редактирование, чат. */
+function InteractionCardMenu({
+  interaction,
+  onCreateChat,
+  onEdit,
+  onOpenChat,
+  onView,
+}: {
+  interaction: Interaction;
+  onCreateChat?: (interaction: Interaction) => void;
+  onEdit?: (interaction: Interaction) => void;
+  onOpenChat?: (conversationId: string) => void;
+  onView?: (interaction: Interaction) => void;
+}) {
+  const { locale } = useLocale();
+  const text = copy[locale];
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    function handlePointerDown(event: MouseEvent) {
+      if (!containerRef.current?.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [isOpen]);
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <Button
+        aria-expanded={isOpen}
+        aria-haspopup="menu"
+        aria-label={text.actions}
+        colorScheme="neutral"
+        onClick={() => setIsOpen((open) => !open)}
+        size="icon"
+        title={text.actions}
+        type="button"
+        variant="ghost"
+      >
+        <MoreVertical aria-hidden="true" className="size-3.5" />
+      </Button>
+
+      {isOpen ? (
+        <div
+          className="bg-card absolute right-0 z-20 mt-1 w-52 rounded-xl border p-1 shadow-lg"
+          role="menu"
+        >
+          {onView ? (
+            <button
+              className="hover:bg-secondary flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm"
+              onClick={() => {
+                setIsOpen(false);
+                onView(interaction);
+              }}
+              role="menuitem"
+              type="button"
+            >
+              <Eye aria-hidden="true" className="size-3.5" />
+              {text.view}
+            </button>
+          ) : null}
+          {onEdit ? (
+            <button
+              className="hover:bg-secondary flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm"
+              onClick={() => {
+                setIsOpen(false);
+                onEdit(interaction);
+              }}
+              role="menuitem"
+              type="button"
+            >
+              <Pencil aria-hidden="true" className="size-3.5" />
+              {text.edit}
+            </button>
+          ) : null}
+          {onCreateChat && onOpenChat && isOpen ? (
+            <ChatMenuItem
+              interaction={interaction}
+              onCreateChat={(target) => {
+                setIsOpen(false);
+                onCreateChat(target);
+              }}
+              onOpenChat={(conversationId) => {
+                setIsOpen(false);
+                onOpenChat(conversationId);
+              }}
+            />
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 /**
  * Поиск, пагинация и выбор взаимодействия. Запрос живёт здесь: наружу нужен
@@ -115,7 +313,9 @@ type InteractionListProps = {
  */
 export function InteractionList({
   onResolve,
+  onCreateChat,
   onEdit,
+  onOpenChat,
   onSelect,
   onView,
   selectedId,
@@ -229,32 +429,13 @@ export function InteractionList({
                     </span>
                   </button>
                   <span className="-mt-2 -mr-2 flex shrink-0 items-start">
-                    {onView ? (
-                      <Button
-                        aria-label={text.view}
-                        colorScheme="neutral"
-                        onClick={() => onView(interaction)}
-                        size="icon"
-                        title={text.view}
-                        type="button"
-                        variant="ghost"
-                      >
-                        <Eye aria-hidden="true" className="size-3.5" />
-                      </Button>
-                    ) : null}
-                    {onEdit ? (
-                      <Button
-                        aria-label={text.edit}
-                        colorScheme="neutral"
-                        onClick={() => onEdit(interaction)}
-                        size="icon"
-                        title={text.edit}
-                        type="button"
-                        variant="ghost"
-                      >
-                        <Pencil aria-hidden="true" className="size-3.5" />
-                      </Button>
-                    ) : null}
+                    <InteractionCardMenu
+                      interaction={interaction}
+                      onCreateChat={onCreateChat}
+                      onEdit={onEdit}
+                      onOpenChat={onOpenChat}
+                      onView={onView}
+                    />
                   </span>
                 </div>
               </li>

@@ -66,6 +66,9 @@ export const apiEndpoints = {
     interactions: {
       assignResponsible: (id: string) =>
         `/api/interactions/interactions/${id}/assign-responsible/`,
+      chat: (id: string) => `/api/interactions/interactions/${id}/chat/`,
+      chatParticipants: (id: string) =>
+        `/api/interactions/interactions/${id}/chat/participants/`,
       contacts: (id: string) =>
         `/api/interactions/interactions/${id}/contacts/`,
       contact: (id: string, contactId: string) =>

@@ -19,6 +19,14 @@ export function conversationsQueryKey() {
   return ["messaging", "conversations"] as const;
 }
 
+export function conversationQueryKey(conversationId: string) {
+  return ["messaging", "conversations", conversationId] as const;
+}
+
+export function interactionChatQueryKey(interactionId: string) {
+  return ["messaging", "interaction-chat", interactionId] as const;
+}
+
 export function unreadCountQueryKey() {
   return ["messaging", "unread-count"] as const;
 }
@@ -29,6 +37,49 @@ export function messagesQueryKey(conversationId: string) {
 
 export function getConversations() {
   return getJson<Conversation[]>(apiEndpoints.messaging.conversations.list);
+}
+
+/** Актуальные данные беседы: список участников чата Взаимодействия не кэшируется в списке. */
+export function getConversation(conversationId: string) {
+  return getJson<Conversation>(
+    apiEndpoints.messaging.conversations.detail(conversationId),
+  );
+}
+
+/**
+ * Чат Взаимодействия по id самого Взаимодействия, а не беседы.
+ *
+ * `404` — чат ещё не создан, `403` — чат существует, но вызывающий не участник:
+ * вызывающая сторона различает коды через `ApiError.status`.
+ */
+export function getInteractionChat(interactionId: string) {
+  return getJson<Conversation>(
+    apiEndpoints.interactions.interactions.chat(interactionId),
+  );
+}
+
+export function createInteractionChat(
+  interactionId: string,
+  participantIds: number[],
+  csrfToken: string,
+) {
+  return postJson<Conversation>(
+    apiEndpoints.interactions.interactions.chat(interactionId),
+    { participant_ids: participantIds },
+    csrfToken,
+  );
+}
+
+export function addInteractionChatParticipants(
+  interactionId: string,
+  participantIds: number[],
+  csrfToken: string,
+) {
+  return postJson<Conversation>(
+    apiEndpoints.interactions.interactions.chatParticipants(interactionId),
+    { participant_ids: participantIds },
+    csrfToken,
+  );
 }
 
 /** Открывает личную беседу с пользователем, создавая её при первом обращении. */

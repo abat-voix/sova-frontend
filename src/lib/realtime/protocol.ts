@@ -56,6 +56,11 @@ export const realtimeEventSchema = z.discriminatedUnion("type", [
       read_at: timestampSchema,
     }),
   }),
+  envelopeBaseSchema.extend({
+    version: z.literal(1),
+    type: z.literal("messaging.conversation_participants_changed"),
+    data: z.object({ conversation_id: z.uuid() }),
+  }),
 ]);
 
 export type MessagingUser = z.infer<typeof messagingUserSchema>;

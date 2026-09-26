@@ -31,10 +31,10 @@ const interaction: Interaction = {
   products_count: 1,
 };
 
-function json(body: unknown) {
+function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     headers: { "content-type": "application/json" },
-    status: 200,
+    status,
   });
 }
 
@@ -42,7 +42,29 @@ function paginated(results: unknown[]) {
   return { count: results.length, next: null, previous: null, results };
 }
 
-function renderDialog(fetchMock: typeof fetch, onEdit = vi.fn()) {
+const chatUrl = `/api/interactions/interactions/${interaction.id}/chat/`;
+
+/** По умолчанию у взаимодействия ещё нет чата — большинство сценариев его не касаются. */
+function withNoChat(handler: (url: string) => Response | null) {
+  return (url: string) => {
+    if (url === chatUrl) return json({ detail: "not found" }, 404);
+    return handler(url);
+  };
+}
+
+function renderDialog({
+  fetchMock,
+  onClose = vi.fn(),
+  onCreateChat = vi.fn(),
+  onEdit = vi.fn(),
+  onOpenChat = vi.fn(),
+}: {
+  fetchMock: typeof fetch;
+  onClose?: () => void;
+  onCreateChat?: (interaction: Interaction) => void;
+  onEdit?: (interaction: Interaction) => void;
+  onOpenChat?: (conversationId: string) => void;
+}) {
   vi.stubGlobal("fetch", fetchMock);
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -53,8 +75,10 @@ function renderDialog(fetchMock: typeof fetch, onEdit = vi.fn()) {
       <LocaleProvider>
         <InteractionCardDialog
           interaction={interaction}
-          onClose={vi.fn()}
+          onClose={onClose}
+          onCreateChat={onCreateChat}
           onEdit={onEdit}
+          onOpenChat={onOpenChat}
         />
       </LocaleProvider>
     </QueryClientProvider>,
@@ -71,6 +95,7 @@ describe("InteractionCardDialog", () => {
     const fetchMock = vi.fn<typeof fetch>(async (input) => {
       const url = String(input);
 
+      if (url === chatUrl) return json({ detail: "not found" }, 404);
       if (url.startsWith("/api/interactions/interaction-directions/")) {
         return json(
           paginated([
@@ -137,7 +162,7 @@ describe("InteractionCardDialog", () => {
       throw new Error(`Unexpected request: ${url}`);
     });
 
-    renderDialog(fetchMock);
+    renderDialog({ fetchMock });
 
     expect(await screen.findByText("IT")).toBeInTheDocument();
     expect(screen.getByText("Магистратура")).toBeInTheDocument();
@@ -162,6 +187,7 @@ describe("InteractionCardDialog", () => {
     const fetchMock = vi.fn<typeof fetch>(async (input) => {
       const url = String(input);
 
+      if (url === chatUrl) return json({ detail: "not found" }, 404);
       if (url.startsWith("/api/interactions/interaction-directions/"))
         return json(paginated([]));
       if (url.startsWith("/api/interactions/interaction-programs/"))
@@ -251,7 +277,7 @@ describe("InteractionCardDialog", () => {
     });
     const onEdit = vi.fn();
 
-    renderDialog(fetchMock, onEdit);
+    renderDialog({ fetchMock, onEdit });
 
     expect(await screen.findByText("Пётр Петров")).toBeInTheDocument();
     expect(screen.getByText("Д-42")).toBeInTheDocument();
@@ -263,7 +289,13 @@ describe("InteractionCardDialog", () => {
   });
 
   it("lists every current responsible in the overview", async () => {
-    renderDialog(vi.fn<typeof fetch>(async () => json(paginated([]))));
+    renderDialog({
+      fetchMock: vi.fn<typeof fetch>(async (input) =>
+        String(input) === chatUrl
+          ? json({ detail: "not found" }, 404)
+          : json(paginated([])),
+      ),
+    });
 
     expect(
       await screen.findByText("Иван Иванов, Мария Смирнова"),
@@ -274,6 +306,7 @@ describe("InteractionCardDialog", () => {
     const fetchMock = vi.fn<typeof fetch>(async (input) => {
       const url = String(input);
 
+      if (url === chatUrl) return json({ detail: "not found" }, 404);
       if (url.startsWith("/api/interactions/interaction-directions/"))
         return new Response(null, { status: 500 });
       if (url.startsWith("/api/interactions/interaction-programs/"))
@@ -291,10 +324,77 @@ describe("InteractionCardDialog", () => {
       throw new Error(`Unexpected request: ${url}`);
     });
 
-    renderDialog(fetchMock);
+    renderDialog({ fetchMock });
 
     expect(
       await screen.findByRole("button", { name: "Повторить" }),
     ).toBeInTheDocument();
+  });
+});
+
+describe("InteractionCardDialog chat", () => {
+  function fetchMockWithChat(chatResponse: () => Response) {
+    return vi.fn<typeof fetch>(async (input) => {
+      const url = String(input);
+      if (url === chatUrl) return chatResponse();
+      if (url.startsWith("/api/interactions/interaction-directions/"))
+        return json(paginated([]));
+      if (url.startsWith("/api/interactions/interaction-programs/"))
+        return json(paginated([]));
+      if (url.startsWith("/api/interactions/interaction-products/"))
+        return json(paginated([]));
+      if (url === `/api/interactions/interactions/${interaction.id}/contacts/`)
+        return json([]);
+      if (url.startsWith("/api/interactions/contracts/"))
+        return json(paginated([]));
+      if (url.startsWith("/api/interactions/licenses/"))
+        return json(paginated([]));
+      if (url.startsWith("/api/processes/action-attachments/"))
+        return json(paginated([]));
+      throw new Error(`Unexpected request: ${url}`);
+    });
+  }
+
+  it("opens the existing chat and closes the card", async () => {
+    const onClose = vi.fn();
+    const onOpenChat = vi.fn();
+    renderDialog({
+      fetchMock: fetchMockWithChat(() => json({ id: "conversation-1" })),
+      onClose,
+      onOpenChat,
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Открыть чат" }));
+
+    expect(onClose).toHaveBeenCalled();
+    expect(onOpenChat).toHaveBeenCalledWith("conversation-1");
+  });
+
+  it("offers to create a chat when none exists yet", async () => {
+    const onClose = vi.fn();
+    const onCreateChat = vi.fn();
+    renderDialog({
+      fetchMock: fetchMockWithChat(() => json({ detail: "not found" }, 404)),
+      onClose,
+      onCreateChat,
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Создать чат" }));
+
+    expect(onClose).toHaveBeenCalled();
+    expect(onCreateChat).toHaveBeenCalledWith(interaction);
+  });
+
+  it("shows a no-access message without offering to create a chat", async () => {
+    renderDialog({
+      fetchMock: fetchMockWithChat(() => json({ detail: "forbidden" }, 403)),
+    });
+
+    expect(
+      await screen.findByText("У вас нет доступа к чату этого взаимодействия."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Создать чат" }),
+    ).not.toBeInTheDocument();
   });
 });

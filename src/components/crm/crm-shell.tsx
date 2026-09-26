@@ -308,6 +308,9 @@ export function CrmShell(props: CrmShellProps) {
     usePersistedFlag(sidebarStorageKey);
   const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState(false);
   const [isMessengerOpen, setIsMessengerOpen] = useState(false);
+  const [selectedConversationId, setSelectedConversationId] = useState<
+    string | null
+  >(null);
   const { activeSection, csrfToken, user } = props;
   const { t } = useLocale();
   const { status: realtimeStatus } = useRealtime();
@@ -325,6 +328,13 @@ export function CrmShell(props: CrmShellProps) {
     refetchInterval: realtimePollingInterval(realtimeStatus, 30000),
   });
   const unreadCount = unreadCountQuery.data?.unread_count ?? 0;
+
+  // Открывает мессенджер сразу на нужном чате: используется кнопкой «Открыть
+  // чат»/«Создать чат» из карточки Взаимодействия.
+  function openConversation(conversationId: string) {
+    setSelectedConversationId(conversationId);
+    setIsMessengerOpen(true);
+  }
 
   return (
     <div
@@ -469,7 +479,7 @@ export function CrmShell(props: CrmShellProps) {
           ) : activeSection === "itCatalog" ? (
             <ItCatalogWorkspace />
           ) : activeSection === "interactions" ? (
-            <InteractionsWorkspace />
+            <InteractionsWorkspace onOpenConversation={openConversation} />
           ) : activeSection === "myTasks" ? (
             <MyTasksWorkspace />
           ) : activeSection === "notifications" ? (
@@ -502,6 +512,8 @@ export function CrmShell(props: CrmShellProps) {
               csrfToken={csrfToken}
               currentUser={user}
               onClose={() => setIsMessengerOpen(false)}
+              onSelectConversation={setSelectedConversationId}
+              selectedConversationId={selectedConversationId}
             />
           </div>
         ) : null}
@@ -520,6 +532,8 @@ export function CrmShell(props: CrmShellProps) {
               csrfToken={csrfToken}
               currentUser={user}
               onClose={() => setIsMessengerOpen(false)}
+              onSelectConversation={setSelectedConversationId}
+              selectedConversationId={selectedConversationId}
             />
           </aside>
         </div>
