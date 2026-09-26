@@ -114,6 +114,8 @@ export const apiEndpoints = {
         `/api/processes/action-instances/${id}/complete/`,
       executeFeature: (id: string, code: string) =>
         `/api/processes/action-instances/${id}/features/${encodeURIComponent(code)}/execute/`,
+      featureInitial: (id: string, code: string) =>
+        `/api/processes/action-instances/${id}/features/${encodeURIComponent(code)}/initial/`,
       list: "/api/processes/action-instances/",
     },
     actionRollbacks: {

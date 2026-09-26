@@ -83,6 +83,23 @@ type ErrorBody = {
   login_url?: unknown;
 };
 
+/**
+ * Ошибки вложенных сериализаторов DRF (`{document: {counterparty: {name: [...]}}}`)
+ * раскладываются в плоские ключи через точку: `document.counterparty.name`.
+ */
+function collectFieldErrors(
+  value: Record<string, unknown>,
+  prefix: string,
+  target: Record<string, string[]>,
+) {
+  for (const [field, nested] of Object.entries(value)) {
+    const key = prefix ? `${prefix}.${field}` : field;
+    if (Array.isArray(nested)) target[key] = nested.map(String);
+    else if (nested && typeof nested === "object")
+      collectFieldErrors(nested as Record<string, unknown>, key, target);
+  }
+}
+
 async function readErrorBody(response: Response) {
   try {
     const body = (await response.json()) as ErrorBody;
@@ -92,9 +109,7 @@ async function readErrorBody(response: Response) {
       body.detail && typeof body.detail === "object"
         ? (body.detail as Record<string, unknown>)
         : (body as Record<string, unknown>);
-    for (const [field, value] of Object.entries(validation)) {
-      if (Array.isArray(value)) fieldErrors[field] = value.map(String);
-    }
+    collectFieldErrors(validation, "", fieldErrors);
 
     return {
       code: typeof body.code === "string" ? body.code : null,
