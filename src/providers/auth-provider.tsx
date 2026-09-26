@@ -10,7 +10,7 @@ import {
 } from "react";
 
 /** Прикладные роли СОВА (`accounts.SystemRole`). */
-export type SystemRole = "kam" | "head" | "platform_admin";
+export type SystemRole = "observer" | "kam" | "head" | "platform_admin";
 
 export type AuthenticatedUser = {
   id: number;
@@ -19,11 +19,19 @@ export type AuthenticatedUser = {
   lastName: string;
   displayName: string;
   isStaff: boolean;
+  /** Django superuser проходит все прикладные проверки независимо от роли. */
+  isSuperuser: boolean;
   /** `null`, если роль СОВА не назначена. */
   role: SystemRole | null;
   /** Название роли для интерфейса; приходит с бэкенда, не переводим. */
   roleDisplay: string | null;
   roles: string[];
+  /**
+   * Разрешённые операции без учёта конкретной записи (`accounts.policy`):
+   * `interactions.read`, `interactions.update`… Право на конкретную запись
+   * подтверждает бэкенд при обращении к ней.
+   */
+  permissions: string[];
 };
 
 type SessionResponse =

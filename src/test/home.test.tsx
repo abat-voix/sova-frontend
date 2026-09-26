@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import Home from "@/app/page";
 import { AppProviders } from "@/providers/app-providers";
+import { kamPermissions } from "@/test/fixtures/permissions";
 
 afterEach(() => {
   cleanup();
@@ -107,6 +108,8 @@ describe("Home", () => {
               lastName: "",
               displayName: "Сова",
               isStaff: false,
+              isSuperuser: false,
+              permissions: kamPermissions,
               roles: [],
             },
           }),

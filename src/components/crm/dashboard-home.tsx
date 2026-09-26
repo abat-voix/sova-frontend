@@ -5,7 +5,10 @@ import { useQuery } from "@tanstack/react-query";
 import { Building2, CalendarClock, Handshake, ListChecks } from "lucide-react";
 
 import { interactionTitle } from "@/components/interactions/interaction-list";
-import { crmNavigationItems } from "@/components/crm/crm-navigation";
+import {
+  canAccessCrmSection,
+  crmNavigationItems,
+} from "@/components/crm/crm-navigation";
 import {
   WidgetCard,
   WidgetSkeleton,
@@ -23,6 +26,7 @@ import {
 } from "@/lib/api/interactions/interactions";
 import { resolveActionState } from "@/lib/workflow/board-to-gantt";
 import { formatMoment } from "@/lib/workflow/format-moment";
+import { can, canUseUnmigratedSection } from "@/lib/permissions";
 import type { AuthenticatedUser } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
 
@@ -185,11 +189,18 @@ function InteractionsWidget({ text }: { text: CopyText }) {
   );
 }
 
-function QuickLinks({ text }: { text: CopyText }) {
+function QuickLinks({
+  text,
+  user,
+}: {
+  text: CopyText;
+  user: AuthenticatedUser;
+}) {
   const { t } = useLocale();
-  const sections = crmNavigationItems.filter((item) =>
-    quickLinkSections.has(item.id),
+  const sections = crmNavigationItems.filter(
+    (item) => quickLinkSections.has(item.id) && canAccessCrmSection(item, user),
   );
+  if (sections.length === 0) return null;
 
   return (
     <section aria-labelledby="quick-links-title">
@@ -243,13 +254,16 @@ export function DashboardHome({ user }: { user: AuthenticatedUser }) {
         </p>
       </section>
 
+      {/* Виджет раздела показываем, только если раздел доступен роли: иначе его запрос получит 403 */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <MyTasksWidget text={text} />
-        <InteractionsWidget text={text} />
-        <NotificationsWidget />
+        {canUseUnmigratedSection(user) ? <MyTasksWidget text={text} /> : null}
+        {can(user, "interactions.read") ? (
+          <InteractionsWidget text={text} />
+        ) : null}
+        {canUseUnmigratedSection(user) ? <NotificationsWidget /> : null}
       </div>
 
-      <QuickLinks text={text} />
+      <QuickLinks text={text} user={user} />
     </div>
   );
 }

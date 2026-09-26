@@ -14,6 +14,10 @@ import { AuthProvider } from "@/providers/auth-provider";
 import { LocaleProvider } from "@/providers/locale-provider";
 import type { BoardSelection } from "@/lib/workflow/board-to-gantt";
 import type { BoardAction } from "@/types/workflow-board";
+import {
+  kamPermissions,
+  observerPermissions,
+} from "@/test/fixtures/permissions";
 
 // Адрес страницы: ссылка из уведомления открывает объект через параметры.
 let searchParams = new URLSearchParams();
@@ -119,7 +123,34 @@ function json(body: unknown) {
   });
 }
 
-function stubApi() {
+const kamSession = {
+  id: 1,
+  email: "kam@example.com",
+  firstName: "Иван",
+  lastName: "Иванов",
+  displayName: "Иван Иванов",
+  isStaff: false,
+  isSuperuser: false,
+  permissions: kamPermissions,
+  role: "kam",
+  roleDisplay: "КАМ",
+  roles: [],
+};
+
+const observerSession = {
+  ...kamSession,
+  permissions: observerPermissions,
+  role: "observer",
+  roleDisplay: "Наблюдатель",
+};
+
+function stubApi({
+  forbidInteractions = false,
+  sessionUser = kamSession,
+}: {
+  forbidInteractions?: boolean;
+  sessionUser?: typeof kamSession;
+} = {}) {
   const fetchMock = vi.fn<typeof fetch>(async (input) => {
     const url = String(input);
 
@@ -143,18 +174,18 @@ function stubApi() {
       return json({
         authenticated: true,
         csrfToken: "token",
-        user: {
-          id: 1,
-          email: "kam@example.com",
-          firstName: "Иван",
-          lastName: "Иванов",
-          displayName: "Иван Иванов",
-          isStaff: false,
-          role: "kam",
-          roleDisplay: "КАМ",
-          roles: [],
-        },
+        user: sessionUser,
       });
+    }
+
+    if (forbidInteractions && url.startsWith("/api/interactions/")) {
+      return new Response(
+        JSON.stringify({
+          detail: "Недостаточно прав для этой операции.",
+          code: "permission_denied",
+        }),
+        { headers: { "content-type": "application/json" }, status: 403 },
+      );
     }
 
     if (url.endsWith("/contacts/")) return json([]);
@@ -187,10 +218,24 @@ function stubApi() {
   return fetchMock;
 }
 
-function renderWorkspace({ withDashboardCache = false } = {}) {
+function renderWorkspace({
+  session,
+  withDashboardCache = false,
+}: {
+  /** Сессия сразу в кэше: права известны с первого рендера. */
+  session?: typeof kamSession;
+  withDashboardCache?: boolean;
+} = {}) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
+  if (session) {
+    queryClient.setQueryData(["auth", "session"], {
+      authenticated: true,
+      csrfToken: "token",
+      user: session,
+    });
+  }
   if (withDashboardCache) {
     queryClient.setQueryData(interactionsQueryKey(""), {
       count: 1,
@@ -323,6 +368,57 @@ describe("InteractionsWorkspace", () => {
 
     expect(
       await screen.findByRole("button", { name: "Развернуть список" }),
+    ).toBeInTheDocument();
+  });
+
+  it("shows an observer the interaction read-only and without processes", async () => {
+    const fetchMock = stubApi({ sessionUser: observerSession });
+    renderWorkspace({ session: observerSession });
+
+    fireEvent.click(await screen.findByText("Первый университет"));
+
+    expect(
+      await screen.findByText(
+        "Доступ ограничен: процессы недоступны для вашей роли.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText("Контакты пока не привязаны."),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Карточка" })).toBeVisible();
+    for (const name of ["Новое", "Запустить процесс", "Привязать контакт"]) {
+      expect(screen.queryByRole("button", { name })).toBeNull();
+    }
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).startsWith("/api/processes/"),
+      ),
+    ).toBe(false);
+  });
+
+  it("offers a kam to create interactions and start processes", async () => {
+    stubApi();
+    renderWorkspace();
+
+    fireEvent.click(await screen.findByText("Первый университет"));
+
+    expect(
+      await screen.findByRole("button", { name: "Запустить процесс" }),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "Новое" })).toBeVisible();
+    expect(
+      await screen.findByRole("button", { name: "Привязать контакт" }),
+    ).toBeVisible();
+  });
+
+  it("shows access restricted when the backend forbids the list", async () => {
+    stubApi({ forbidInteractions: true });
+    renderWorkspace();
+
+    expect(
+      await screen.findByText(
+        "Доступ ограничен: список недоступен для вашей роли.",
+      ),
     ).toBeInTheDocument();
   });
 });

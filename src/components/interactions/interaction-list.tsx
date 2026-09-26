@@ -24,12 +24,14 @@ import {
   getInteractionChat,
   interactionChatQueryKey,
 } from "@/lib/api/messaging/messaging";
+import { isAccessDenied } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/providers/locale-provider";
 import type { Interaction, InteractionShort } from "@/types/workflow-board";
 
 const copy = {
   ru: {
+    accessDenied: "Доступ ограничен: список недоступен для вашей роли.",
     actions: "Действия",
     chatCreate: "Создать чат",
     chatError: "Не удалось узнать о чате.",
@@ -52,6 +54,7 @@ const copy = {
     view: "Карточка взаимодействия",
   },
   en: {
+    accessDenied: "Access restricted: your role can't see this list.",
     actions: "Actions",
     chatCreate: "Create chat",
     chatError: "Couldn't check the chat.",
@@ -374,6 +377,8 @@ export function InteractionList({
       <div className="-mr-2 min-h-0 flex-1 overflow-y-auto pr-2">
         {interactionsQuery.isPending ? (
           <ListState label={text.loading} />
+        ) : isAccessDenied(interactionsQuery.error) ? (
+          <ListState label={text.accessDenied} />
         ) : interactionsQuery.isError ? (
           <ListState
             label={text.listError}

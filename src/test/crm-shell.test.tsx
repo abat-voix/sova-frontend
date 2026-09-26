@@ -13,6 +13,10 @@ import { CrmShell } from "@/components/crm/crm-shell";
 import { AuthProvider } from "@/providers/auth-provider";
 import { LocaleProvider } from "@/providers/locale-provider";
 import type { AuthenticatedUser } from "@/providers/auth-provider";
+import {
+  kamPermissions,
+  observerPermissions,
+} from "@/test/fixtures/permissions";
 
 const user: AuthenticatedUser = {
   id: 1,
@@ -21,6 +25,8 @@ const user: AuthenticatedUser = {
   lastName: "Иванов",
   displayName: "Иван Иванов",
   isStaff: false,
+  isSuperuser: false,
+  permissions: kamPermissions,
   role: "kam",
   roleDisplay: "КАМ",
   roles: [],
@@ -122,5 +128,40 @@ describe("CrmShell", () => {
     expect(
       await screen.findByRole("button", { name: "Все взаимодействия" }),
     ).toBeInTheDocument();
+  });
+
+  describe("observer", () => {
+    const observer: AuthenticatedUser = {
+      ...user,
+      permissions: observerPermissions,
+      role: "observer",
+      roleDisplay: "Наблюдатель",
+    };
+
+    it("shows only the sections on the role policy", () => {
+      renderShell("home", observer);
+
+      const navigation = screen.getByRole("navigation", {
+        name: "Основная навигация",
+      });
+      const links = Array.from(navigation.querySelectorAll("a")).map((link) =>
+        link.getAttribute("href"),
+      );
+      expect(links).toEqual(["/", "/interactions"]);
+    });
+
+    it("does not offer the messenger", () => {
+      renderShell("home", observer);
+
+      expect(
+        screen.queryByRole("button", { name: "Открыть сообщения" }),
+      ).toBeNull();
+    });
+
+    it("restricts a section opened by its address", () => {
+      renderShell("contracts", observer);
+
+      expect(screen.getByText("Доступ ограничен")).toBeInTheDocument();
+    });
   });
 });

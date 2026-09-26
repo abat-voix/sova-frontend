@@ -730,17 +730,21 @@ function ChatSection({
 }
 
 export function InteractionCardDialog({
+  canSeeDocuments = true,
   interaction,
   onClose,
   onCreateChat,
   onEdit,
   onOpenChat,
 }: {
+  /** Договоры, лицензии и вложения; без права раздел «Документы» не показывается. */
+  canSeeDocuments?: boolean;
   interaction: Interaction;
   onClose: () => void;
-  onCreateChat: (interaction: Interaction) => void;
-  onEdit: (interaction: Interaction) => void;
-  onOpenChat: (conversationId: string) => void;
+  /** Чат, редактирование: без колбэка раздел или кнопка не показываются. */
+  onCreateChat?: (interaction: Interaction) => void;
+  onEdit?: (interaction: Interaction) => void;
+  onOpenChat?: (conversationId: string) => void;
 }) {
   const { locale } = useLocale();
   const text = copy[locale];
@@ -795,29 +799,33 @@ export function InteractionCardDialog({
             />
           </Section>
 
-          <Section title={text.chat}>
-            <ChatSection
-              interactionId={interaction.id}
-              onCreateChat={() => {
-                onClose();
-                onCreateChat(interaction);
-              }}
-              onOpenChat={(conversationId) => {
-                onClose();
-                onOpenChat(conversationId);
-              }}
-            />
-          </Section>
+          {onCreateChat && onOpenChat ? (
+            <Section title={text.chat}>
+              <ChatSection
+                interactionId={interaction.id}
+                onCreateChat={() => {
+                  onClose();
+                  onCreateChat(interaction);
+                }}
+                onOpenChat={(conversationId) => {
+                  onClose();
+                  onOpenChat(conversationId);
+                }}
+              />
+            </Section>
+          ) : null}
 
           <CompositionSection interaction={interaction} />
 
           <ContactsSection interactionId={interaction.id} />
 
-          <Section title={text.documents}>
-            <ContractsSection interactionId={interaction.id} />
-            <LicensesSection interactionId={interaction.id} />
-            <AttachmentsSection interactionId={interaction.id} />
-          </Section>
+          {canSeeDocuments ? (
+            <Section title={text.documents}>
+              <ContractsSection interactionId={interaction.id} />
+              <LicensesSection interactionId={interaction.id} />
+              <AttachmentsSection interactionId={interaction.id} />
+            </Section>
+          ) : null}
         </div>
 
         <div className="flex justify-end gap-2 border-t px-5 py-4">
@@ -830,9 +838,11 @@ export function InteractionCardDialog({
           >
             {text.close}
           </Button>
-          <Button onClick={() => onEdit(interaction)} size="m" type="button">
-            {text.edit}
-          </Button>
+          {onEdit ? (
+            <Button onClick={() => onEdit(interaction)} size="m" type="button">
+              {text.edit}
+            </Button>
+          ) : null}
         </div>
       </div>
     </Modal>

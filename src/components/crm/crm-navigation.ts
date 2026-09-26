@@ -19,6 +19,11 @@ import {
 } from "lucide-react";
 
 import type { TranslationKey } from "@/i18n/translations";
+import {
+  can,
+  canUseUnmigratedSection,
+  type PolicyAction,
+} from "@/lib/permissions";
 import type { AuthenticatedUser } from "@/providers/auth-provider";
 
 export type CrmSection =
@@ -40,6 +45,8 @@ export type CrmSection =
   | "team";
 
 export type SectionAccess =
+  // Любой вошедший, в том числе без роли: главная сама решает, что показать
+  | "everyone"
   | "authenticated"
   | "workflow_manager"
   | "team_manager"
@@ -47,7 +54,10 @@ export type SectionAccess =
   | "platform_admin";
 
 export type CrmNavigationItem = {
+  /** Прежнее правило доступа — для разделов, ещё не переведённых на политику. */
   access?: SectionAccess;
+  /** Операция политики, открывающая раздел; важнее `access`. */
+  permission?: PolicyAction;
   descriptionKey: TranslationKey;
   href: string;
   icon: LucideIcon;
@@ -65,6 +75,7 @@ export const crmNavigation: CrmNavigationGroup[] = [
     labelKey: "navWork",
     items: [
       {
+        access: "everyone",
         id: "home",
         labelKey: "home",
         descriptionKey: "homeDescription",
@@ -73,6 +84,7 @@ export const crmNavigation: CrmNavigationGroup[] = [
       },
       {
         id: "interactions",
+        permission: "interactions.read",
         labelKey: "interactions",
         descriptionKey: "interactionsDescription",
         href: "/interactions",
@@ -206,13 +218,21 @@ export const crmNavigation: CrmNavigationGroup[] = [
 
 export const crmNavigationItems = crmNavigation.flatMap((group) => group.items);
 
+type NavigationUser = Pick<
+  AuthenticatedUser,
+  "isStaff" | "isSuperuser" | "permissions" | "role"
+>;
+
 export function canAccessCrmSection(
   item: CrmNavigationItem,
-  user: Pick<AuthenticatedUser, "isStaff" | "role">,
+  user: NavigationUser,
 ): boolean {
+  if (item.permission) return can(user, item.permission);
+
   const access = item.access ?? "authenticated";
 
-  if (access === "authenticated") return true;
+  if (access === "everyone") return true;
+  if (access === "authenticated") return canUseUnmigratedSection(user);
   // Команду ведёт руководитель, администратор — команды всех руководителей
   if (access === "workflow_manager" || access === "team_manager") {
     return user.role === "head" || user.role === "platform_admin";
@@ -225,7 +245,7 @@ export function canAccessCrmSection(
 
 export function canAccessCrmGroup(
   group: CrmNavigationGroup,
-  user: Pick<AuthenticatedUser, "isStaff" | "role">,
+  user: NavigationUser,
 ): boolean {
   return group.items.some((item) => canAccessCrmSection(item, user));
 }

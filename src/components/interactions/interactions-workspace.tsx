@@ -49,6 +49,11 @@ import {
   type BoardSelection,
 } from "@/lib/workflow/board-to-gantt";
 import { parseInteractionLink } from "@/lib/workflow/interaction-link";
+import {
+  can,
+  canUseUnmigratedSection,
+  isAccessDenied,
+} from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
@@ -56,6 +61,7 @@ import type { Interaction, WorkflowAudience } from "@/types/workflow-board";
 
 const copy = {
   ru: {
+    boardAccessDenied: "Доступ ограничен: процессы недоступны для вашей роли.",
     boardError: "Не удалось загрузить процесс.",
     collapseList: "Свернуть список",
     create: "Новое",
@@ -82,6 +88,7 @@ const copy = {
     viewCard: "Карточка",
   },
   en: {
+    boardAccessDenied: "Access restricted: your role can't see processes.",
     boardError: "The process could not be loaded.",
     collapseList: "Collapse the list",
     create: "New",
@@ -148,6 +155,13 @@ export function InteractionsWorkspace({
   const { locale, t } = useLocale();
   const { csrfToken, user } = useAuth();
   const text = copy[locale];
+  // Кнопки и запросы — по правам роли; решение о доступе к записи всё равно
+  // принимает бэкенд.
+  const canCreate = user !== null && can(user, "interactions.create");
+  const canUpdate = user !== null && can(user, "interactions.update");
+  const canChat = user !== null && can(user, "interactions.chat");
+  // Процессы, договоры и лицензии ещё не на политике ролей
+  const canUseUnmigrated = user !== null && canUseUnmigratedSection(user);
   // Ссылка из уведомления задаёт только начальный выбор: дальше пользователь
   // ходит по странице сам, и адрес за ним не следит.
   const searchParams = useSearchParams();
@@ -197,7 +211,7 @@ export function InteractionsWorkspace({
   const instancesQuery = useQuery({
     queryKey: ["processes", "workflow-instances", selectedInteractionId],
     queryFn: () => getWorkflowInstances(selectedInteractionId!),
-    enabled: selectedInteractionId !== null,
+    enabled: selectedInteractionId !== null && canUseUnmigrated,
   });
 
   const instances = useMemo(
@@ -284,15 +298,20 @@ export function InteractionsWorkspace({
 
         {viewingInteraction ? (
           <InteractionCardDialog
+            canSeeDocuments={canUseUnmigrated}
             interaction={viewingInteraction}
             key={viewingInteraction.id}
             onClose={() => setViewingInteraction(null)}
-            onCreateChat={setCreatingChatForInteraction}
-            onEdit={(interaction) => {
-              setViewingInteraction(null);
-              setEditingInteraction(interaction);
-            }}
-            onOpenChat={onOpenConversation}
+            onCreateChat={canChat ? setCreatingChatForInteraction : undefined}
+            onEdit={
+              canUpdate
+                ? (interaction) => {
+                    setViewingInteraction(null);
+                    setEditingInteraction(interaction);
+                  }
+                : undefined
+            }
+            onOpenChat={canChat ? onOpenConversation : undefined}
           />
         ) : null}
 
@@ -357,7 +376,7 @@ export function InteractionsWorkspace({
                 <PanelLeftClose aria-hidden="true" className="size-4" />
               )}
             </Button>
-            {user ? (
+            {canCreate ? (
               <Button
                 className={cn("flex-1", isListCollapsed && "lg:hidden")}
                 onClick={() => setIsCreating(true)}
@@ -383,9 +402,9 @@ export function InteractionsWorkspace({
           >
             <InteractionList
               onResolve={setSelectedInteraction}
-              onCreateChat={setCreatingChatForInteraction}
-              onEdit={setEditingInteraction}
-              onOpenChat={onOpenConversation}
+              onCreateChat={canChat ? setCreatingChatForInteraction : undefined}
+              onEdit={canUpdate ? setEditingInteraction : undefined}
+              onOpenChat={canChat ? onOpenConversation : undefined}
               onSelect={handleSelectInteraction}
               onView={setViewingInteraction}
               selectedId={selectedInteractionId}
@@ -438,7 +457,7 @@ export function InteractionsWorkspace({
               </label>
             ) : null}
 
-            {selectedInteractionId ? (
+            {selectedInteractionId && canUseUnmigrated ? (
               <Button
                 colorScheme={instances.length === 0 ? "accent" : "neutral"}
                 onClick={() => setIsStartingProcess(true)}
@@ -514,6 +533,7 @@ export function InteractionsWorkspace({
           {selectedInteraction ? (
             <InteractionContactsPanel
               key={selectedInteraction.id}
+              canEdit={canUpdate}
               csrfToken={csrfToken}
               interaction={selectedInteraction}
             />
@@ -565,6 +585,10 @@ export function InteractionsWorkspace({
             <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
               {selectedInteractionId === null ? (
                 <BoardState label={text.noInteraction} />
+              ) : !canUseUnmigrated ||
+                isAccessDenied(instancesQuery.error) ||
+                isAccessDenied(boardQuery.error) ? (
+                <BoardState label={text.boardAccessDenied} />
               ) : instancesQuery.isPending ? (
                 <BoardState label={text.loadingBoard} />
               ) : instancesQuery.isError ? (

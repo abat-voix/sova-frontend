@@ -13,6 +13,7 @@ import { NewInteractionDialog } from "@/components/interactions/new-interaction-
 import { LocaleProvider } from "@/providers/locale-provider";
 import type { AuthenticatedUser } from "@/providers/auth-provider";
 import type { Interaction } from "@/types/workflow-board";
+import { kamPermissions } from "@/test/fixtures/permissions";
 
 type Call = { body: unknown; url: string };
 
@@ -61,6 +62,8 @@ const user = (role: AuthenticatedUser["role"]): AuthenticatedUser => ({
   firstName: "Пётр",
   id: 3,
   isStaff: false,
+  isSuperuser: false,
+  permissions: kamPermissions,
   lastName: "Совин",
   role,
   roleDisplay: null,
