@@ -55,7 +55,7 @@ type StageNodeType = Node<StageNodeData, "stage">;
 function StageNode({ data }: NodeProps<StageNodeType>) {
   return (
     <div
-      className={`bg-card relative min-w-64 rounded-xl border-2 p-3 shadow-lg transition-shadow ${
+      className={`bg-card relative h-full min-w-64 rounded-xl border-2 p-3 shadow-lg transition-shadow ${
         data.selectedStage
           ? "border-[var(--atmr-accent-primary)] ring-2 ring-[var(--atmr-background-accent-soft)]"
           : "border-border"
@@ -294,6 +294,23 @@ export function WorkflowTemplatesWorkspace() {
       ),
     onSuccess: refreshDefinition,
   });
+  const updateStageLayout = useMutation({
+    mutationFn: ({
+      patch,
+      stageId,
+    }: {
+      stageId: string;
+      patch: Partial<
+        Pick<WorkflowStageDefinition, "position_x" | "position_y">
+      >;
+    }) =>
+      patchJson(
+        apiEndpoints.workflows.stages.detail(stageId),
+        patch,
+        csrfToken,
+      ),
+    onSuccess: refreshDefinition,
+  });
 
   const selectedWorkflow = listQuery.data?.find(
     (item) => item.id === selectedId,
@@ -321,6 +338,17 @@ export function WorkflowTemplatesWorkspace() {
     [canEdit, connectTransition],
   );
 
+  const onNodeDragStop = useCallback(
+    (_event: unknown, node: StageNodeType) => {
+      if (!canEdit) return;
+      updateStageLayout.mutate({
+        patch: { position_x: node.position.x, position_y: node.position.y },
+        stageId: node.id,
+      });
+    },
+    [canEdit, updateStageLayout],
+  );
+
   const nodes = useMemo<StageNodeType[]>(() => {
     const definition = definitionQuery.data;
     if (!definition) return [];
@@ -340,9 +368,16 @@ export function WorkflowTemplatesWorkspace() {
         },
         id: stage.id,
         position: {
-          x: (index % 3) * 310,
-          y: Math.floor(index / 3) * 280,
+          x: stage.position_x ?? (index % 3) * 310,
+          y: stage.position_y ?? Math.floor(index / 3) * 280,
         },
+        style:
+          stage.width != null || stage.height != null
+            ? {
+                height: stage.height ?? undefined,
+                width: stage.width ?? undefined,
+              }
+            : undefined,
         type: "stage",
       }));
   }, [
@@ -562,7 +597,7 @@ export function WorkflowTemplatesWorkspace() {
                     nodes={nodes}
                     nodeTypes={nodeTypes}
                     nodesConnectable={canEdit && !pending}
-                    nodesDraggable={false}
+                    nodesDraggable={canEdit && !pending}
                     onConnect={onConnect}
                     onEdgeClick={(_, edge) =>
                       setSelection({
@@ -573,6 +608,7 @@ export function WorkflowTemplatesWorkspace() {
                     onNodeClick={(_, node) =>
                       setSelection({ id: node.id, kind: "stage" })
                     }
+                    onNodeDragStop={onNodeDragStop}
                   >
                     <Background />
                     <Controls />

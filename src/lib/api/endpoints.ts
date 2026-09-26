@@ -66,6 +66,9 @@ export const apiEndpoints = {
     interactions: {
       assignResponsible: (id: string) =>
         `/api/interactions/interactions/${id}/assign-responsible/`,
+      chat: (id: string) => `/api/interactions/interactions/${id}/chat/`,
+      chatParticipants: (id: string) =>
+        `/api/interactions/interactions/${id}/chat/participants/`,
       contacts: (id: string) =>
         `/api/interactions/interactions/${id}/contacts/`,
       contact: (id: string, contactId: string) =>
@@ -77,6 +80,11 @@ export const apiEndpoints = {
     },
   },
   messaging: {
+    attachments: {
+      list: "/api/messaging/attachments/",
+      detail: (id: string) => `/api/messaging/attachments/${id}/`,
+      download: (id: string) => `/api/messaging/attachments/${id}/download/`,
+    },
     conversations: {
       detail: (id: string) => `/api/messaging/conversations/${id}/`,
       direct: "/api/messaging/conversations/direct/",
@@ -106,6 +114,8 @@ export const apiEndpoints = {
         `/api/processes/action-instances/${id}/complete/`,
       executeFeature: (id: string, code: string) =>
         `/api/processes/action-instances/${id}/features/${encodeURIComponent(code)}/execute/`,
+      featureInitial: (id: string, code: string) =>
+        `/api/processes/action-instances/${id}/features/${encodeURIComponent(code)}/initial/`,
       list: "/api/processes/action-instances/",
     },
     actionRollbacks: {
@@ -138,6 +148,8 @@ export const apiEndpoints = {
     claim: (id: number) => `/api/users/${id}/claim/`,
     release: (id: number) => `/api/users/${id}/release/`,
     head: (id: number) => `/api/users/${id}/head/`,
+    roles: "/api/users/roles/",
+    role: (id: number) => `/api/users/${id}/role/`,
   },
   workflows: {
     actionDependencies: {

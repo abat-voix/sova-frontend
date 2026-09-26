@@ -30,3 +30,9 @@ export type AccountChangeResult = {
   /** КАМы, потерявшие руководителя; для `PUT head/` всегда пуст. */
   orphaned_kams: SovaUserShort[];
 };
+
+/** Роль в справочнике `GET /api/users/roles/`. */
+export type RoleChoice = {
+  value: SystemRole;
+  label: string;
+};

@@ -1,34 +1,38 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useState } from "react";
 
 import { ConversationList } from "@/components/messaging/conversation-list";
 import { MessageThread } from "@/components/messaging/message-thread";
 import { Button } from "@/components/ui/button";
 import type { AuthenticatedUser } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
-import type { Conversation } from "@/types/messaging";
 
 type MessengerPanelProps = {
   csrfToken: string;
   currentUser: AuthenticatedUser;
   onClose: () => void;
+  onSelectConversation: (conversationId: string | null) => void;
+  selectedConversationId: string | null;
 };
 
 /**
  * Содержимое мессенджера: список диалогов либо открытая переписка. Одна и та
  * же панель монтируется и в сдвигающей колонке на широком экране, и в
  * оверлее на узком — раскладку выбирает вызывающий компонент (CrmShell).
+ *
+ * Выбранная беседа управляется снаружи (CrmShell): так кнопка «Открыть чат» из
+ * карточки Взаимодействия может выбрать нужный чат, а выбор переживает переключение
+ * между десктопным и мобильным вариантом панели.
  */
 export function MessengerPanel({
   csrfToken,
   currentUser,
   onClose,
+  onSelectConversation,
+  selectedConversationId,
 }: MessengerPanelProps) {
   const { t } = useLocale();
-  const [selectedConversation, setSelectedConversation] =
-    useState<Conversation | null>(null);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -49,18 +53,18 @@ export function MessengerPanel({
       </div>
 
       <div className="min-h-0 flex-1 px-4 py-3">
-        {selectedConversation ? (
+        {selectedConversationId ? (
           <MessageThread
-            conversation={selectedConversation}
+            conversationId={selectedConversationId}
             csrfToken={csrfToken}
             currentUserId={currentUser.id}
-            key={selectedConversation.id}
-            onBack={() => setSelectedConversation(null)}
+            key={selectedConversationId}
+            onBack={() => onSelectConversation(null)}
           />
         ) : (
           <ConversationList
             csrfToken={csrfToken}
-            onSelect={setSelectedConversation}
+            onSelect={onSelectConversation}
           />
         )}
       </div>

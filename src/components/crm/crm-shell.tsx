@@ -16,6 +16,8 @@ import { useState } from "react";
 import {
   crmNavigation,
   crmNavigationItems,
+  canAccessCrmGroup,
+  canAccessCrmSection,
   type CrmNavigationItem,
   type CrmSection,
 } from "@/components/crm/crm-navigation";
@@ -36,6 +38,7 @@ import { ReportsWorkspace } from "@/components/reports/reports-workspace";
 import { MyTasksWorkspace } from "@/components/tasks/my-tasks-workspace";
 import { TeamSection } from "@/components/team/team-section";
 import { WorkflowTemplatesWorkspace } from "@/components/workflows/workflow-templates-workspace";
+import { UserRolesWorkspace } from "@/components/users/user-roles-workspace";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BuildVersion } from "@/components/build-version";
 import { Button } from "@/components/ui/button";
@@ -127,14 +130,7 @@ function Sidebar({
       >
         <div className={cn(collapsed ? "space-y-4" : "space-y-6")}>
           {crmNavigation.map((group) => {
-            if (
-              group.staffOnly &&
-              !user.isStaff &&
-              user.role !== "head" &&
-              user.role !== "platform_admin"
-            ) {
-              return null;
-            }
+            if (!canAccessCrmGroup(group, user)) return null;
 
             return (
               <div key={group.labelKey}>
@@ -148,17 +144,7 @@ function Sidebar({
                 </p>
                 <div className="space-y-1">
                   {group.items.map((item) => {
-                    if (
-                      item.adminOnly &&
-                      !user.isStaff &&
-                      user.role !== "platform_admin"
-                    )
-                      return null;
-                    if (
-                      item.roles &&
-                      (user.role === null || !item.roles.includes(user.role))
-                    )
-                      return null;
+                    if (!canAccessCrmSection(item, user)) return null;
                     const Icon = item.icon;
                     const isActive = activeSection === item.id;
 
@@ -318,6 +304,17 @@ function IntegrationAccessDenied() {
   );
 }
 
+function UserRolesAccessDenied() {
+  return (
+    <div className="bg-card rounded-xl border border-dashed p-12 text-center">
+      <h1 className="text-2xl font-medium">Доступ ограничен</h1>
+      <p className="text-muted-foreground mt-2">
+        Управление ролями доступно только администратору платформы.
+      </p>
+    </div>
+  );
+}
+
 export function CrmShell(props: CrmShellProps) {
   // Каждый раздел — отдельная страница, поэтому состояние сайдбара живёт в
   // хранилище: иначе переход разворачивал бы его заново.
@@ -325,6 +322,9 @@ export function CrmShell(props: CrmShellProps) {
     usePersistedFlag(sidebarStorageKey);
   const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState(false);
   const [isMessengerOpen, setIsMessengerOpen] = useState(false);
+  const [selectedConversationId, setSelectedConversationId] = useState<
+    string | null
+  >(null);
   const { activeSection, csrfToken, user } = props;
   const { t } = useLocale();
   const { status: realtimeStatus } = useRealtime();
@@ -335,7 +335,14 @@ export function CrmShell(props: CrmShellProps) {
   const canManageWorkflows =
     user.role === "head" || user.role === "platform_admin";
   const canManageIntegrations = user.isStaff || user.role === "platform_admin";
-  const canManageTeam = user.role === "head" || user.role === "platform_admin";
+  const canManageTeam = canAccessCrmSection(
+    crmNavigationItems.find((item) => item.id === "team")!,
+    user,
+  );
+  const canManageUserRoles = canAccessCrmSection(
+    crmNavigationItems.find((item) => item.id === "userRoles")!,
+    user,
+  );
 
   const unreadCountQuery = useQuery({
     queryKey: unreadCountQueryKey(),
@@ -343,6 +350,13 @@ export function CrmShell(props: CrmShellProps) {
     refetchInterval: realtimePollingInterval(realtimeStatus, 30000),
   });
   const unreadCount = unreadCountQuery.data?.unread_count ?? 0;
+
+  // Открывает мессенджер сразу на нужном чате: используется кнопкой «Открыть
+  // чат»/«Создать чат» из карточки Взаимодействия.
+  function openConversation(conversationId: string) {
+    setSelectedConversationId(conversationId);
+    setIsMessengerOpen(true);
+  }
 
   return (
     <div
@@ -472,7 +486,11 @@ export function CrmShell(props: CrmShellProps) {
               : "p-3 sm:p-4 lg:p-4",
           )}
         >
-          {activeSection === "integrations" && !canManageIntegrations ? (
+          {activeSection === "userRoles" && !canManageUserRoles ? (
+            <UserRolesAccessDenied />
+          ) : activeSection === "userRoles" ? (
+            <UserRolesWorkspace />
+          ) : activeSection === "integrations" && !canManageIntegrations ? (
             <IntegrationAccessDenied />
           ) : activeSection === "integrations" ? (
             <IntegrationsWorkspace />
@@ -491,7 +509,7 @@ export function CrmShell(props: CrmShellProps) {
           ) : activeSection === "itCatalog" ? (
             <ItCatalogWorkspace />
           ) : activeSection === "interactions" ? (
-            <InteractionsWorkspace />
+            <InteractionsWorkspace onOpenConversation={openConversation} />
           ) : activeSection === "myTasks" ? (
             <MyTasksWorkspace />
           ) : activeSection === "notifications" ? (
@@ -524,6 +542,8 @@ export function CrmShell(props: CrmShellProps) {
               csrfToken={csrfToken}
               currentUser={user}
               onClose={() => setIsMessengerOpen(false)}
+              onSelectConversation={setSelectedConversationId}
+              selectedConversationId={selectedConversationId}
             />
           </div>
         ) : null}
@@ -542,6 +562,8 @@ export function CrmShell(props: CrmShellProps) {
               csrfToken={csrfToken}
               currentUser={user}
               onClose={() => setIsMessengerOpen(false)}
+              onSelectConversation={setSelectedConversationId}
+              selectedConversationId={selectedConversationId}
             />
           </aside>
         </div>

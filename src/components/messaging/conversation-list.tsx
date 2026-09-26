@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { MessageSquarePlus } from "lucide-react";
+import { MessageSquarePlus, Users } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -53,7 +53,7 @@ const copy = {
 
 type ConversationListProps = {
   csrfToken: string;
-  onSelect: (conversation: Conversation) => void;
+  onSelect: (conversationId: string) => void;
 };
 
 function conversationTitle(
@@ -61,10 +61,12 @@ function conversationTitle(
   text: { systemConversationTitle: string },
 ) {
   if (conversation.kind === "system") return text.systemConversationTitle;
+  if (conversation.kind === "interaction") return conversation.title ?? "—";
   return conversation.other_participant?.full_name ?? "—";
 }
 
 function conversationInitial(conversation: Conversation) {
+  if (conversation.kind !== "direct") return null;
   const name = conversation.other_participant?.full_name;
   return name ? name.trim().charAt(0).toUpperCase() : "С";
 }
@@ -106,7 +108,7 @@ export function ConversationList({
       );
       setIsPickingUser(false);
       setPickedUser(null);
-      onSelect(conversation);
+      onSelect(conversation.id);
     } catch (error) {
       toast.error(
         error instanceof ApiError
@@ -177,7 +179,7 @@ export function ConversationList({
             <button
               className="hover:bg-secondary flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors"
               key={conversation.id}
-              onClick={() => onSelect(conversation)}
+              onClick={() => onSelect(conversation.id)}
               type="button"
             >
               <span
@@ -189,7 +191,11 @@ export function ConversationList({
                     : "bg-[var(--atmr-background-accent-soft)] text-[var(--atmr-accent-primary)]",
                 )}
               >
-                {conversationInitial(conversation)}
+                {conversation.kind === "interaction" ? (
+                  <Users aria-hidden="true" className="size-4" />
+                ) : (
+                  conversationInitial(conversation)
+                )}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="flex items-center justify-between gap-2">

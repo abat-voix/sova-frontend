@@ -6,6 +6,7 @@ import {
   Download,
   FileText,
   Mail,
+  MessageCircle,
   Paperclip,
   Phone,
   User,
@@ -18,7 +19,6 @@ import {
 } from "@/components/interactions/interaction-list";
 import {
   DetailRows,
-  formatFileSize,
   registryCopy,
 } from "@/components/registry/registry-shared";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +50,12 @@ import {
   interactionLicensesQueryKey,
 } from "@/lib/api/interactions/licenses";
 import { formatDate } from "@/lib/format-date";
+import { formatFileSize } from "@/lib/format-file-size";
+import { ApiError } from "@/lib/api/http";
+import {
+  getInteractionChat,
+  interactionChatQueryKey,
+} from "@/lib/api/messaging/messaging";
 import { useLocale } from "@/providers/locale-provider";
 import type { ActionAttachment } from "@/types/action-attachment";
 import type { Contract } from "@/types/contract";
@@ -67,6 +73,12 @@ const copy = {
     active: "Активно",
     attachments: "Вложения действий",
     attachmentsEmpty: "Вложений пока нет.",
+    chat: "Чат",
+    chatCreate: "Создать чат",
+    chatError: "Не удалось узнать о чате.",
+    chatLoading: "Проверяем чат…",
+    chatNoAccess: "У вас нет доступа к чату этого взаимодействия.",
+    chatOpen: "Открыть чат",
     close: "Закрыть",
     comment: "Комментарий",
     composition: "Направления, программы и продукты",
@@ -109,6 +121,12 @@ const copy = {
     active: "Active",
     attachments: "Action attachments",
     attachmentsEmpty: "No attachments yet.",
+    chat: "Chat",
+    chatCreate: "Create chat",
+    chatError: "Couldn't check the chat.",
+    chatLoading: "Checking the chat…",
+    chatNoAccess: "You don't have access to this interaction's chat.",
+    chatOpen: "Open chat",
     close: "Close",
     comment: "Comment",
     composition: "Directions, programs, and products",
@@ -653,14 +671,76 @@ function CompositionSection({ interaction }: { interaction: Interaction }) {
   );
 }
 
+function ChatSection({
+  interactionId,
+  onCreateChat,
+  onOpenChat,
+}: {
+  interactionId: string;
+  onCreateChat: () => void;
+  onOpenChat: (conversationId: string) => void;
+}) {
+  const { locale } = useLocale();
+  const text = copy[locale];
+  const query = useQuery({
+    queryKey: interactionChatQueryKey(interactionId),
+    queryFn: () => getInteractionChat(interactionId),
+    retry: false,
+  });
+
+  if (query.isPending) return <SectionState label={text.chatLoading} />;
+
+  if (query.isError) {
+    if (query.error instanceof ApiError && query.error.status === 404) {
+      return (
+        <Button onClick={onCreateChat} size="s" type="button">
+          <MessageCircle aria-hidden="true" className="size-3.5" />
+          {text.chatCreate}
+        </Button>
+      );
+    }
+    if (query.error instanceof ApiError && query.error.status === 403) {
+      return (
+        <p className="text-muted-foreground text-xs">{text.chatNoAccess}</p>
+      );
+    }
+    return (
+      <SectionState
+        label={text.chatError}
+        onRetry={() => void query.refetch()}
+        retryLabel={text.retry}
+      />
+    );
+  }
+
+  if (!query.data) return null;
+
+  return (
+    <Button
+      colorScheme="neutral"
+      onClick={() => onOpenChat(query.data.id)}
+      size="s"
+      type="button"
+      variant="outline"
+    >
+      <MessageCircle aria-hidden="true" className="size-3.5" />
+      {text.chatOpen}
+    </Button>
+  );
+}
+
 export function InteractionCardDialog({
   interaction,
   onClose,
+  onCreateChat,
   onEdit,
+  onOpenChat,
 }: {
   interaction: Interaction;
   onClose: () => void;
+  onCreateChat: (interaction: Interaction) => void;
   onEdit: (interaction: Interaction) => void;
+  onOpenChat: (conversationId: string) => void;
 }) {
   const { locale } = useLocale();
   const text = copy[locale];
@@ -712,6 +792,20 @@ export function InteractionCardDialog({
                 [text.createdAt, formatDate(interaction.created_at, locale)],
                 [text.updatedAt, formatDate(interaction.updated_at, locale)],
               ]}
+            />
+          </Section>
+
+          <Section title={text.chat}>
+            <ChatSection
+              interactionId={interaction.id}
+              onCreateChat={() => {
+                onClose();
+                onCreateChat(interaction);
+              }}
+              onOpenChat={(conversationId) => {
+                onClose();
+                onOpenChat(conversationId);
+              }}
             />
           </Section>
 

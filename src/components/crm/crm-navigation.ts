@@ -14,11 +14,12 @@ import {
   Settings2,
   UserRound,
   Users,
+  UsersRound,
   type LucideIcon,
 } from "lucide-react";
 
 import type { TranslationKey } from "@/i18n/translations";
-import type { SystemRole } from "@/providers/auth-provider";
+import type { AuthenticatedUser } from "@/providers/auth-provider";
 
 export type CrmSection =
   | "home"
@@ -35,23 +36,28 @@ export type CrmSection =
   | "vendors"
   | "workflowTemplates"
   | "integrations"
+  | "userRoles"
   | "team";
 
+export type SectionAccess =
+  | "authenticated"
+  | "workflow_manager"
+  | "team_manager"
+  | "platform_operator"
+  | "platform_admin";
+
 export type CrmNavigationItem = {
-  adminOnly?: boolean;
+  access?: SectionAccess;
   descriptionKey: TranslationKey;
   href: string;
   icon: LucideIcon;
   id: CrmSection;
   labelKey: TranslationKey;
-  /** Пункт виден только этим прикладным ролям СОВА; `isStaff` его не открывает. */
-  roles?: SystemRole[];
 };
 
 export type CrmNavigationGroup = {
   labelKey: TranslationKey;
   items: CrmNavigationItem[];
-  staffOnly?: boolean;
 };
 
 export const crmNavigation: CrmNavigationGroup[] = [
@@ -73,12 +79,12 @@ export const crmNavigation: CrmNavigationGroup[] = [
         icon: Handshake,
       },
       {
+        access: "team_manager",
         id: "team",
         labelKey: "team",
         descriptionKey: "teamDescription",
         href: "/team",
         icon: Users,
-        roles: ["head", "platform_admin"],
       },
       {
         id: "myTasks",
@@ -169,9 +175,9 @@ export const crmNavigation: CrmNavigationGroup[] = [
   },
   {
     labelKey: "navAdministration",
-    staffOnly: true,
     items: [
       {
+        access: "workflow_manager",
         id: "workflowTemplates",
         labelKey: "workflowTemplates",
         descriptionKey: "workflowTemplatesDescription",
@@ -179,15 +185,47 @@ export const crmNavigation: CrmNavigationGroup[] = [
         icon: Settings2,
       },
       {
-        adminOnly: true,
+        access: "platform_operator",
         id: "integrations",
         labelKey: "integrations",
         descriptionKey: "integrationsDescription",
         href: "/settings/integrations",
         icon: PlugZap,
       },
+      {
+        access: "platform_admin",
+        id: "userRoles",
+        labelKey: "userRoles",
+        descriptionKey: "userRolesDescription",
+        href: "/settings/users",
+        icon: UsersRound,
+      },
     ],
   },
 ];
 
 export const crmNavigationItems = crmNavigation.flatMap((group) => group.items);
+
+export function canAccessCrmSection(
+  item: CrmNavigationItem,
+  user: Pick<AuthenticatedUser, "isStaff" | "role">,
+): boolean {
+  const access = item.access ?? "authenticated";
+
+  if (access === "authenticated") return true;
+  // Команду ведёт руководитель, администратор — команды всех руководителей
+  if (access === "workflow_manager" || access === "team_manager") {
+    return user.role === "head" || user.role === "platform_admin";
+  }
+  if (access === "platform_operator") {
+    return user.isStaff || user.role === "platform_admin";
+  }
+  return user.role === "platform_admin";
+}
+
+export function canAccessCrmGroup(
+  group: CrmNavigationGroup,
+  user: Pick<AuthenticatedUser, "isStaff" | "role">,
+): boolean {
+  return group.items.some((item) => canAccessCrmSection(item, user));
+}

@@ -2,7 +2,10 @@ import type { UserShort } from "@/types/workflow-board";
 
 /** Только renderer, поддержанные интерфейсом. Остальные backend-коды игнорируются. */
 export type ActionFeatureCode =
-  "contact_person.create" | "contact_person.select" | "contact_person.link";
+  | "contact_person.create"
+  | "contact_person.select"
+  | "contact_person.link"
+  | "contract.create";
 
 /** Коды из плана, которые подключаются интерфейсом отдельными волнами. */
 export type PlannedActionFeatureCode =
@@ -66,10 +69,57 @@ export type SelectContactPersonFeaturePayload = {
   contact_person: string;
 };
 
+/** Данные договора — контекст рендера шаблона docxtpl на бэкенде. */
+export type ContractDocument = {
+  contract_number: string;
+  /** YYYY-MM-DD; null — дата не указана. */
+  contract_date: string | null;
+  city: string;
+  counterparty: {
+    name: string;
+    short_name: string;
+    inn: string;
+    address: string;
+    email: string;
+    phone: string;
+  };
+  signatory: {
+    full_name: string;
+    position: string;
+    basis: string;
+  };
+  products: string[];
+  /** Десятичная строка, например "1000.50"; null — сумма не указана. */
+  amount: string | null;
+  comment: string;
+};
+
+export type CreateContractFeaturePayload = {
+  template: string;
+  document: ContractDocument;
+};
+
+export type DocumentTemplateShort = {
+  id: string;
+  name: string;
+};
+
+/** Черновик формы договора: что бэкенд знает о взаимодействии. */
+export type CreateContractFeatureInitial = {
+  templates: DocumentTemplateShort[];
+  contacts: { id: string; full_name: string; position: string }[];
+  document: ContractDocument;
+};
+
 export type ActionFeaturePayloadMap = {
   "contact_person.create": CreateContactPersonFeaturePayload;
   "contact_person.select": SelectContactPersonFeaturePayload;
   "contact_person.link": SelectContactPersonFeaturePayload;
+  "contract.create": CreateContractFeaturePayload;
+};
+
+export type ActionFeatureInitialMap = {
+  "contract.create": CreateContractFeatureInitial;
 };
 
 export type ExecuteActionFeatureResult = {

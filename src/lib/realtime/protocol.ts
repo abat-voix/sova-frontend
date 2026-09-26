@@ -8,6 +8,14 @@ export const messagingUserSchema = z.object({
   full_name: z.string(),
 });
 
+export const messageAttachmentSchema = z.object({
+  id: z.uuid(),
+  original_name: z.string(),
+  size: z.number().int().nonnegative(),
+  content_type: z.string(),
+  download_url: z.string(),
+});
+
 export const messageSchema = z.object({
   id: z.uuid(),
   conversation: z.uuid(),
@@ -15,6 +23,7 @@ export const messageSchema = z.object({
   text: z.string(),
   link: z.string(),
   created_at: timestampSchema,
+  attachments: z.array(messageAttachmentSchema).default([]),
 });
 
 const envelopeBaseSchema = z.object({
@@ -47,9 +56,16 @@ export const realtimeEventSchema = z.discriminatedUnion("type", [
       read_at: timestampSchema,
     }),
   }),
+  envelopeBaseSchema.extend({
+    version: z.literal(1),
+    type: z.literal("messaging.conversation_participants_changed"),
+    data: z.object({ conversation_id: z.uuid() }),
+  }),
 ]);
 
 export type MessagingUser = z.infer<typeof messagingUserSchema>;
+export type MessageAttachment = z.infer<typeof messageAttachmentSchema>;
+export type StagedMessageAttachment = Omit<MessageAttachment, "download_url">;
 export type Message = z.infer<typeof messageSchema>;
 export type RealtimeEvent = z.infer<typeof realtimeEventSchema>;
 

@@ -16,6 +16,8 @@ export const teamPageSize = 20;
 
 export type UserListParams = {
   head?: number;
+  /** Поле сортировки бэка, `-` — по убыванию: `last_name`, `-email`. */
+  ordering?: string;
   page?: number;
   pageSize?: number;
   role?: SystemRole[];
@@ -41,6 +43,7 @@ function userListQuery(params: UserListParams) {
   if (search) query.set("search", search);
   if (params.team) query.set("team", params.team);
   if (params.head !== undefined) query.set("head", String(params.head));
+  if (params.ordering) query.set("ordering", params.ordering);
   for (const role of params.role ?? []) query.append("role", role);
   return query.toString();
 }

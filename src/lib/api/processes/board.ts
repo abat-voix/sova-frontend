@@ -8,6 +8,7 @@ import type {
 import type { PaginatedResponse } from "@/types/api";
 import type {
   ActionFeatureCode,
+  ActionFeatureInitialMap,
   ActionFeaturePayloadMap,
   ExecuteActionFeatureResult,
 } from "@/types/action-feature";
@@ -91,6 +92,30 @@ export function executeActionFeature<Code extends ActionFeatureCode>(
     ),
     payload,
     csrfToken,
+  );
+}
+
+export function actionFeatureInitialQueryKey(
+  actionInstanceId: string,
+  code: keyof ActionFeatureInitialMap,
+) {
+  return [
+    "processes",
+    "action-feature-initial",
+    actionInstanceId,
+    code,
+  ] as const;
+}
+
+/** Черновик формы feature: backend заполняет то, что знает о контексте действия. */
+export function getActionFeatureInitial<
+  Code extends keyof ActionFeatureInitialMap,
+>(actionInstanceId: string, code: Code) {
+  return getJson<ActionFeatureInitialMap[Code]>(
+    apiEndpoints.processes.actionInstances.featureInitial(
+      actionInstanceId,
+      code,
+    ),
   );
 }
 

@@ -58,6 +58,17 @@ describe("users team api", () => {
     ).toBe("12");
   });
 
+  it("passes ordering and pagination", async () => {
+    const calls = stubFetch();
+
+    await listUsers({ ordering: "-last_name", page: 2, pageSize: 10 });
+
+    const params = new URL(calls[0].url, "http://localhost").searchParams;
+    expect(params.get("ordering")).toBe("-last_name");
+    expect(params.get("page")).toBe("2");
+    expect(params.get("page_size")).toBe("10");
+  });
+
   it("claims and releases a kam with POST", async () => {
     const calls = stubFetch({ id: 5 });
 
