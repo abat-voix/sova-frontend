@@ -35,7 +35,10 @@ describe("parseRealtimeEvent", () => {
     });
 
     expect(result.kind).toBe("event");
-    if (result.kind === "event" && result.event.type === "messaging.message_created") {
+    if (
+      result.kind === "event" &&
+      result.event.type === "messaging.message_created"
+    ) {
       expect(result.event.data.message.attachments).toEqual([]);
     }
   });
@@ -48,32 +51,36 @@ describe("parseRealtimeEvent", () => {
       content_type: "application/pdf",
       download_url: "/server-provided-download/",
     };
-    const result = parseRealtimeEvent(messageEvent({ attachments: [attachment] }));
+    const result = parseRealtimeEvent(
+      messageEvent({ attachments: [attachment] }),
+    );
 
     expect(result.kind).toBe("event");
-    if (result.kind === "event" && result.event.type === "messaging.message_created") {
+    if (
+      result.kind === "event" &&
+      result.event.type === "messaging.message_created"
+    ) {
       expect(result.event.data.message.attachments).toEqual([attachment]);
     }
   });
 
-  it.each([
-    { id: "not-a-uuid" },
-    { size: -1 },
-    { download_url: undefined },
-  ])("rejects an invalid attachment: %o", (override) => {
-    const attachment = {
-      id: "0199f5db-2778-7000-8000-000000000004",
-      original_name: "document.pdf",
-      size: 2048,
-      content_type: "application/pdf",
-      download_url: "/server-provided-download/",
-      ...override,
-    };
+  it.each([{ id: "not-a-uuid" }, { size: -1 }, { download_url: undefined }])(
+    "rejects an invalid attachment: %o",
+    (override) => {
+      const attachment = {
+        id: "0199f5db-2778-7000-8000-000000000004",
+        original_name: "document.pdf",
+        size: 2048,
+        content_type: "application/pdf",
+        download_url: "/server-provided-download/",
+        ...override,
+      };
 
-    expect(
-      parseRealtimeEvent(messageEvent({ attachments: [attachment] })).kind,
-    ).toBe("invalid");
-  });
+      expect(
+        parseRealtimeEvent(messageEvent({ attachments: [attachment] })).kind,
+      ).toBe("invalid");
+    },
+  );
 
   it("distinguishes unsupported versions and types", () => {
     expect(

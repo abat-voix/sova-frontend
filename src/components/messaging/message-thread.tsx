@@ -167,15 +167,13 @@ export function MessageThread({
         error instanceof ApiError && error.code === "attachment_not_found"
           ? text.attachmentUnavailable
           : error instanceof ApiError
-          ? (error.detail ?? text.sendError)
-          : text.sendError,
+            ? (error.detail ?? text.sendError)
+            : text.sendError,
       );
     },
   });
 
-  const hasUploading = attachments.some(
-    (item) => item.status === "uploading",
-  );
+  const hasUploading = attachments.some((item) => item.status === "uploading");
   const readyAttachments = attachments.filter(
     (item) => item.status === "ready",
   );
@@ -227,9 +225,7 @@ export function MessageThread({
         attachment,
       }));
     } catch {
-      if (
-        attachmentsRef.current.some((item) => item.localId === localId)
-      ) {
+      if (attachmentsRef.current.some((item) => item.localId === localId)) {
         updateAttachment(localId, () => ({
           status: "error",
           localId,
@@ -350,7 +346,9 @@ export function MessageThread({
                       : "bg-secondary text-foreground",
                   )}
                 >
-                  {message.text ? <MessageMarkdown text={message.text} /> : null}
+                  {message.text ? (
+                    <MessageMarkdown text={message.text} />
+                  ) : null}
                   {messageAttachments.map((attachment) => (
                     <MessageAttachment
                       attachment={attachment}

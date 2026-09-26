@@ -60,10 +60,7 @@ export const realtimeEventSchema = z.discriminatedUnion("type", [
 
 export type MessagingUser = z.infer<typeof messagingUserSchema>;
 export type MessageAttachment = z.infer<typeof messageAttachmentSchema>;
-export type StagedMessageAttachment = Omit<
-  MessageAttachment,
-  "download_url"
->;
+export type StagedMessageAttachment = Omit<MessageAttachment, "download_url">;
 export type Message = z.infer<typeof messageSchema>;
 export type RealtimeEvent = z.infer<typeof realtimeEventSchema>;
 
