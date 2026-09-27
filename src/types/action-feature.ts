@@ -1,3 +1,7 @@
+import type {
+  CreateTrainingStreamFeatureInitial,
+  CreateTrainingStreamFeaturePayload,
+} from "@/types/training";
 import type { UserShort } from "@/types/workflow-board";
 
 /** Только renderer, поддержанные интерфейсом. Остальные backend-коды игнорируются. */
@@ -20,7 +24,8 @@ export type ActionFeatureCode =
   | "contract.sign"
   | "contract.file.upload"
   | "contract.mark_sent"
-  | "contract.mark_corrected";
+  | "contract.mark_corrected"
+  | "training.create";
 
 /** Коды из плана, которые подключаются интерфейсом отдельными волнами. */
 export type PlannedActionFeatureCode =
@@ -30,7 +35,6 @@ export type PlannedActionFeatureCode =
   | "communication.create"
   | "meeting.create"
   | "installation.create"
-  | "training.create"
   | "program_update.create"
   | "result_check.create"
   | "checklist.fill"
@@ -232,6 +236,7 @@ export type ActionFeaturePayloadMap = {
   "contract.file.upload": { contract: string; file: File };
   "contract.mark_sent": { contract: string; sent_at: string };
   "contract.mark_corrected": { contract: string; corrected_at: string };
+  "training.create": CreateTrainingStreamFeaturePayload;
 };
 
 export type ActionFeatureInitialMap = {
@@ -249,6 +254,7 @@ export type ActionFeatureInitialMap = {
   "contract.file.upload": ContractOperationFeatureInitial;
   "contract.mark_sent": ContractOperationFeatureInitial;
   "contract.mark_corrected": ContractOperationFeatureInitial;
+  "training.create": CreateTrainingStreamFeatureInitial;
 };
 
 export type ExecuteActionFeatureResult = {

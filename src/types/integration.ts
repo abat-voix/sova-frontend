@@ -72,4 +72,18 @@ export type IntegrationMappingPreview = {
   warnings: string[];
 };
 
+/** Объект — одна запись, массив — по записи на элемент (`null` пропускается). */
+export type IntegrationMappingProcessPayload =
+  Record<string, unknown> | Array<Record<string, unknown> | null>;
+
+export type IntegrationMappingProcessResult = {
+  /** ID интеграционного сообщения в журнале. */
+  id: string;
+  status: "processed" | "failed";
+  /** Созданные или обновлённые записи CRM; при массиве часть элементов может пройти и при ошибках. */
+  created: Array<{ entity: string; id: string }>;
+  errors: string[];
+  warnings: string[];
+};
+
 export type ExternalFieldOption = { path: string; valueType: string };

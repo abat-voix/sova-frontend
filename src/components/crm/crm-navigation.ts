@@ -7,11 +7,14 @@ import {
   Factory,
   FileSpreadsheet,
   FileText,
+  FileUp,
+  GraduationCap,
   Handshake,
   House,
   Layers,
   ListChecks,
   PlugZap,
+  Presentation,
   Settings2,
   UserRound,
   Users,
@@ -40,7 +43,11 @@ export type CrmSection =
   | "integrations"
   | "catalogImport"
   | "userRoles"
-  | "team";
+  | "team"
+  | "trainingStreams"
+  | "learners"
+  | "trainingInstructors"
+  | "learnerImport";
 
 export type SectionAccess = "everyone";
 
@@ -182,6 +189,43 @@ export const crmNavigation: CrmNavigationGroup[] = [
         descriptionKey: "vendorsDescription",
         href: "/catalog/vendors",
         icon: Factory,
+      },
+    ],
+  },
+  {
+    labelKey: "navTraining",
+    items: [
+      {
+        id: "trainingStreams",
+        permission: "training.read",
+        labelKey: "trainingStreams",
+        descriptionKey: "trainingStreamsDescription",
+        href: "/training/streams",
+        icon: GraduationCap,
+      },
+      {
+        id: "learners",
+        permission: "training.read",
+        labelKey: "learners",
+        descriptionKey: "learnersDescription",
+        href: "/training/learners",
+        icon: UserRound,
+      },
+      {
+        id: "trainingInstructors",
+        permission: "catalog.read",
+        labelKey: "trainingInstructors",
+        descriptionKey: "trainingInstructorsDescription",
+        href: "/training/instructors",
+        icon: Presentation,
+      },
+      {
+        id: "learnerImport",
+        permission: "catalog.import",
+        labelKey: "learnerImport",
+        descriptionKey: "learnerImportDescription",
+        href: "/training/import",
+        icon: FileUp,
       },
     ],
   },

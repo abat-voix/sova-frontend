@@ -54,6 +54,7 @@ import {
 } from "@/lib/api/messaging/messaging";
 import { useLocale } from "@/providers/locale-provider";
 import type { ActionAttachment } from "@/types/action-attachment";
+import { InteractionTrainingSection } from "@/components/training/interaction-training-section";
 import type { InteractionContact } from "@/types/interaction-contact";
 import type { License } from "@/types/license";
 import type {
@@ -85,6 +86,7 @@ const copy = {
     corrected: "Скорректирован",
     createdAt: "Создано",
     documents: "Документы",
+    training: "Обучение",
     download: "Скачать",
     draft: "Черновик",
     edit: "Редактировать",
@@ -133,6 +135,7 @@ const copy = {
     corrected: "Corrected",
     createdAt: "Created",
     documents: "Documents",
+    training: "Training",
     download: "Download",
     draft: "Draft",
     edit: "Edit",
@@ -633,6 +636,7 @@ function ChatSection({
 
 export function InteractionCardDialog({
   canSeeDocuments = true,
+  canSeeTraining = false,
   interaction,
   onClose,
   onCreateChat,
@@ -641,6 +645,8 @@ export function InteractionCardDialog({
 }: {
   /** Договоры, лицензии и вложения; без права раздел «Документы» не показывается. */
   canSeeDocuments?: boolean;
+  /** Потоки обучения по программам взаимодействия — ссылки в раздел «Обучение». */
+  canSeeTraining?: boolean;
   interaction: Interaction;
   onClose: () => void;
   /** Чат, редактирование: без колбэка раздел или кнопка не показываются. */
@@ -723,6 +729,12 @@ export function InteractionCardDialog({
           ) : null}
 
           <CompositionSection interaction={interaction} />
+
+          {canSeeTraining ? (
+            <Section title={text.training}>
+              <InteractionTrainingSection interactionId={interaction.id} />
+            </Section>
+          ) : null}
 
           <ContactsSection interactionId={interaction.id} />
 

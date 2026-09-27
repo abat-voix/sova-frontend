@@ -20,6 +20,7 @@ export const translations = {
     navDocuments: "Документы",
     navClients: "Клиенты",
     navCatalog: "Каталог",
+    navTraining: "Обучение",
     navAdministration: "Администрирование",
     home: "Главная",
     homeDescription:
@@ -59,6 +60,18 @@ export const translations = {
     catalogImport: "Импорт справочников",
     catalogImportDescription:
       "Загрузка справочников и реестра договоров из xlsx/xls, маппинг колонок.",
+    trainingStreams: "Потоки",
+    trainingStreamsDescription:
+      "Потоки обучения по программам взаимодействий, заявки, участники и оплата.",
+    learners: "Обучающиеся",
+    learnersDescription:
+      "Обучающиеся из файла «Пользователи» и их участие в потоках.",
+    trainingInstructors: "Преподаватели",
+    trainingInstructorsDescription:
+      "Преподаватели вузов и B2C-организаций и их подготовка.",
+    learnerImport: "Загрузка пользователей",
+    learnerImportDescription:
+      "Загрузка файла «Пользователи» с потоком или без него.",
     userRoles: "Роли пользователей",
     userRolesDescription: "Назначение прикладных ролей пользователям СОВА.",
     userRolesSearch: "Поиск пользователей",
@@ -118,6 +131,7 @@ export const translations = {
     navDocuments: "Documents",
     navClients: "Clients",
     navCatalog: "Catalog",
+    navTraining: "Training",
     navAdministration: "Administration",
     home: "Home",
     homeDescription:
@@ -158,6 +172,17 @@ export const translations = {
     catalogImport: "Catalog import",
     catalogImportDescription:
       "Upload catalogs and the contract registry from xlsx/xls, map columns.",
+    trainingStreams: "Streams",
+    trainingStreamsDescription:
+      "Training streams by interaction programs, applications, participants and payment.",
+    learners: "Learners",
+    learnersDescription:
+      "Learners from the users file and their stream participation.",
+    trainingInstructors: "Instructors",
+    trainingInstructorsDescription:
+      "Instructors of universities and B2C organizations and their qualification.",
+    learnerImport: "Users upload",
+    learnerImportDescription: "Upload the users file with or without a stream.",
     userRoles: "User roles",
     userRolesDescription: "Assign application roles to SOVA users.",
     userRolesSearch: "Search users",
