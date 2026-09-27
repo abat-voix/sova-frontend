@@ -95,6 +95,26 @@ export function executeActionFeature<Code extends ActionFeatureCode>(
   );
 }
 
+/** Multipart-вариант feature API для действий с пользовательским файлом. */
+export function executeContractFileUploadFeature(
+  actionInstanceId: string,
+  payload: ActionFeaturePayloadMap["contract.file.upload"],
+  csrfToken: string,
+) {
+  const body = new FormData();
+  body.set("contract", payload.contract);
+  body.set("file", payload.file);
+
+  return postFormData<ExecuteActionFeatureResult>(
+    apiEndpoints.processes.actionInstances.executeFeature(
+      actionInstanceId,
+      "contract.file.upload",
+    ),
+    body,
+    csrfToken,
+  );
+}
+
 export function actionFeatureInitialQueryKey(
   actionInstanceId: string,
   code: keyof ActionFeatureInitialMap,

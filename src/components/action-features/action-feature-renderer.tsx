@@ -7,6 +7,10 @@ import { ContactPersonCreateFeature } from "@/components/action-features/contact
 import { ContactPersonUpdateFeature } from "@/components/action-features/contact-person-update-feature";
 import { ContactPersonDeactivateFeature } from "@/components/action-features/contact-person-deactivate-feature";
 import { ContractCreateFeature } from "@/components/action-features/contract-create-feature";
+import { ContractOperationFeature } from "@/components/action-features/contract-operation-feature";
+import { ResponsibleFeature } from "@/components/action-features/responsible-feature";
+import { InteractionCompositionFeature } from "@/components/action-features/interaction-composition-feature";
+import { InteractionContractsList } from "@/components/action-features/interaction-contracts-list";
 import { useLocale } from "@/providers/locale-provider";
 import type {
   ActionFeatureCode,
@@ -54,9 +58,61 @@ export const actionFeatureDefinitions: Record<string, ActionFeatureDefinition> =
       code: "contact_person.deactivate",
       Component: ContactPersonDeactivateFeature,
     },
+    "responsible.assign": {
+      code: "responsible.assign",
+      Component: ResponsibleFeature,
+    },
+    "responsible.unassign": {
+      code: "responsible.unassign",
+      Component: ResponsibleFeature,
+    },
+    "interaction_direction.add": {
+      code: "interaction_direction.add",
+      Component: InteractionCompositionFeature,
+    },
+    "interaction_direction.remove": {
+      code: "interaction_direction.remove",
+      Component: InteractionCompositionFeature,
+    },
+    "interaction_program.add": {
+      code: "interaction_program.add",
+      Component: InteractionCompositionFeature,
+    },
+    "interaction_program.remove": {
+      code: "interaction_program.remove",
+      Component: InteractionCompositionFeature,
+    },
+    "interaction_product.add": {
+      code: "interaction_product.add",
+      Component: InteractionCompositionFeature,
+    },
+    "interaction_product.remove": {
+      code: "interaction_product.remove",
+      Component: InteractionCompositionFeature,
+    },
     "contract.create": {
       code: "contract.create",
       Component: ContractCreateFeature,
+    },
+    "contract.update": {
+      code: "contract.update",
+      Component: ContractOperationFeature,
+    },
+    "contract.sign": {
+      code: "contract.sign",
+      Component: ContractOperationFeature,
+    },
+    "contract.file.upload": {
+      code: "contract.file.upload",
+      Component: ContractOperationFeature,
+    },
+    "contract.mark_sent": {
+      code: "contract.mark_sent",
+      Component: ContractOperationFeature,
+    },
+    "contract.mark_corrected": {
+      code: "contract.mark_corrected",
+      Component: ContractOperationFeature,
     },
   };
 
@@ -101,6 +157,9 @@ export function ActionFeatureRenderer(props: Props) {
       ),
   );
   const unknownCodes = unknown.map((feature) => feature.code).join(",");
+  const hasContractFeature = visibleFeatures.some((feature) =>
+    feature.code.startsWith("contract."),
+  );
 
   useEffect(() => {
     for (const code of unknownCodes ? unknownCodes.split(",") : [])
@@ -109,6 +168,12 @@ export function ActionFeatureRenderer(props: Props) {
 
   return (
     <div className="space-y-3">
+      {hasContractFeature && props.interaction ? (
+        <InteractionContractsList
+          className="border-t pt-4"
+          interactionId={props.interaction.id}
+        />
+      ) : null}
       {visibleFeatures.map((feature) => {
         const Renderer = actionFeatureDefinitions[feature.code]?.Component;
         if (!Renderer)
