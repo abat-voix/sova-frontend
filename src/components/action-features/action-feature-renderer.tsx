@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import type { ComponentType } from "react";
 
 import { ContactPersonCreateFeature } from "@/components/action-features/contact-person-create-feature";
+import { ContactPersonUpdateFeature } from "@/components/action-features/contact-person-update-feature";
+import { ContactPersonDeactivateFeature } from "@/components/action-features/contact-person-deactivate-feature";
 import { ContractCreateFeature } from "@/components/action-features/contract-create-feature";
 import { useLocale } from "@/providers/locale-provider";
 import type {
@@ -43,6 +45,14 @@ export const actionFeatureDefinitions: Record<string, ActionFeatureDefinition> =
     "contact_person.link": {
       code: "contact_person.link",
       Component: ContactPersonSelectFeature,
+    },
+    "contact_person.update": {
+      code: "contact_person.update",
+      Component: ContactPersonUpdateFeature,
+    },
+    "contact_person.deactivate": {
+      code: "contact_person.deactivate",
+      Component: ContactPersonDeactivateFeature,
     },
     "contract.create": {
       code: "contract.create",

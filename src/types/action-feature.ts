@@ -5,6 +5,8 @@ export type ActionFeatureCode =
   | "contact_person.create"
   | "contact_person.select"
   | "contact_person.link"
+  | "contact_person.update"
+  | "contact_person.deactivate"
   | "contract.create";
 
 /** Коды из плана, которые подключаются интерфейсом отдельными волнами. */
@@ -68,6 +70,14 @@ export type CreateContactPersonFeaturePayload = {
 export type SelectContactPersonFeaturePayload = {
   contact_person: string;
 };
+
+export type UpdateContactPersonFeaturePayload =
+  SelectContactPersonFeaturePayload & {
+    full_name: string;
+    position: string;
+    email: string;
+    phone: string;
+  };
 
 /**
  * Состав взаимодействия в договоре. Бэкенд принимает выбранные элементы по `id`
@@ -145,6 +155,8 @@ export type ActionFeaturePayloadMap = {
   "contact_person.create": CreateContactPersonFeaturePayload;
   "contact_person.select": SelectContactPersonFeaturePayload;
   "contact_person.link": SelectContactPersonFeaturePayload;
+  "contact_person.update": UpdateContactPersonFeaturePayload;
+  "contact_person.deactivate": SelectContactPersonFeaturePayload;
   "contract.create": CreateContractFeaturePayload;
 };
 
