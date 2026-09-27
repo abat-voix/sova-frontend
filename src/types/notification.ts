@@ -25,3 +25,15 @@ export type NotificationKindSummary = {
   count: number;
   unread_count: number;
 };
+
+/**
+ * Статус привязки Telegram текущего пользователя (`/api/notifications/telegram/`).
+ *
+ * `deep_link` — одноразовая ссылка `https://t.me/<бот>?start=<токен>`, есть
+ * только пока Telegram не подключён; `expires_at` — срок её действия.
+ */
+export type TelegramLinkStatus = {
+  is_connected: boolean;
+  deep_link: string | null;
+  expires_at: string | null;
+};
