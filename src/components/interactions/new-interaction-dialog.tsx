@@ -428,8 +428,26 @@ export function NewInteractionDialog({
   const hasSelf = draft.responsibles.some(
     (option) => option.id === String(currentUser.id),
   );
+  const canKamAssignSelf =
+    isKam &&
+    isEditing &&
+    editInteraction?.current_responsibles.length === 0 &&
+    !hasSelf;
   const [error, setError] = useState<string | null>(null);
   const keyCounter = useRef(0);
+
+  function assignSelf() {
+    dispatch({
+      options: [
+        ...draft.responsibles,
+        {
+          id: String(currentUser.id),
+          name: currentUser.displayName,
+        },
+      ],
+      type: "set-responsibles",
+    });
+  }
 
   function makeKey(prefix: string) {
     keyCounter.current += 1;
@@ -625,18 +643,7 @@ export function NewInteractionDialog({
                 {isHead && !hasSelf ? (
                   <Button
                     className="mt-1"
-                    onClick={() =>
-                      dispatch({
-                        options: [
-                          ...draft.responsibles,
-                          {
-                            id: String(currentUser.id),
-                            name: currentUser.displayName,
-                          },
-                        ],
-                        type: "set-responsibles",
-                      })
-                    }
+                    onClick={assignSelf}
                     size="s"
                     type="button"
                     variant="ghost"
@@ -659,14 +666,27 @@ export function NewInteractionDialog({
                 </p>
               </div>
             ) : (
-              <p className="mt-1 text-sm">
-                {responsibleNames(draft.responsibles) || text.responsibleNone}
-                {isKam ? (
+              <div className="mt-1">
+                <p className="text-sm">
+                  {responsibleNames(draft.responsibles) || text.responsibleNone}
+                </p>
+                {canKamAssignSelf ? (
+                  <Button
+                    className="mt-1"
+                    onClick={assignSelf}
+                    size="s"
+                    type="button"
+                    variant="ghost"
+                  >
+                    {text.assignSelf}
+                  </Button>
+                ) : null}
+                {isKam && hasSelf ? (
                   <span className="text-muted-foreground block text-xs">
                     {text.responsibleIsYou}
                   </span>
                 ) : null}
-              </p>
+              </div>
             )}
           </div>
 
