@@ -9,13 +9,11 @@ export const contactChannelLabels: Record<
 > = {
   ru: {
     email: "Почта",
-    other: "Другое",
     phone: "Телефон",
     telegram: "Чат в Telegram",
   },
   en: {
     email: "Email",
-    other: "Other",
     phone: "Phone",
     telegram: "Telegram chat",
   },

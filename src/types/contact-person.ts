@@ -31,7 +31,7 @@ export type OrganizationType = "university" | "b2c_client" | "vendor";
 /** Организация, с которой связан человек: тип определяет эндпоинт связи. */
 export type OrganizationRef = { id: string; type: OrganizationType };
 
-export const contactChannels = ["email", "telegram", "phone", "other"] as const;
+export const contactChannels = ["email", "telegram", "phone"] as const;
 
 export type ContactChannel = (typeof contactChannels)[number];
 
