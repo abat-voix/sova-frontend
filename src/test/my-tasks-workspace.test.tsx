@@ -329,6 +329,7 @@ describe("MyTasksWorkspace", () => {
         position: "",
         email: "",
         phone: "",
+        telegram: "",
       }),
     );
   });

@@ -20,7 +20,7 @@ import type {
 import type { LookupOption } from "@/lib/api/catalog/lookups";
 import type { InteractionShort } from "@/types/workflow-board";
 
-export { contactPersonOptions } from "@/components/contacts/contact-picker";
+export { affiliationOptions } from "@/components/contacts/contact-picker";
 
 const copy = {
   ru: {

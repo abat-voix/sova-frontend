@@ -1,14 +1,14 @@
 "use client";
 
 import { EntitySelect } from "@/components/ui/entity-select";
-import {
-  getContactPersons,
-  type ContactPersonsQuery,
-} from "@/lib/api/catalog/contact-persons";
+import { getOrganizationAffiliations } from "@/lib/api/catalog/contact-affiliations";
 import type { LookupOption } from "@/lib/api/catalog/lookups";
 import { useLocale } from "@/providers/locale-provider";
 import type { PaginatedResponse } from "@/types/api";
-import type { ContactPerson } from "@/types/contact-person";
+import type {
+  OrganizationAffiliation,
+  OrganizationRef,
+} from "@/types/contact-person";
 import type { InteractionShort } from "@/types/workflow-board";
 
 const copy = {
@@ -22,16 +22,13 @@ const copy = {
   },
 } as const;
 
-export function contactPersonOptions(
-  response: PaginatedResponse<ContactPerson> | ContactPerson[],
+/** Вариант выбора — человек с должностью именно в этой организации. */
+export function affiliationOptions(
+  response: PaginatedResponse<OrganizationAffiliation>,
 ): LookupOption[] {
-  const contacts = Array.isArray(response) ? response : response.results;
-
-  return contacts.map((contact) => ({
+  return response.results.map(({ contact, position }) => ({
     id: contact.id,
-    name: contact.position
-      ? `${contact.full_name} · ${contact.position}`
-      : contact.full_name,
+    name: position ? `${contact.full_name} · ${position}` : contact.full_name,
   }));
 }
 
@@ -52,24 +49,23 @@ export function ContactPicker({
 }) {
   const { locale } = useLocale();
   const text = copy[locale];
-  const counterparty: Pick<
-    ContactPersonsQuery,
-    "universityId" | "b2cClientId"
-  > = interaction.university
-    ? { universityId: interaction.university.id }
-    : { b2cClientId: interaction.b2c_client?.id ?? null };
+  const organization: OrganizationRef = interaction.university
+    ? { id: interaction.university.id, type: "university" }
+    : { id: interaction.b2c_client?.id ?? "", type: "b2c_client" };
 
+  // Кандидаты — связи контрагента взаимодействия с активными людьми: привязать
+  // можно только того, кто в нём работает и не выключен.
   async function loadPage(term: string, page: number) {
-    const response = await getContactPersons({
-      ...counterparty,
-      activity: "active",
+    const response = await getOrganizationAffiliations({
+      activeContactsOnly: true,
+      organization,
       page,
       search: term,
     });
 
     return {
-      options: contactPersonOptions(response),
-      hasNextPage: !Array.isArray(response) && Boolean(response.next),
+      options: affiliationOptions(response),
+      hasNextPage: Boolean(response.next),
     };
   }
 
@@ -81,7 +77,7 @@ export function ContactPicker({
       label={text.label}
       onChange={onChange}
       placeholder={text.placeholder}
-      queryKey={["catalog", "contact-persons", "picker", interaction.id]}
+      queryKey={["catalog", "contact-affiliations", "picker", interaction.id]}
       search={async (term) => (await loadPage(term, 1)).options}
       searchPage={loadPage}
       value={value}

@@ -299,6 +299,7 @@ describe("InteractionsWorkspace", () => {
         position: "",
         email: "",
         phone: "",
+        telegram: "",
       }),
     );
   });

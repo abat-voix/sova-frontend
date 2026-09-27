@@ -23,6 +23,7 @@ describe("executeActionFeature", () => {
         position: "Декан",
         email: "a@example.org",
         phone: "+7 900",
+        telegram: "",
       },
       "csrf-token",
     );
@@ -37,6 +38,7 @@ describe("executeActionFeature", () => {
           position: "Декан",
           email: "a@example.org",
           phone: "+7 900",
+          telegram: "",
         }),
         headers: expect.objectContaining({ "x-csrftoken": "csrf-token" }),
       }),

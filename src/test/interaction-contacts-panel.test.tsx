@@ -53,7 +53,14 @@ describe("InteractionContactsPanel", () => {
           )!;
           const link: InteractionContact = {
             id: "link-1",
-            contact_person: { ...chosen, email: "", phone: "" },
+            contact_person: {
+              email: "",
+              full_name: chosen.full_name,
+              id: chosen.id,
+              phone: "",
+              position: chosen.position,
+              telegram: "",
+            },
             linked_at: "2026-09-22T10:00:00Z",
           };
           links = [link];
@@ -67,17 +74,31 @@ describe("InteractionContactsPanel", () => {
         links = [];
         return new Response(null, { status: 204 });
       }
-      if (url.startsWith("/api/catalog/contact-persons/")) {
+      if (url.startsWith("/api/catalog/university-contacts/")) {
         const query = new URL(url, "http://localhost").searchParams;
         expect(query.get("university__ids")).toBe("university-1");
-        expect(query.get("is_active")).toBe("true");
+        expect(query.get("contact__is_active")).toBe("true");
         const page = Number(query.get("page"));
         const contact = contacts[page - 1];
         return json({
           count: 2,
           next: page === 1 ? "?page=2" : null,
           previous: null,
-          results: [contact],
+          results: [
+            {
+              contact: {
+                email: "",
+                full_name: contact.full_name,
+                id: contact.id,
+                is_active: true,
+                phone: "",
+                telegram: "",
+              },
+              id: `affiliation-${contact.id}`,
+              position: contact.position,
+              preferred_channels: [],
+            },
+          ],
         });
       }
       throw new Error(`Unexpected request: ${url}`);
