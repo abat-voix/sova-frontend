@@ -21,6 +21,7 @@ import {
   registryPaginationLabels,
   registryTableLabels,
 } from "@/components/registry/registry-shared";
+import { OrganizationContacts } from "@/components/organizations/organization-contacts";
 import { Button } from "@/components/ui/button";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { Drawer } from "@/components/ui/drawer";
@@ -466,6 +467,10 @@ export function VendorsWorkspace() {
                   ]}
                 />
               </div>
+              <OrganizationContacts
+                organization={{ id: vendor.id, type: "vendor" }}
+                organizationName={vendor.name}
+              />
             </>
           ) : vendorQuery.isError ? (
             <p className="text-muted-foreground text-sm" id={drawerHeadingId}>

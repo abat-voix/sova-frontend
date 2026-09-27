@@ -1,9 +1,16 @@
 import { apiEndpoints } from "@/lib/api/endpoints";
-import { buildQuery, getJson } from "@/lib/api/http";
+import {
+  buildQuery,
+  deleteJson,
+  getJson,
+  patchJson,
+  postJson,
+} from "@/lib/api/http";
 import type { PaginatedResponse } from "@/types/api";
 import type {
   ContactActivityFilter,
   ContactPerson,
+  ContactPersonPayload,
 } from "@/types/contact-person";
 
 export const contactPersonsPageSize = 20;
@@ -21,6 +28,7 @@ export const contactPersonsQueryKey = (params?: ContactPersonsQuery) => {
       page: params.page,
       search: params.search ?? "",
       universityId: params.universityId ?? null,
+      vendorId: params.vendorId ?? null,
     },
   ] as const;
 };
@@ -42,6 +50,8 @@ export type ContactPersonsQuery = {
   search?: string;
   /** Один вуз из списка `university__ids`. */
   universityId?: string | null;
+  /** Один вендор из списка `vendor__ids`. */
+  vendorId?: string | null;
 };
 
 export function getContactPersons({
@@ -51,6 +61,7 @@ export function getContactPersons({
   page,
   search = "",
   universityId,
+  vendorId,
 }: ContactPersonsQuery) {
   const query = buildQuery({
     b2c_client__ids: b2cClientId ?? undefined,
@@ -60,6 +71,7 @@ export function getContactPersons({
     page_size: contactPersonsPageSize,
     search: search.trim(),
     university__ids: universityId ?? undefined,
+    vendor__ids: vendorId ?? undefined,
   });
 
   return getJson<PaginatedResponse<ContactPerson>>(
@@ -69,4 +81,66 @@ export function getContactPersons({
 
 export function getContactPerson(id: string) {
   return getJson<ContactPerson>(apiEndpoints.catalog.contactPersons.detail(id));
+}
+
+export function createContactPerson(
+  payload: ContactPersonPayload,
+  csrfToken: string,
+) {
+  return postJson<ContactPerson>(
+    apiEndpoints.catalog.contactPersons.list,
+    payload,
+    csrfToken,
+  );
+}
+
+/**
+ * `is_active: false` — человек ушёл отовсюду: бэкенд отвязывает его от
+ * активных взаимодействий, уведомляет КАМов и удаляет все его связи.
+ */
+export function updateContactPerson(
+  id: string,
+  payload: Partial<ContactPersonPayload> & { is_active?: boolean },
+  csrfToken: string,
+) {
+  return patchJson<ContactPerson>(
+    apiEndpoints.catalog.contactPersons.detail(id),
+    payload,
+    csrfToken,
+  );
+}
+
+/** Был привязан к взаимодействию хоть раз — 409 `protected`: такого выключают. */
+export function deleteContactPerson(id: string, csrfToken: string) {
+  return deleteJson(apiEndpoints.catalog.contactPersons.detail(id), csrfToken);
+}
+
+export type PossibleDuplicatesQuery = {
+  email?: string;
+  /** ID самого человека при редактировании — чтобы не предлагать его же. */
+  exclude?: string;
+  fullName?: string;
+  phone?: string;
+  telegram?: string;
+};
+
+/** До 10 похожих людей — подсказка «возможно, это он» при создании. */
+export function getPossibleDuplicates({
+  email = "",
+  exclude,
+  fullName = "",
+  phone = "",
+  telegram = "",
+}: PossibleDuplicatesQuery) {
+  const query = buildQuery({
+    email: email.trim(),
+    exclude,
+    full_name: fullName.trim(),
+    phone: phone.trim(),
+    telegram: telegram.trim(),
+  });
+
+  return getJson<ContactPerson[]>(
+    `${apiEndpoints.catalog.contactPersons.possibleDuplicates}?${query}`,
+  );
 }

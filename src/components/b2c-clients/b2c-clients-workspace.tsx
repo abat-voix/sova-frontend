@@ -264,7 +264,10 @@ function ClientDetails({
           </div>
         ))}
       </dl>
-      <OrganizationContacts b2cClientId={client.id} />
+      <OrganizationContacts
+        organization={{ id: client.id, type: "b2c_client" }}
+        organizationName={client.full_name}
+      />
     </>
   );
 }
