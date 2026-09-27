@@ -27,12 +27,21 @@ function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status });
 }
 
-function stubApi(upload: () => Response) {
+type Api = {
+  mapping?: () => Response;
+  headers?: () => Response;
+  upload?: () => Response;
+};
+
+function stubApi({
+  mapping = () => json(vendorMapping),
+  headers = () => json({ headers: ["Вендор", "Код"] }),
+  upload = () => json({}),
+}: Api = {}) {
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
     if (url.startsWith("/api/catalog/import-mappings/by-type/"))
-      return json(vendorMapping);
-    if (url === "/api/catalog/imports/headers/")
-      return json({ headers: ["Вендор", "Код"] });
+      return mapping();
+    if (url === "/api/catalog/imports/headers/") return headers();
     if (url === "/api/catalog/imports/" && init?.method === "POST")
       return upload();
     throw new Error(`unexpected ${url}`);
@@ -53,182 +62,106 @@ function renderWorkspace() {
   );
 }
 
-async function chooseType(value: string) {
+function chooseType(value: string) {
   fireEvent.change(screen.getByLabelText("Справочник"), {
     target: { value },
   });
-  await screen.findByRole("button", { name: "Изменить маппинг" });
 }
 
-async function chooseFile() {
+function pickFile(name = "vendors.xlsx") {
   fireEvent.change(screen.getByLabelText("Файл xlsx/xls"), {
-    target: { files: [new File(["x"], "vendors.xlsx")] },
+    target: { files: [new File(["x"], name)] },
   });
+}
+
+/** Справочник, файл и прочитанные заголовки — открыт свёрнутый маппинг. */
+async function reachSavedMapping() {
+  chooseType("vendor");
+  pickFile();
   await screen.findByText("Найдено колонок: 2");
+  await screen.findByRole("button", { name: "Изменить маппинг" });
 }
 
 afterEach(() => vi.unstubAllGlobals());
 
-describe("CatalogImportWorkspace", () => {
-  it("uploads the file and shows counts and warnings", async () => {
-    stubApi(() =>
-      json({
-        catalog_type: "vendor",
-        created: 2,
-        updated: 1,
-        warnings: [{ row: 4, message: "проверьте" }],
-      }),
-    );
+describe("CatalogImportWorkspace steps", () => {
+  it("opens the steps one after another", async () => {
+    stubApi();
     renderWorkspace();
-    await chooseType("vendor");
-    await chooseFile();
 
-    fireEvent.click(screen.getByRole("button", { name: "Загрузить" }));
+    // Сначала только выбор справочника
+    expect(screen.getByText("1. Справочник")).toBeInTheDocument();
+    expect(screen.queryByText("2. Файл")).toBeNull();
+    expect(screen.queryByText("3. Маппинг колонок")).toBeNull();
+    expect(screen.queryByText("4. Загрузка")).toBeNull();
 
-    expect(
-      await screen.findByText("Создано: 2, обновлено: 1"),
-    ).toBeInTheDocument();
-    expect(screen.getByText("проверьте")).toBeInTheDocument();
+    chooseType("vendor");
+    expect(screen.getByText("2. Файл")).toBeInTheDocument();
+    expect(screen.queryByText("3. Маппинг колонок")).toBeNull();
+    expect(screen.queryByText("4. Загрузка")).toBeNull();
+
+    pickFile();
+    expect(await screen.findByText("3. Маппинг колонок")).toBeInTheDocument();
+    expect(await screen.findByText("4. Загрузка")).toBeInTheDocument();
   });
 
-  it("shows row errors and the total when there are more than returned", async () => {
-    stubApi(() =>
-      json(
-        {
-          code: "import_failed",
-          detail: "Импорт отменён, ошибок: 150",
-          errors: Array.from({ length: 100 }, (_, index) => ({
-            row: index + 2,
-            message: `ошибка ${index}`,
-          })),
-          errors_total: 150,
-        },
-        400,
-      ),
-    );
-    renderWorkspace();
-    await chooseType("vendor");
-    await chooseFile();
-
-    fireEvent.click(screen.getByRole("button", { name: "Загрузить" }));
-
-    expect(
-      await screen.findByText("Показаны 100 из 150 ошибок."),
-    ).toBeInTheDocument();
-    expect(screen.getByText("ошибка 99")).toBeInTheDocument();
-  });
-
-  it("shows the backend reason when the file cannot be read", async () => {
-    const fetchMock = stubApi(() => json({}));
-    fetchMock.mockImplementationOnce(async () =>
-      json(
-        {
-          code: "import_error",
-          detail: "Не удалось распознать файл vendors.xlsx как таблицу Excel",
-        },
-        400,
-      ),
-    );
-    renderWorkspace();
-
-    fireEvent.change(screen.getByLabelText("Файл xlsx/xls"), {
-      target: { files: [new File(["x"], "vendors.xlsx")] },
+  it("does not open the mapping when the file cannot be read", async () => {
+    stubApi({
+      headers: () =>
+        json(
+          {
+            code: "import_error",
+            detail: "Не удалось распознать файл vendors.xlsx как таблицу Excel",
+          },
+          400,
+        ),
     });
+    renderWorkspace();
+    chooseType("vendor");
+
+    pickFile();
 
     expect(
       await screen.findByText(/Не удалось распознать файл vendors.xlsx/),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Загрузить" })).toBeDisabled();
+    expect(screen.queryByText("3. Маппинг колонок")).toBeNull();
+    expect(screen.queryByText("4. Загрузка")).toBeNull();
   });
 
-  it("blocks upload while the mapping has unsaved changes", async () => {
-    stubApi(() => json({}));
+  it("keeps the upload step closed until a required mapping is saved", async () => {
+    stubApi({
+      mapping: () =>
+        json(vendorMapping.map((field) => ({ ...field, source_column: null }))),
+    });
     renderWorkspace();
-    await chooseType("vendor");
-    await chooseFile();
+    chooseType("vendor");
+    pickFile();
+
+    // Обязательные поля не заданы — редактор открыт сразу, отменять нечего
+    expect(await screen.findByLabelText(/Название/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Отмена" })).toBeNull();
+    expect(screen.queryByText("4. Загрузка")).toBeNull();
+  });
+
+  it("hides the upload step while the mapping is being edited", async () => {
+    stubApi();
+    renderWorkspace();
+    await reachSavedMapping();
 
     fireEvent.click(screen.getByRole("button", { name: "Изменить маппинг" }));
-    fireEvent.change(screen.getByLabelText(/Внешний код/), {
-      target: { value: "Код" },
-    });
 
-    expect(screen.getByRole("button", { name: "Загрузить" })).toBeDisabled();
-    expect(
-      screen.getByText("Сохраните маппинг перед загрузкой."),
-    ).toBeInTheDocument();
-  });
-
-  it("keeps file headers and resets the result when the catalog type changes", async () => {
-    stubApi(() =>
-      json({ catalog_type: "vendor", created: 1, updated: 0, warnings: [] }),
-    );
-    renderWorkspace();
-    await chooseType("vendor");
-    await chooseFile();
-    fireEvent.click(screen.getByRole("button", { name: "Загрузить" }));
-    await screen.findByText("Создано: 1, обновлено: 0");
-
-    fireEvent.change(screen.getByLabelText("Справочник"), {
-      target: { value: "product" },
-    });
-
-    await waitFor(() =>
-      expect(
-        screen.queryByText("Создано: 1, обновлено: 0"),
-      ).not.toBeInTheDocument(),
-    );
-    expect(await screen.findByText("Найдено колонок: 2")).toBeInTheDocument();
-  });
-
-  it("asks to choose the file again when the browser cannot send it", async () => {
-    stubApi(() => {
-      throw new TypeError("Failed to fetch");
-    });
-    renderWorkspace();
-    await chooseType("vendor");
-    await chooseFile();
-
-    fireEvent.click(screen.getByRole("button", { name: "Загрузить" }));
-
-    expect(
-      await screen.findByText(
-        "Файл изменился или недоступен — выберите его заново.",
-      ),
-    ).toBeInTheDocument();
-  });
-
-  it("clears the file input on click so the same file can be chosen again", () => {
-    stubApi(() => json({}));
-    renderWorkspace();
-    const input = screen.getByLabelText("Файл xlsx/xls") as HTMLInputElement;
-    const setValue = vi.spyOn(input, "value", "set");
-
-    fireEvent.click(input);
-
-    expect(setValue).toHaveBeenCalledWith("");
-  });
-
-  it("shows a complete saved mapping collapsed and expands it only for editing", async () => {
-    stubApi(() => json({}));
-    renderWorkspace();
-    await chooseType("vendor");
-
-    expect(screen.queryByLabelText(/Внешний код/)).toBeNull();
-    expect(screen.getByText("Вендор")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Изменить маппинг" }));
     expect(screen.getByLabelText(/Внешний код/)).toBeInTheDocument();
+    expect(screen.queryByText("4. Загрузка")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Отмена" }));
     expect(screen.queryByLabelText(/Внешний код/)).toBeNull();
-    expect(screen.getByRole("button", { name: "Загрузить" })).toBeDisabled();
+    expect(screen.getByText("4. Загрузка")).toBeInTheDocument();
   });
 
-  it("collapses the mapping after it is saved", async () => {
-    const fetchMock = stubApi(() => json({}));
+  it("collapses the mapping after it is saved and opens the upload step", async () => {
+    const fetchMock = stubApi();
     renderWorkspace();
-    await chooseType("vendor");
-    await chooseFile();
+    await reachSavedMapping();
     fireEvent.click(screen.getByRole("button", { name: "Изменить маппинг" }));
     fireEvent.change(screen.getByLabelText(/Внешний код/), {
       target: { value: "Код" },
@@ -239,7 +172,6 @@ describe("CatalogImportWorkspace", () => {
     expect(
       await screen.findByRole("button", { name: "Изменить маппинг" }),
     ).toBeInTheDocument();
-    expect(screen.queryByLabelText(/Внешний код/)).toBeNull();
     expect(screen.getByRole("button", { name: "Загрузить" })).toBeEnabled();
     expect(
       fetchMock.mock.calls.some(
@@ -250,50 +182,124 @@ describe("CatalogImportWorkspace", () => {
     ).toBe(true);
   });
 
-  it("opens the editor right away when required fields are not mapped", async () => {
-    const fetchMock = stubApi(() => json({}));
-    fetchMock.mockImplementation(async (url: string) => {
-      if (url.startsWith("/api/catalog/import-mappings/by-type/"))
-        return json(
-          vendorMapping.map((field) => ({ ...field, source_column: null })),
-        );
-      return json({ headers: [] });
-    });
-    renderWorkspace();
-
-    fireEvent.change(screen.getByLabelText("Справочник"), {
-      target: { value: "vendor" },
-    });
-
-    expect(await screen.findByLabelText(/Название/)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Отмена" })).toBeNull();
-  });
-
   it("marks collapsed mapping columns that are missing in the chosen file", async () => {
-    const fetchMock = stubApi(() => json({}));
-    fetchMock.mockImplementation(async (url: string) => {
-      if (url.startsWith("/api/catalog/import-mappings/by-type/"))
-        return json(vendorMapping);
-      return json({ headers: ["Компания"] });
-    });
+    stubApi({ headers: () => json({ headers: ["Компания"] }) });
     renderWorkspace();
-    await chooseType("vendor");
+    chooseType("vendor");
 
-    fireEvent.change(screen.getByLabelText("Файл xlsx/xls"), {
-      target: { files: [new File(["x"], "vendors.xlsx")] },
-    });
+    pickFile();
 
     expect(await screen.findByText("нет в файле")).toBeInTheDocument();
   });
 
-  it("makes the file step explicit: file name and what reading headers means", async () => {
-    stubApi(() => json({}));
+  it("explains that choosing a file only reads the headers", async () => {
+    stubApi();
     renderWorkspace();
+    chooseType("vendor");
 
     expect(
       screen.getByText(/читает только заголовки первой строки/),
     ).toBeInTheDocument();
-    await chooseFile();
-    expect(screen.getByText("vendors.xlsx")).toBeInTheDocument();
+    pickFile();
+    expect(await screen.findByText("vendors.xlsx")).toBeInTheDocument();
+  });
+
+  it("clears the file input on click so the same file can be chosen again", () => {
+    stubApi();
+    renderWorkspace();
+    chooseType("vendor");
+    const input = screen.getByLabelText("Файл xlsx/xls") as HTMLInputElement;
+    const setValue = vi.spyOn(input, "value", "set");
+
+    fireEvent.click(input);
+
+    expect(setValue).toHaveBeenCalledWith("");
+  });
+});
+
+describe("CatalogImportWorkspace upload", () => {
+  it("uploads the file and shows counts and warnings", async () => {
+    stubApi({
+      upload: () =>
+        json({
+          catalog_type: "vendor",
+          created: 2,
+          updated: 1,
+          warnings: [{ row: 4, message: "проверьте" }],
+        }),
+    });
+    renderWorkspace();
+    await reachSavedMapping();
+
+    fireEvent.click(screen.getByRole("button", { name: "Загрузить" }));
+
+    expect(
+      await screen.findByText("Создано: 2, обновлено: 1"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("проверьте")).toBeInTheDocument();
+  });
+
+  it("shows row errors and the total when there are more than returned", async () => {
+    stubApi({
+      upload: () =>
+        json(
+          {
+            code: "import_failed",
+            detail: "Импорт отменён, ошибок: 150",
+            errors: Array.from({ length: 100 }, (_, index) => ({
+              row: index + 2,
+              message: `ошибка ${index}`,
+            })),
+            errors_total: 150,
+          },
+          400,
+        ),
+    });
+    renderWorkspace();
+    await reachSavedMapping();
+
+    fireEvent.click(screen.getByRole("button", { name: "Загрузить" }));
+
+    expect(
+      await screen.findByText("Показаны 100 из 150 ошибок."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("ошибка 99")).toBeInTheDocument();
+  });
+
+  it("asks to choose the file again when the browser cannot send it", async () => {
+    stubApi({
+      upload: () => {
+        throw new TypeError("Failed to fetch");
+      },
+    });
+    renderWorkspace();
+    await reachSavedMapping();
+
+    fireEvent.click(screen.getByRole("button", { name: "Загрузить" }));
+
+    expect(
+      await screen.findByText(
+        "Файл изменился или недоступен — выберите его заново.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the file and resets the result when the catalog type changes", async () => {
+    stubApi({
+      upload: () =>
+        json({ catalog_type: "vendor", created: 1, updated: 0, warnings: [] }),
+    });
+    renderWorkspace();
+    await reachSavedMapping();
+    fireEvent.click(screen.getByRole("button", { name: "Загрузить" }));
+    await screen.findByText("Создано: 1, обновлено: 0");
+
+    chooseType("product");
+
+    await waitFor(() =>
+      expect(screen.queryByText("Создано: 1, обновлено: 0")).toBeNull(),
+    );
+    expect(screen.getByText("Найдено колонок: 2")).toBeInTheDocument();
+    expect(screen.getByText("3. Маппинг колонок")).toBeInTheDocument();
   });
 });

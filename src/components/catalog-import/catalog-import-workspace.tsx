@@ -128,6 +128,14 @@ export function CatalogImportWorkspace() {
     mapping.data?.every((field) => !field.required || field.source_column) ??
     false;
   const isEditorOpen = isEditingMapping || !isMappingComplete;
+  const hasHeaders =
+    file !== null && !readHeaders.isPending && !fileError && headers.length > 0;
+  // Шаги открываются по очереди: файл — после выбора справочника, маппинг —
+  // когда прочитаны заголовки файла (они нужны для подсказок и сверки колонок),
+  // загрузка — когда маппинг сохранён и свёрнут.
+  const showFileStep = catalogType !== "";
+  const showMappingStep = showFileStep && hasHeaders;
+  const showUploadStep = showMappingStep && isMappingComplete && !isEditorOpen;
   const canUpload =
     catalogType !== "" &&
     isMappingComplete &&
@@ -182,69 +190,71 @@ export function CatalogImportWorkspace() {
         </Select>
       </section>
 
-      <section className="bg-card space-y-3 rounded-xl border p-4">
-        <h2 className="text-lg font-medium">2. Файл</h2>
-        {/*
+      {showFileStep ? (
+        <section className="bg-card space-y-3 rounded-xl border p-4">
+          <h2 className="text-lg font-medium">2. Файл</h2>
+          {/*
           Выбор файла ничего не импортирует: файл уходит на бэк только чтобы
           прочитать заголовки первой строки (POST /api/catalog/imports/headers/).
           Бэк читает их тем же кодом, что и импорт, поэтому подсказки в маппинге
           совпадают с тем, что увидит загрузка. Данные — на шаге 4.
         */}
-        <label className="border-border hover:bg-muted/40 focus-within:ring-ring flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 text-center transition-colors focus-within:ring-2">
-          <FileSpreadsheet
-            aria-hidden="true"
-            className="text-muted-foreground size-8"
-          />
-          <span className="font-medium">
-            {file ? file.name : "Выберите файл .xlsx или .xls"}
-          </span>
-          <span className="text-muted-foreground text-sm">
-            {file
-              ? "Нажмите, чтобы выбрать другой файл"
-              : "Нажмите, чтобы открыть выбор файла"}
-          </span>
-          <input
-            accept=".xlsx,.xls"
-            aria-label="Файл xlsx/xls"
-            className="sr-only"
-            // Иначе повторный выбор того же файла (исправленного в Excel) не вызовет onChange
-            onClick={(event) => {
-              event.currentTarget.value = "";
-            }}
-            onChange={(event) => {
-              const selected = event.target.files?.[0] ?? null;
-              setFile(selected);
-              resetOutcome();
-              if (selected) readHeaders.mutate(selected);
-              else {
-                setHeaders([]);
-                setFileError(null);
-              }
-            }}
-            type="file"
-          />
-        </label>
-        {readHeaders.isPending ? (
-          <p className="text-muted-foreground flex items-center gap-2 text-sm">
-            <Loader2 aria-hidden="true" className="size-4 animate-spin" />
-            Читаем заголовки…
+          <label className="border-border hover:bg-muted/40 focus-within:ring-ring flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 text-center transition-colors focus-within:ring-2">
+            <FileSpreadsheet
+              aria-hidden="true"
+              className="text-muted-foreground size-8"
+            />
+            <span className="font-medium">
+              {file ? file.name : "Выберите файл .xlsx или .xls"}
+            </span>
+            <span className="text-muted-foreground text-sm">
+              {file
+                ? "Нажмите, чтобы выбрать другой файл"
+                : "Нажмите, чтобы открыть выбор файла"}
+            </span>
+            <input
+              accept=".xlsx,.xls"
+              aria-label="Файл xlsx/xls"
+              className="sr-only"
+              // Иначе повторный выбор того же файла (исправленного в Excel) не вызовет onChange
+              onClick={(event) => {
+                event.currentTarget.value = "";
+              }}
+              onChange={(event) => {
+                const selected = event.target.files?.[0] ?? null;
+                setFile(selected);
+                resetOutcome();
+                if (selected) readHeaders.mutate(selected);
+                else {
+                  setHeaders([]);
+                  setFileError(null);
+                }
+              }}
+              type="file"
+            />
+          </label>
+          {readHeaders.isPending ? (
+            <p className="text-muted-foreground flex items-center gap-2 text-sm">
+              <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+              Читаем заголовки…
+            </p>
+          ) : null}
+          {!readHeaders.isPending && file && !fileError ? (
+            <p className="text-sm">Найдено колонок: {headers.length}</p>
+          ) : null}
+          {fileError ? (
+            <p className="text-destructive text-sm">{fileError}</p>
+          ) : null}
+          <p className="text-muted-foreground text-sm">
+            На этом шаге система читает только заголовки первой строки первого
+            листа — данные не загружаются. Заголовки появятся подсказками в
+            маппинге, а колонки, которых нет в файле, будут помечены. Сама
+            загрузка — на шаге 4.
           </p>
-        ) : null}
-        {!readHeaders.isPending && file && !fileError ? (
-          <p className="text-sm">Найдено колонок: {headers.length}</p>
-        ) : null}
-        {fileError ? (
-          <p className="text-destructive text-sm">{fileError}</p>
-        ) : null}
-        <p className="text-muted-foreground text-sm">
-          На этом шаге система читает только заголовки первой строки первого
-          листа — данные не загружаются. Заголовки появятся подсказками в
-          маппинге, а колонки, которых нет в файле, будут помечены. Сама
-          загрузка — на шаге 4.
-        </p>
-      </section>
+        </section>
+      ) : null}
 
-      {catalogType !== "" ? (
+      {showMappingStep ? (
         <section className="bg-card space-y-4 rounded-xl border p-4">
           <h2 className="text-lg font-medium">3. Маппинг колонок</h2>
           {mapping.isLoading ? (
@@ -281,83 +291,80 @@ export function CatalogImportWorkspace() {
         </section>
       ) : null}
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-medium">4. Загрузка</h2>
-        <Button
-          disabled={!canUpload}
-          onClick={() => upload.mutate()}
-          type="button"
-        >
-          {upload.isPending ? (
-            <Loader2 aria-hidden="true" className="size-4 animate-spin" />
-          ) : (
-            <Upload aria-hidden="true" className="size-4" />
-          )}
-          Загрузить
-        </Button>
-        {isMappingDirty ? (
-          <p className="text-sm text-amber-600 dark:text-amber-400">
-            Сохраните маппинг перед загрузкой.
-          </p>
-        ) : null}
-
-        {result ? (
-          <div className="bg-card space-y-2 rounded-xl border p-4">
-            <p className="font-medium">
-              Создано: {result.created}, обновлено: {result.updated}
-            </p>
-            {result.warnings.length > 0 ? (
-              <ul className="list-disc space-y-1 pl-5 text-sm">
-                {result.warnings.map((warning) => (
-                  <li key={`${warning.row}-${warning.message}`}>
-                    Строка {warning.row}: <span>{warning.message}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
-        ) : null}
-
-        {failure ? (
-          <div
-            className="border-destructive/30 bg-destructive/5 space-y-2 rounded-xl border p-4"
-            role="alert"
+      {showUploadStep ? (
+        <section className="bg-card space-y-3 rounded-xl border p-4">
+          <h2 className="text-lg font-medium">4. Загрузка</h2>
+          <Button
+            disabled={!canUpload}
+            onClick={() => upload.mutate()}
+            type="button"
           >
-            <p className="text-destructive font-medium">{failure.detail}</p>
-            {failure.errors.length > 0 ? (
-              <>
-                {failure.errorsTotal > failure.errors.length ? (
-                  <p className="text-sm">
-                    Показаны {failure.errors.length} из {failure.errorsTotal}{" "}
-                    ошибок.
-                  </p>
-                ) : null}
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr>
-                      <th className="w-24 py-1 text-left font-medium">
-                        Строка
-                      </th>
-                      <th className="py-1 text-left font-medium">Ошибка</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {failure.errors.map((error) => (
-                      <tr
-                        className="border-t"
-                        key={`${error.row}-${error.message}`}
-                      >
-                        <td className="py-1">{error.row}</td>
-                        <td className="py-1">{error.message}</td>
+            {upload.isPending ? (
+              <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+            ) : (
+              <Upload aria-hidden="true" className="size-4" />
+            )}
+            Загрузить
+          </Button>
+
+          {result ? (
+            <div className="bg-card space-y-2 rounded-xl border p-4">
+              <p className="font-medium">
+                Создано: {result.created}, обновлено: {result.updated}
+              </p>
+              {result.warnings.length > 0 ? (
+                <ul className="list-disc space-y-1 pl-5 text-sm">
+                  {result.warnings.map((warning) => (
+                    <li key={`${warning.row}-${warning.message}`}>
+                      Строка {warning.row}: <span>{warning.message}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
+
+          {failure ? (
+            <div
+              className="border-destructive/30 bg-destructive/5 space-y-2 rounded-xl border p-4"
+              role="alert"
+            >
+              <p className="text-destructive font-medium">{failure.detail}</p>
+              {failure.errors.length > 0 ? (
+                <>
+                  {failure.errorsTotal > failure.errors.length ? (
+                    <p className="text-sm">
+                      Показаны {failure.errors.length} из {failure.errorsTotal}{" "}
+                      ошибок.
+                    </p>
+                  ) : null}
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr>
+                        <th className="w-24 py-1 text-left font-medium">
+                          Строка
+                        </th>
+                        <th className="py-1 text-left font-medium">Ошибка</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </>
-            ) : null}
-          </div>
-        ) : null}
-      </section>
+                    </thead>
+                    <tbody>
+                      {failure.errors.map((error) => (
+                        <tr
+                          className="border-t"
+                          key={`${error.row}-${error.message}`}
+                        >
+                          <td className="py-1">{error.row}</td>
+                          <td className="py-1">{error.message}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              ) : null}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
     </div>
   );
 }
