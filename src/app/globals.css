@@ -32,6 +32,13 @@
   --atmr-font-weight-medium: 500;
   --atmr-font-weight-bold: 700;
 
+  /* Категориальная палитра графиков: порядок фиксирован, цвета не циклятся. */
+  --chart-series-1: #2a78d6;
+  --chart-series-2: #eb6834;
+  --chart-series-3: #1baf7a;
+  --chart-series-4: #eda100;
+  --chart-series-5: #e87ba4;
+
   --background: var(--atmr-background-primary);
   --foreground: var(--atmr-text-primary);
   --card: var(--atmr-background-elevated);
@@ -97,6 +104,12 @@
   --atmr-font-weight-regular: 400;
   --atmr-font-weight-medium: 500;
   --atmr-font-weight-bold: 700;
+
+  --chart-series-1: #3987e5;
+  --chart-series-2: #d95926;
+  --chart-series-3: #199e70;
+  --chart-series-4: #c98500;
+  --chart-series-5: #d55181;
 
   --background: var(--atmr-background-primary);
   --foreground: var(--atmr-text-primary);
