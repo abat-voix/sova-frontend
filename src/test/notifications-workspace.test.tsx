@@ -86,13 +86,19 @@ function stubApi(
     const url = String(input);
     const body = url.startsWith("/api/auth/me/")
       ? { authenticated: true, csrfToken: "csrf", user: { id: 1 } }
-      : url.startsWith("/api/notifications/inbox/kinds/")
-        ? kinds
-        : url.includes("/read")
-          ? { updated: 1 }
-          : url.startsWith("/api/notifications/inbox/n-old/")
-            ? olderNotification
-            : page(url.includes("search=") ? [] : notifications);
+      : url.startsWith("/api/notifications/telegram/")
+        ? {
+            is_connected: false,
+            deep_link: "https://t.me/SovaLCTBot?start=link-token",
+            expires_at: "2026-09-27T12:00:00Z",
+          }
+        : url.startsWith("/api/notifications/inbox/kinds/")
+          ? kinds
+          : url.includes("/read")
+            ? { updated: 1 }
+            : url.startsWith("/api/notifications/inbox/n-old/")
+              ? olderNotification
+              : page(url.includes("search=") ? [] : notifications);
 
     return new Response(JSON.stringify(body), {
       headers: { "content-type": "application/json" },
@@ -125,6 +131,16 @@ function requestedUrls(fetchMock: ReturnType<typeof stubApi>) {
 }
 
 describe("NotificationsWorkspace", () => {
+  it("shows the Telegram connection action on the notifications page", async () => {
+    stubApi();
+
+    renderWorkspace();
+
+    expect(
+      await screen.findByRole("link", { name: "Подключить Telegram" }),
+    ).toHaveAttribute("href", "https://t.me/SovaLCTBot?start=link-token");
+  });
+
   it("lists titles and asks to pick a notification", async () => {
     stubApi();
 

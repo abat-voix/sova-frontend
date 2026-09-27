@@ -16,6 +16,7 @@ import {
   KindChip,
   KindIcon,
 } from "@/components/notifications/notification-parts";
+import { TelegramConnect } from "@/components/notifications/telegram-connect";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import {
@@ -226,13 +227,16 @@ export function NotificationsWorkspace() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
-      <div className="shrink-0">
-        <h1 className="text-2xl font-medium tracking-[-0.025em] sm:text-3xl">
-          {t("notifications")}
-        </h1>
-        <p className="text-muted-foreground mt-2 max-w-2xl text-base leading-7">
-          {t("notificationsDescription")}
-        </p>
+      <div className="flex shrink-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-medium tracking-[-0.025em] sm:text-3xl">
+            {t("notifications")}
+          </h1>
+          <p className="text-muted-foreground mt-2 max-w-2xl text-base leading-7">
+            {t("notificationsDescription")}
+          </p>
+        </div>
+        <TelegramConnect csrfToken={csrfToken} />
       </div>
 
       <div className="flex min-h-0 flex-1 gap-4">

@@ -28,18 +28,8 @@ const copy = {
   },
 } as const;
 
-/**
- * Привязка Telegram текущего пользователя: кнопка со ссылкой на бота, пока не
- * подключён, и статус с отключением — после. Живёт в блоке пользователя в
- * сайдбаре, как единственное «личное» действие, не привязанное к разделу.
- */
-export function TelegramConnect({
-  collapsed,
-  csrfToken,
-}: {
-  collapsed: boolean;
-  csrfToken: string;
-}) {
+/** Управление доставкой уведомлений текущего пользователя в Telegram. */
+export function TelegramConnect({ csrfToken }: { csrfToken: string }) {
   const { locale } = useLocale();
   const queryClient = useQueryClient();
   const text = copy[locale];
@@ -57,21 +47,14 @@ export function TelegramConnect({
       queryClient.invalidateQueries({ queryKey: telegramLinkQueryKey() }),
   });
 
-  // Загрузка/ошибка/бот не настроен на бэкенде — молча ничего не показываем,
-  // это необязательный виджет, а не критичная часть навигации.
+  // Загрузка/ошибка/бот не настроен на бэкенде — молча ничего не показываем:
+  // привязка Telegram не должна мешать работе со списком уведомлений.
   if (statusQuery.isPending || statusQuery.isError) return null;
   const status = statusQuery.data;
 
   if (status.is_connected) {
-    if (collapsed) {
-      return (
-        <span title={text.connected}>
-          <StatusChip tone="positive">TG</StatusChip>
-        </span>
-      );
-    }
     return (
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex shrink-0 items-center gap-2">
         <StatusChip tone="positive">{text.connected}</StatusChip>
         <Button
           colorScheme="neutral"
@@ -89,26 +72,10 @@ export function TelegramConnect({
 
   if (!status.deep_link) return null;
 
-  if (collapsed) {
-    return (
-      <Button
-        asChild
-        colorScheme="neutral"
-        size="icon"
-        title={text.connect}
-        variant="outline"
-      >
-        <a href={status.deep_link} rel="noreferrer" target="_blank">
-          <Send aria-hidden="true" className="size-4" />
-        </a>
-      </Button>
-    );
-  }
-
   return (
     <Button
       asChild
-      className="w-full"
+      className="shrink-0 self-start"
       colorScheme="neutral"
       size="s"
       variant="outline"

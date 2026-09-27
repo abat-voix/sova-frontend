@@ -33,7 +33,6 @@ import { IntegrationsWorkspace } from "@/components/integrations/integrations-wo
 import { LanguageToggle } from "@/components/language-toggle";
 import { MessengerPanel } from "@/components/messaging/messenger-panel";
 import { NotificationsWorkspace } from "@/components/notifications/notifications-workspace";
-import { TelegramConnect } from "@/components/crm/telegram-connect";
 import { OrganizationsWorkspace } from "@/components/organizations/organizations-workspace";
 import { ReportsWorkspace } from "@/components/reports/reports-workspace";
 import { MyTasksWorkspace } from "@/components/tasks/my-tasks-workspace";
@@ -228,9 +227,6 @@ function Sidebar({
               <LogOut aria-hidden="true" className="size-4" />
             </Button>
           </form>
-        </div>
-        <div className={cn("mb-3", collapsed ? "flex justify-center" : "px-2")}>
-          <TelegramConnect collapsed={collapsed} csrfToken={csrfToken} />
         </div>
         <div
           className={cn(
