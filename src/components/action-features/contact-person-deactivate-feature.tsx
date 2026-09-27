@@ -29,7 +29,7 @@ const copy = {
     loading: "Загружаем контакты…",
     empty: "У взаимодействия пока нет привязанных контактов.",
     warning:
-      "Контакт станет недоступен для новых привязок во всех взаимодействиях.",
+      "Контакт будет отвязан от всех активных взаимодействий, а все его связи с организациями будут удалены.",
     continue: "Деактивировать контакт",
     confirm: "Подтвердить деактивацию",
     cancel: "Отмена",
@@ -45,7 +45,7 @@ const copy = {
     loading: "Loading contacts…",
     empty: "The interaction has no linked contacts yet.",
     warning:
-      "The contact will no longer be available for new links in any interaction.",
+      "The contact will be unlinked from every active interaction and all organization affiliations will be removed.",
     continue: "Deactivate contact",
     confirm: "Confirm deactivation",
     cancel: "Cancel",

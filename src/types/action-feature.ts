@@ -77,6 +77,8 @@ export type UpdateContactPersonFeaturePayload =
     position: string;
     email: string;
     phone: string;
+    /** Ник, `@ник` или ссылка t.me — бэкенд приводит к нику. */
+    telegram: string;
   };
 
 export type ResponsibleFeaturePayload = {

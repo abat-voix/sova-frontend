@@ -33,6 +33,7 @@ const copy = {
     position: "Должность",
     email: "Email",
     phone: "Телефон",
+    telegram: "Telegram",
     save: "Сохранить изменения",
     saving: "Сохраняем…",
     success: "Контакт обновлён.",
@@ -49,6 +50,7 @@ const copy = {
     position: "Position",
     email: "Email",
     phone: "Phone",
+    telegram: "Telegram",
     save: "Save changes",
     saving: "Saving…",
     success: "Contact updated.",
@@ -57,7 +59,7 @@ const copy = {
   },
 } as const;
 
-const fields = ["full_name", "position", "email", "phone"] as const;
+const fields = ["full_name", "position", "email", "phone", "telegram"] as const;
 type FieldName = (typeof fields)[number];
 type ContactValues = Omit<UpdateContactPersonFeaturePayload, "contact_person">;
 
@@ -148,6 +150,7 @@ export function ContactPersonUpdateFeature({
     position: text.position,
     email: text.email,
     phone: text.phone,
+    telegram: text.telegram,
   };
 
   function selectContact(option: LookupOption | null) {
@@ -165,6 +168,7 @@ export function ContactPersonUpdateFeature({
             position: contact.position,
             email: contact.email,
             phone: contact.phone,
+            telegram: contact.telegram,
           }
         : null,
     );
@@ -229,7 +233,9 @@ export function ContactPersonUpdateFeature({
                     ? 255
                     : name === "phone"
                       ? 50
-                      : 254
+                      : name === "telegram"
+                        ? 64
+                        : 254
                 }
                 onChange={(event) =>
                   setValues((previous) =>

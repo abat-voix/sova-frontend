@@ -38,6 +38,7 @@ describe("contact person update feature", () => {
               position: "Менеджер",
               email: "old@example.test",
               phone: "+79990000000",
+              telegram: "old_name",
             },
           },
         ]);
@@ -105,6 +106,7 @@ describe("contact person update feature", () => {
         position: "Менеджер",
         email: "old@example.test",
         phone: "+79990000000",
+        telegram: "old_name",
       });
       expect(call?.[1]?.headers).toMatchObject({
         "x-csrftoken": "csrf-token",
