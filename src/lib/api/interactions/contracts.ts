@@ -74,17 +74,27 @@ export function getContracts({
   );
 }
 
-/** Все договоры взаимодействия без пагинации — для карточки взаимодействия. */
-export function getInteractionContracts(interactionId: string) {
-  const query = buildQuery({
-    interaction__ids: interactionId,
-    ordering: "-created_at",
-    page_size: 200,
-  });
+/** Все договоры взаимодействия: последовательно собирает страницы API. */
+export async function getInteractionContracts(interactionId: string) {
+  const results: Contract[] = [];
+  let page = 1;
+  let response: PaginatedResponse<Contract>;
 
-  return getJson<PaginatedResponse<Contract>>(
-    `${apiEndpoints.interactions.contracts.list}?${query}`,
-  );
+  do {
+    const query = buildQuery({
+      interaction__ids: interactionId,
+      ordering: "-created_at",
+      page,
+      page_size: 200,
+    });
+    response = await getJson<PaginatedResponse<Contract>>(
+      `${apiEndpoints.interactions.contracts.list}?${query}`,
+    );
+    results.push(...response.results);
+    page += 1;
+  } while (response.next && results.length < response.count);
+
+  return { ...response, next: null, previous: null, results };
 }
 
 export function getContract(id: string) {

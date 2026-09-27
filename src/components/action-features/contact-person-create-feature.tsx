@@ -168,7 +168,7 @@ export function ContactPersonCreateFeature({
                   : name === "phone"
                     ? 50
                     : name === "telegram"
-                      ? 100
+                      ? 64
                       : 254
               }
               onChange={(event) =>

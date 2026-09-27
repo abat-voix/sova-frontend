@@ -123,4 +123,69 @@ describe("contact person select options", () => {
       expect(call?.[1]?.headers).toMatchObject({ "x-csrftoken": "csrf-token" });
     });
   });
+
+  it("explains that a found contact is already linked", async () => {
+    const fetchMock = vi.fn<typeof fetch>(async (input) => {
+      const url = String(input);
+      if (url.endsWith("/contacts/")) {
+        return new Response(
+          JSON.stringify([
+            {
+              id: "link-1",
+              linked_at: "2026-09-27T12:40:57Z",
+              contact_person: { ...contact, position: affiliation.position },
+            },
+          ]),
+          { headers: { "content-type": "application/json" }, status: 200 },
+        );
+      }
+      if (url.startsWith("/api/catalog/university-contacts/")) {
+        return new Response(
+          JSON.stringify({
+            count: 1,
+            next: null,
+            previous: null,
+            results: [affiliation],
+          }),
+          { headers: { "content-type": "application/json" }, status: 200 },
+        );
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <LocaleProvider>
+          <ContactPersonSelectFeature
+            actionInstanceId="action-1"
+            csrfToken="csrf-token"
+            featureCode="contact_person.link"
+            interaction={{
+              id: "interaction-1",
+              university: { id: "university-1", name: "Академия" },
+              b2c_client: null,
+            }}
+            workflowInstanceId="workflow-1"
+          />
+        </LocaleProvider>
+      </QueryClientProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("combobox", { name: "Контактное лицо" }));
+    fireEvent.change(
+      await screen.findByRole("searchbox", {
+        name: "Контактное лицо: Поиск…",
+      }),
+      { target: { value: "Кол" } },
+    );
+
+    expect(
+      await screen.findByText(
+        "Все найденные контакты уже привязаны к взаимодействию.",
+      ),
+    ).toBeTruthy();
+  });
 });

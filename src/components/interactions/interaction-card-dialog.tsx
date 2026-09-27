@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Building2,
   Download,
-  FileText,
   Mail,
   MessageCircle,
   Paperclip,
@@ -21,6 +20,7 @@ import {
   DetailRows,
   registryCopy,
 } from "@/components/registry/registry-shared";
+import { InteractionContractsList } from "@/components/action-features/interaction-contracts-list";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -33,10 +33,6 @@ import {
   getInteractionContacts,
   interactionContactsQueryKey,
 } from "@/lib/api/interactions/contacts";
-import {
-  getInteractionContracts,
-  interactionContractsQueryKey,
-} from "@/lib/api/interactions/contracts";
 import {
   getInteractionDirections,
   getInteractionPrograms,
@@ -58,7 +54,6 @@ import {
 } from "@/lib/api/messaging/messaging";
 import { useLocale } from "@/providers/locale-provider";
 import type { ActionAttachment } from "@/types/action-attachment";
-import type { Contract } from "@/types/contract";
 import type { InteractionContact } from "@/types/interaction-contact";
 import type { License } from "@/types/license";
 import type {
@@ -203,99 +198,6 @@ function Section({ children, title }: { children: ReactNode; title: string }) {
       <h3 className="text-sm font-medium">{title}</h3>
       <div className="mt-3">{children}</div>
     </section>
-  );
-}
-
-function ContractStageChip({
-  contract,
-  text,
-}: {
-  contract: Contract;
-  text: Text;
-}) {
-  if (contract.signed_at)
-    return <StatusChip tone="positive">{text.signed}</StatusChip>;
-  if (contract.corrected_at)
-    return <StatusChip tone="accent">{text.corrected}</StatusChip>;
-  if (contract.sent_at)
-    return <StatusChip tone="accent">{text.sent}</StatusChip>;
-
-  return <StatusChip>{text.draft}</StatusChip>;
-}
-
-function ContractsSection({ interactionId }: { interactionId: string }) {
-  const { locale } = useLocale();
-  const text = copy[locale];
-  const query = useQuery({
-    queryKey: interactionContractsQueryKey(interactionId),
-    queryFn: () => getInteractionContracts(interactionId),
-  });
-  const contracts = query.data?.results ?? [];
-
-  return (
-    <div>
-      <h4 className="text-muted-foreground text-xs font-medium tracking-[0.08em] uppercase">
-        {text.contracts}
-      </h4>
-      {query.isPending ? (
-        <SectionState label={text.loading} />
-      ) : query.isError ? (
-        <SectionState
-          label={text.error}
-          onRetry={() => void query.refetch()}
-          retryLabel={text.retry}
-        />
-      ) : contracts.length === 0 ? (
-        <p className="text-muted-foreground mt-2 text-xs">
-          {text.contractsEmpty}
-        </p>
-      ) : (
-        <ul className="mt-2 space-y-2">
-          {contracts.map((contract) => (
-            <li
-              className="bg-secondary/40 flex items-center gap-3 rounded-lg border p-3"
-              key={contract.id}
-            >
-              <FileText
-                aria-hidden="true"
-                className="text-muted-foreground size-4 shrink-0"
-              />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium">
-                  {contract.contract_number}
-                </span>
-                <span className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-                  <ContractStageChip contract={contract} text={text} />
-                  {contract.files_count > 0 ? (
-                    <span className="flex items-center gap-1">
-                      <Paperclip aria-hidden="true" className="size-3" />
-                      {contract.files_count} {text.files}
-                    </span>
-                  ) : null}
-                </span>
-              </span>
-              {contract.download_url ? (
-                <Button
-                  asChild
-                  colorScheme="neutral"
-                  size="icon"
-                  variant="ghost"
-                >
-                  <a
-                    aria-label={`${text.download}: ${contract.contract_number}`}
-                    download
-                    href={contract.download_url}
-                    title={text.download}
-                  >
-                    <Download aria-hidden="true" className="size-4" />
-                  </a>
-                </Button>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
   );
 }
 
@@ -826,7 +728,7 @@ export function InteractionCardDialog({
 
           {canSeeDocuments ? (
             <Section title={text.documents}>
-              <ContractsSection interactionId={interaction.id} />
+              <InteractionContractsList interactionId={interaction.id} />
               <LicensesSection interactionId={interaction.id} />
               <AttachmentsSection interactionId={interaction.id} />
             </Section>

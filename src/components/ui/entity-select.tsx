@@ -38,6 +38,8 @@ type EntitySelectProps = {
   disabledHint?: string;
   /** Скрываемые варианты: уже выбранные в другом месте формы. */
   excludeIds?: string[];
+  /** Сообщение, когда API вернул варианты, но все они уже выбраны. */
+  excludedEmptyMessage?: string;
   id: string;
   invalid?: boolean;
   label: string;
@@ -69,6 +71,7 @@ export function EntitySelect({
   disabled = false,
   disabledHint,
   excludeIds = [],
+  excludedEmptyMessage,
   id,
   invalid = false,
   label,
@@ -138,11 +141,13 @@ export function EntitySelect({
     enabled: isOpen && !disabled,
   });
 
-  const options = (
-    optionsQuery.data?.pages.flatMap((page) => page.options) ?? []
-  ).filter(
+  const loadedOptions =
+    optionsQuery.data?.pages.flatMap((page) => page.options) ?? [];
+  const options = loadedOptions.filter(
     (option) => option.id === value?.id || !excludeIds.includes(option.id),
   );
+  const allLoadedOptionsExcluded =
+    loadedOptions.length > 0 && options.length === 0;
 
   function choose(option: LookupOption) {
     onChange(option);
@@ -232,7 +237,11 @@ export function EntitySelect({
             ) : optionsQuery.isError ? (
               <p className="text-muted-foreground p-2 text-sm">{text.error}</p>
             ) : options.length === 0 ? (
-              <p className="text-muted-foreground p-2 text-sm">{text.empty}</p>
+              <p className="text-muted-foreground p-2 text-sm">
+                {allLoadedOptionsExcluded
+                  ? (excludedEmptyMessage ?? text.empty)
+                  : text.empty}
+              </p>
             ) : (
               options.map((option) => (
                 <button
