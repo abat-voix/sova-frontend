@@ -37,6 +37,7 @@ export type PolicyAction =
   | "catalog.delete"
   | "catalog.import"
   | "catalog.mappings.manage"
+  | "workflows.read"
   | "workflows.manage"
   | "users.read"
   | "users.manage"
