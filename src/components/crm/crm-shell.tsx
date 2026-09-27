@@ -230,7 +230,7 @@ function Sidebar({
           </form>
         </div>
         <div className={cn("mb-3", collapsed ? "flex justify-center" : "px-2")}>
-          <TelegramConnect collapsed={collapsed} />
+          <TelegramConnect collapsed={collapsed} csrfToken={csrfToken} />
         </div>
         <div
           className={cn(

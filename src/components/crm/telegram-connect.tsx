@@ -10,7 +10,6 @@ import {
   getTelegramLinkStatus,
   telegramLinkQueryKey,
 } from "@/lib/api/notifications/telegram";
-import { useAuth } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
 
 /** Пока ссылка на бота не погашена, статус могут обновить и другой вкладкой, и самим ботом. */
@@ -34,9 +33,14 @@ const copy = {
  * подключён, и статус с отключением — после. Живёт в блоке пользователя в
  * сайдбаре, как единственное «личное» действие, не привязанное к разделу.
  */
-export function TelegramConnect({ collapsed }: { collapsed: boolean }) {
+export function TelegramConnect({
+  collapsed,
+  csrfToken,
+}: {
+  collapsed: boolean;
+  csrfToken: string;
+}) {
   const { locale } = useLocale();
-  const { csrfToken } = useAuth();
   const queryClient = useQueryClient();
   const text = copy[locale];
 
