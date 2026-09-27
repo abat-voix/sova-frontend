@@ -112,6 +112,29 @@ describe("CrmShell", () => {
     expect(screen.getByText("Доступ ограничен")).toBeInTheDocument();
   });
 
+  it("shows catalog import in administration only with catalog.import", () => {
+    const view = renderShell("home");
+    expect(
+      screen.queryByRole("link", { name: /Импорт справочников/ }),
+    ).toBeNull();
+    view.unmount();
+
+    renderShell("home", {
+      ...user,
+      permissions: [...kamPermissions, "catalog.import"],
+      role: "platform_admin",
+    });
+    expect(
+      screen.getByRole("link", { name: /Импорт справочников/ }),
+    ).toHaveAttribute("href", "/settings/catalog-import");
+  });
+
+  it("denies the catalog import page to a kam", () => {
+    renderShell("catalogImport");
+
+    expect(screen.getByText("Доступ ограничен")).toBeInTheDocument();
+  });
+
   it("renders the tasks workspace for the myTasks section", async () => {
     vi.stubGlobal(
       "fetch",

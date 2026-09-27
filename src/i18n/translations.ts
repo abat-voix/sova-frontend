@@ -56,6 +56,9 @@ export const translations = {
       "Настройка этапов, действий и переходов процесса.",
     integrations: "Интеграции",
     integrationsDescription: "Настройка обмена данными с внешними системами.",
+    catalogImport: "Импорт справочников",
+    catalogImportDescription:
+      "Загрузка справочников и реестра договоров из xlsx/xls, маппинг колонок.",
     userRoles: "Роли пользователей",
     userRolesDescription: "Назначение прикладных ролей пользователям СОВА.",
     userRolesSearch: "Поиск пользователей",
@@ -152,6 +155,9 @@ export const translations = {
       "Configure process stages, actions, and transitions.",
     integrations: "Integrations",
     integrationsDescription: "Configure data exchange with external systems.",
+    catalogImport: "Catalog import",
+    catalogImportDescription:
+      "Upload catalogs and the contract registry from xlsx/xls, map columns.",
     userRoles: "User roles",
     userRolesDescription: "Assign application roles to SOVA users.",
     userRolesSearch: "Search users",

@@ -22,6 +22,7 @@ import {
   type CrmSection,
 } from "@/components/crm/crm-navigation";
 import { DashboardHome } from "@/components/crm/dashboard-home";
+import { CatalogImportWorkspace } from "@/components/catalog-import/catalog-import-workspace";
 import { B2CClientsWorkspace } from "@/components/b2c-clients/b2c-clients-workspace";
 import { ContractsWorkspace } from "@/components/contracts/contracts-workspace";
 import { LicensesWorkspace } from "@/components/licenses/licenses-workspace";
@@ -525,6 +526,8 @@ export function CrmShell(props: CrmShellProps) {
             <TeamSection csrfToken={csrfToken} user={user} />
           ) : !canOpenSection ? (
             <SectionAccessDenied />
+          ) : activeSection === "catalogImport" ? (
+            <CatalogImportWorkspace />
           ) : activeSection === "home" ? (
             <DashboardHome user={user} />
           ) : activeSection === "contacts" ? (
