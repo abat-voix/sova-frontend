@@ -335,6 +335,30 @@ describe("NewInteractionDialog", () => {
     ).toBeInTheDocument();
   });
 
+  it("lets a kam assign an unassigned interaction only to themselves", async () => {
+    const calls = stubFetch();
+    const { onUpdated } = renderDialog("kam", interactionWith([]));
+
+    expect(
+      screen.queryByRole("combobox", { name: "Ответственные" }),
+    ).toBeNull();
+    expect(screen.getByText("Не назначены")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Назначить себя" }));
+
+    expect(screen.getByText("Пётр Совин")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Назначить себя" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить" }));
+
+    await waitFor(() => expect(onUpdated).toHaveBeenCalled());
+    expect(calls).toEqual([
+      {
+        body: { manager: 3 },
+        url: "/api/interactions/interactions/int-1/assign-responsible/",
+      },
+    ]);
+  });
+
   it("marks a free kam as joining the head's team", async () => {
     stubFetch();
     renderDialog("head");
