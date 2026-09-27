@@ -85,9 +85,11 @@ function formatMoment(value: string, locale: "ru" | "en") {
  * `contract-files`, поэтому скачать можно любую из них.
  */
 export function ContractFiles({
+  canUpload = true,
   contract,
   csrfToken,
 }: {
+  canUpload?: boolean;
   contract: Contract;
   csrfToken: string;
 }) {
@@ -144,37 +146,44 @@ export function ContractFiles({
           <p className="text-muted-foreground mt-2 text-sm">{text.noFile}</p>
         )}
 
-        <input
-          className="sr-only"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) uploadMutation.mutate(file);
-            event.target.value = "";
-          }}
-          ref={inputRef}
-          tabIndex={-1}
-          type="file"
-        />
-        <Button
-          className="mt-3"
-          colorScheme="neutral"
-          disabled={uploadMutation.isPending}
-          onClick={() => inputRef.current?.click()}
-          size="m"
-          type="button"
-          variant="outline"
-        >
-          {uploadMutation.isPending ? (
-            <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
-          ) : (
-            <Upload aria-hidden="true" className="size-4" />
-          )}
-          {uploadMutation.isPending
-            ? text.uploading
-            : hasFile
-              ? text.uploadNew
-              : text.upload}
-        </Button>
+        {canUpload ? (
+          <>
+            <input
+              className="sr-only"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) uploadMutation.mutate(file);
+                event.target.value = "";
+              }}
+              ref={inputRef}
+              tabIndex={-1}
+              type="file"
+            />
+            <Button
+              className="mt-3"
+              colorScheme="neutral"
+              disabled={uploadMutation.isPending}
+              onClick={() => inputRef.current?.click()}
+              size="m"
+              type="button"
+              variant="outline"
+            >
+              {uploadMutation.isPending ? (
+                <LoaderCircle
+                  aria-hidden="true"
+                  className="size-4 animate-spin"
+                />
+              ) : (
+                <Upload aria-hidden="true" className="size-4" />
+              )}
+              {uploadMutation.isPending
+                ? text.uploading
+                : hasFile
+                  ? text.uploadNew
+                  : text.upload}
+            </Button>
+          </>
+        ) : null}
       </section>
 
       {contract.files_count > 0 ? (

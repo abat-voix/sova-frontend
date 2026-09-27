@@ -47,6 +47,7 @@ import {
   getUnreadCount,
   unreadCountQueryKey,
 } from "@/lib/api/messaging/messaging";
+import { can } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import type { AuthenticatedUser } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
@@ -304,6 +305,18 @@ function IntegrationAccessDenied() {
   );
 }
 
+function SectionAccessDenied() {
+  return (
+    <div className="bg-card rounded-xl border border-dashed p-12 text-center">
+      <h1 className="text-2xl font-medium">Доступ ограничен</h1>
+      <p className="text-muted-foreground mt-2">
+        Раздел недоступен для вашей роли. Если доступ нужен, обратитесь к
+        администратору платформы.
+      </p>
+    </div>
+  );
+}
+
 function UserRolesAccessDenied() {
   return (
     <div className="bg-card rounded-xl border border-dashed p-12 text-center">
@@ -332,9 +345,8 @@ export function CrmShell(props: CrmShellProps) {
     crmNavigationItems.find((item) => item.id === activeSection) ??
     crmNavigationItems[0];
   const isFullHeight = fullHeightSections.has(activeSection);
-  const canManageWorkflows =
-    user.role === "head" || user.role === "platform_admin";
-  const canManageIntegrations = user.isStaff || user.role === "platform_admin";
+  const canManageWorkflows = can(user, "workflows.manage");
+  const canManageIntegrations = can(user, "integrations.manage");
   const canManageTeam = canAccessCrmSection(
     crmNavigationItems.find((item) => item.id === "team")!,
     user,
@@ -343,10 +355,13 @@ export function CrmShell(props: CrmShellProps) {
     crmNavigationItems.find((item) => item.id === "userRoles")!,
     user,
   );
+  const canOpenSection = canAccessCrmSection(currentSection, user);
+  const canUseMessenger = can(user, "messaging.use");
 
   const unreadCountQuery = useQuery({
     queryKey: unreadCountQueryKey(),
     queryFn: getUnreadCount,
+    enabled: canUseMessenger,
     refetchInterval: realtimePollingInterval(realtimeStatus, 30000),
   });
   const unreadCount = unreadCountQuery.data?.unread_count ?? 0;
@@ -364,7 +379,7 @@ export function CrmShell(props: CrmShellProps) {
         "bg-background min-h-svh lg:grid lg:transition-[grid-template-columns] lg:duration-200",
       )}
       style={{
-        gridTemplateColumns: `${isDesktopSidebarCollapsed ? "5rem" : "17.5rem"} minmax(0,1fr) ${isMessengerOpen ? messengerPanelWidth : "0px"}`,
+        gridTemplateColumns: `${isDesktopSidebarCollapsed ? "5rem" : "17.5rem"} minmax(0,1fr) ${isMessengerOpen && canUseMessenger ? messengerPanelWidth : "0px"}`,
       }}
     >
       <aside
@@ -454,28 +469,30 @@ export function CrmShell(props: CrmShellProps) {
           <div className="text-muted-foreground hidden items-center gap-2 text-sm sm:flex lg:hidden">
             <span className="max-w-44 truncate">{user.displayName}</span>
           </div>
-          <Button
-            aria-label={
-              isMessengerOpen ? t("closeMessenger") : t("openMessenger")
-            }
-            className="relative ml-2"
-            colorScheme="neutral"
-            onClick={() => setIsMessengerOpen((open) => !open)}
-            size="icon"
-            title={isMessengerOpen ? t("closeMessenger") : t("openMessenger")}
-            type="button"
-            variant={isMessengerOpen ? "secondary" : "outline"}
-          >
-            <MessageCircle aria-hidden="true" className="size-5" />
-            {unreadCount > 0 ? (
-              <span
-                aria-hidden="true"
-                className="absolute -top-1 -right-1 flex size-4 min-w-4 items-center justify-center rounded-full bg-[var(--atmr-accent-primary)] px-0.5 text-[0.625rem] font-bold text-[var(--atmr-text-on-accent)]"
-              >
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </span>
-            ) : null}
-          </Button>
+          {canUseMessenger ? (
+            <Button
+              aria-label={
+                isMessengerOpen ? t("closeMessenger") : t("openMessenger")
+              }
+              className="relative ml-2"
+              colorScheme="neutral"
+              onClick={() => setIsMessengerOpen((open) => !open)}
+              size="icon"
+              title={isMessengerOpen ? t("closeMessenger") : t("openMessenger")}
+              type="button"
+              variant={isMessengerOpen ? "secondary" : "outline"}
+            >
+              <MessageCircle aria-hidden="true" className="size-5" />
+              {unreadCount > 0 ? (
+                <span
+                  aria-hidden="true"
+                  className="absolute -top-1 -right-1 flex size-4 min-w-4 items-center justify-center rounded-full bg-[var(--atmr-accent-primary)] px-0.5 text-[0.625rem] font-bold text-[var(--atmr-text-on-accent)]"
+                >
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              ) : null}
+            </Button>
+          ) : null}
         </header>
 
         <main
@@ -502,6 +519,8 @@ export function CrmShell(props: CrmShellProps) {
             <TeamAccessDenied />
           ) : activeSection === "team" ? (
             <TeamSection csrfToken={csrfToken} user={user} />
+          ) : !canOpenSection ? (
+            <SectionAccessDenied />
           ) : activeSection === "home" ? (
             <DashboardHome user={user} />
           ) : activeSection === "contacts" ? (
@@ -536,7 +555,7 @@ export function CrmShell(props: CrmShellProps) {
         className="bg-card sticky top-0 z-40 hidden h-svh border-l lg:block"
         id="desktop-messenger-panel"
       >
-        {isMessengerOpen ? (
+        {isMessengerOpen && canUseMessenger ? (
           <div className="h-full" style={{ width: messengerPanelWidth }}>
             <MessengerPanel
               csrfToken={csrfToken}
@@ -549,7 +568,7 @@ export function CrmShell(props: CrmShellProps) {
         ) : null}
       </aside>
 
-      {isMessengerOpen ? (
+      {isMessengerOpen && canUseMessenger ? (
         <div className="fixed inset-0 z-50 lg:hidden">
           <button
             aria-label={t("closeMessenger")}

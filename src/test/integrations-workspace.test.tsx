@@ -10,6 +10,7 @@ vi.mock("next/navigation", () => ({
 
 import { CrmShell } from "@/components/crm/crm-shell";
 import { LocaleProvider } from "@/providers/locale-provider";
+import { kamPermissions } from "@/test/fixtures/permissions";
 
 describe("integrations access", () => {
   it("does not expose the page to a regular user", () => {
@@ -31,6 +32,8 @@ describe("integrations access", () => {
               lastName: "",
               displayName: "User",
               isStaff: false,
+              isSuperuser: false,
+              permissions: kamPermissions,
               role: "kam",
               roleDisplay: "КАМ",
               roles: [],

@@ -399,7 +399,9 @@ export function NewInteractionDialog({
   // `/api/users/` ему отвечает 403.
   const isKam = currentUser.role === "kam";
   const canChooseResponsible =
-    currentUser.role === "head" || currentUser.role === "platform_admin";
+    currentUser.isSuperuser ||
+    currentUser.role === "head" ||
+    currentUser.role === "platform_admin";
   const isEditing = Boolean(editInteraction);
   const [draft, dispatch] = useReducer(
     draftReducer,
@@ -637,7 +639,12 @@ export function NewInteractionDialog({
                   placeholder={text.responsiblePlaceholder}
                   queryKey={["users", "managers", currentUser.id]}
                   lockedIds={isRetry ? draft.assignedResponsibleIds : lockedIds}
-                  search={searchManagers(currentUser.role, text.joinsYourTeam)}
+                  search={searchManagers(
+                    currentUser.isSuperuser
+                      ? "platform_admin"
+                      : currentUser.role,
+                    text.joinsYourTeam,
+                  )}
                   value={draft.responsibles}
                 />
                 {isHead && !hasSelf ? (

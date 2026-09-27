@@ -135,6 +135,7 @@ function Field({ label, value }: { label: string; value: string }) {
 }
 
 type PanelProps = {
+  canExecute?: boolean;
   csrfToken: string;
   workflowInstanceId: string;
   interaction?: InteractionShort;
@@ -142,6 +143,7 @@ type PanelProps = {
 
 function ActionPanel({
   action,
+  canExecute,
   csrfToken,
   // Канбан хранит открытое действие снимком в useState и не перечитывает
   // его при рефетче — в отличие от диаграммы, которая каждый раз находит
@@ -278,17 +280,19 @@ function ActionPanel({
         </div>
       ) : null}
 
-      <ActionFeatureRenderer
-        actionInstanceId={action.id}
-        csrfToken={csrfToken}
-        executionNo={action.execution_no}
-        executions={action.feature_executions}
-        features={action.available_features}
-        workflowInstanceId={workflowInstanceId}
-        interaction={interaction ?? action.interaction}
-      />
+      {canExecute ? (
+        <ActionFeatureRenderer
+          actionInstanceId={action.id}
+          csrfToken={csrfToken}
+          executionNo={action.execution_no}
+          executions={action.feature_executions}
+          features={action.available_features}
+          workflowInstanceId={workflowInstanceId}
+          interaction={interaction ?? action.interaction}
+        />
+      ) : null}
 
-      {action.available_outcomes.length > 0 ? (
+      {canExecute && action.available_outcomes.length > 0 ? (
         <form
           className="space-y-3 border-t pt-4"
           onSubmit={(event) => {
@@ -390,7 +394,7 @@ function ActionPanel({
         </form>
       ) : null}
 
-      {canRollback ? (
+      {canExecute && canRollback ? (
         <div className="space-y-3 border-t pt-4">
           {isRollingBack ? (
             <form
@@ -466,6 +470,7 @@ function ActionPanel({
 }
 
 function StagePanel({
+  canExecute,
   csrfToken,
   stage,
   workflowInstanceId,
@@ -532,7 +537,7 @@ function StagePanel({
         />
       </dl>
 
-      {canReturn ? (
+      {canExecute && canReturn ? (
         <div className="space-y-3 border-t pt-4">
           {isCancelling ? (
             <form
@@ -653,12 +658,14 @@ function StagePanel({
 }
 
 export function BoardDetails({
+  canExecute = true,
   csrfToken,
   onActionChanged,
   selection,
   workflowInstanceId,
   interaction,
 }: PanelProps & {
+  canExecute?: boolean;
   onActionChanged?: () => void;
   selection: BoardSelection | null;
 }) {
@@ -676,6 +683,7 @@ export function BoardDetails({
     return (
       <ActionPanel
         action={selection.action}
+        canExecute={canExecute}
         csrfToken={csrfToken}
         key={selection.action.id}
         onActionChanged={onActionChanged}
@@ -687,6 +695,7 @@ export function BoardDetails({
 
   return (
     <StagePanel
+      canExecute={canExecute}
       csrfToken={csrfToken}
       key={selection.stage.id}
       stage={selection.stage}

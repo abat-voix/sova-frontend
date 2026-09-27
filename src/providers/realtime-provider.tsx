@@ -19,6 +19,7 @@ import {
 } from "@/lib/realtime/realtime-client";
 import { getRealtimeUrl } from "@/lib/realtime/url";
 import type { RealtimeEvent } from "@/lib/realtime/protocol";
+import { can } from "@/lib/permissions";
 import { useAuth } from "@/providers/auth-provider";
 
 type RealtimeContextValue = {
@@ -42,6 +43,8 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     if (
       auth.isLoading ||
       !auth.isAuthenticated ||
+      !auth.user ||
+      !can(auth.user, "realtime.connect") ||
       typeof window === "undefined"
     ) {
       clientRef.current?.stop();
@@ -73,7 +76,13 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
       client.stop();
       if (clientRef.current === client) clientRef.current = null;
     };
-  }, [auth.isAuthenticated, auth.isLoading, auth.refreshSession, queryClient]);
+  }, [
+    auth.isAuthenticated,
+    auth.isLoading,
+    auth.refreshSession,
+    auth.user,
+    queryClient,
+  ]);
 
   const subscribe = useCallback((listener: (event: RealtimeEvent) => void) => {
     listenersRef.current.add(listener);

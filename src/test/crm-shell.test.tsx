@@ -13,6 +13,10 @@ import { CrmShell } from "@/components/crm/crm-shell";
 import { AuthProvider } from "@/providers/auth-provider";
 import { LocaleProvider } from "@/providers/locale-provider";
 import type { AuthenticatedUser } from "@/providers/auth-provider";
+import {
+  kamPermissions,
+  observerPermissions,
+} from "@/test/fixtures/permissions";
 
 const user: AuthenticatedUser = {
   id: 1,
@@ -21,6 +25,8 @@ const user: AuthenticatedUser = {
   lastName: "Иванов",
   displayName: "Иван Иванов",
   isStaff: false,
+  isSuperuser: false,
+  permissions: kamPermissions,
   role: "kam",
   roleDisplay: "КАМ",
   roles: [],
@@ -82,7 +88,13 @@ describe("CrmShell", () => {
     ["kam", false],
     [null, false],
   ] as const)("shows the team item for role %s: %s", (role, visible) => {
-    renderShell("home", { ...user, role });
+    renderShell("home", {
+      ...user,
+      permissions: visible
+        ? [...kamPermissions, "teams.manage"]
+        : kamPermissions,
+      role,
+    });
 
     const link = screen.queryByRole("link", { name: /Команда/ });
     expect(Boolean(link)).toBe(visible);
@@ -122,5 +134,52 @@ describe("CrmShell", () => {
     expect(
       await screen.findByRole("button", { name: "Все взаимодействия" }),
     ).toBeInTheDocument();
+  });
+
+  describe("observer", () => {
+    const observer: AuthenticatedUser = {
+      ...user,
+      permissions: observerPermissions,
+      role: "observer",
+      roleDisplay: "Наблюдатель",
+    };
+
+    it("shows only the sections on the role policy", () => {
+      renderShell("home", observer);
+
+      const navigation = screen.getByRole("navigation", {
+        name: "Основная навигация",
+      });
+      const links = Array.from(navigation.querySelectorAll("a")).map((link) =>
+        link.getAttribute("href"),
+      );
+      expect(links).toEqual([
+        "/",
+        "/interactions",
+        "/tasks",
+        "/contracts",
+        "/licenses",
+        "/reports",
+        "/organizations",
+        "/b2c-clients",
+        "/contacts",
+        "/catalog/it",
+        "/catalog/vendors",
+      ]);
+    });
+
+    it("does not offer the messenger", () => {
+      renderShell("home", observer);
+
+      expect(
+        screen.queryByRole("button", { name: "Открыть сообщения" }),
+      ).toBeNull();
+    });
+
+    it("restricts a personal section opened by its address", () => {
+      renderShell("notifications", observer);
+
+      expect(screen.getByText("Доступ ограничен")).toBeInTheDocument();
+    });
   });
 });

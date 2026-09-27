@@ -18,6 +18,7 @@ import { MyTasksWorkspace } from "@/components/tasks/my-tasks-workspace";
 import { AuthProvider } from "@/providers/auth-provider";
 import { LocaleProvider } from "@/providers/locale-provider";
 import { actionInstanceFixture } from "@/test/fixtures/action-instance";
+import { kamPermissions } from "@/test/fixtures/permissions";
 
 afterEach(() => {
   cleanup();
@@ -39,6 +40,11 @@ function stubApi(role: "kam" | "head") {
             lastName: "Иванов",
             displayName: "Иван Иванов",
             isStaff: false,
+            isSuperuser: false,
+            permissions:
+              role === "head"
+                ? [...kamPermissions, "teams.manage"]
+                : kamPermissions,
             role,
             roleDisplay: "",
             roles: [],
@@ -121,6 +127,8 @@ function stubApiWithTask(role: "kam" | "head") {
               lastName: "Иванов",
               displayName: "Иван Иванов",
               isStaff: false,
+              isSuperuser: false,
+              permissions: kamPermissions,
               role,
               roleDisplay: "",
               roles: [],
@@ -183,6 +191,8 @@ function stubApiWithCompletableTask(role: "kam" | "head") {
               lastName: "Иванов",
               displayName: "Иван Иванов",
               isStaff: false,
+              isSuperuser: false,
+              permissions: kamPermissions,
               role,
               roleDisplay: "",
               roles: [],

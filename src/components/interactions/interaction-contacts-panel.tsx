@@ -59,9 +59,12 @@ const copy = {
 } as const;
 
 export function InteractionContactsPanel({
+  canEdit = true,
   csrfToken,
   interaction,
 }: {
+  /** Привязывать и отвязывать контакты; без права панель только показывает их. */
+  canEdit?: boolean;
   csrfToken: string;
   interaction: InteractionShort;
 }) {
@@ -136,21 +139,25 @@ export function InteractionContactsPanel({
             <ChevronDown aria-hidden="true" className="size-4" />
           )}
         </button>
-        <Button
-          colorScheme="neutral"
-          onClick={() => {
-            setSelected(null);
-            setError(null);
-            setIsExpandedOverride(true);
-            setIsAdding((value) => !value);
-          }}
-          size="s"
-          type="button"
-          variant="outline"
-        >
-          {!isAdding ? <Plus aria-hidden="true" className="size-3.5" /> : null}
-          {isAdding ? text.cancel : text.add}
-        </Button>
+        {canEdit ? (
+          <Button
+            colorScheme="neutral"
+            onClick={() => {
+              setSelected(null);
+              setError(null);
+              setIsExpandedOverride(true);
+              setIsAdding((value) => !value);
+            }}
+            size="s"
+            type="button"
+            variant="outline"
+          >
+            {!isAdding ? (
+              <Plus aria-hidden="true" className="size-3.5" />
+            ) : null}
+            {isAdding ? text.cancel : text.add}
+          </Button>
+        ) : null}
       </div>
 
       {isExpanded && contactsQuery.isPending ? (
@@ -199,25 +206,27 @@ export function InteractionContactsPanel({
                     {contact.phone}
                   </a>
                 ) : null}
-                <Button
-                  aria-label={`${text.unlink}: ${contact.full_name}`}
-                  colorScheme="neutral"
-                  disabled={unlinkMutation.isPending}
-                  onClick={() => unlinkMutation.mutate(contact.id)}
-                  size="icon"
-                  title={text.unlink}
-                  type="button"
-                  variant="ghost"
-                >
-                  <Unlink aria-hidden="true" className="size-3.5" />
-                </Button>
+                {canEdit ? (
+                  <Button
+                    aria-label={`${text.unlink}: ${contact.full_name}`}
+                    colorScheme="neutral"
+                    disabled={unlinkMutation.isPending}
+                    onClick={() => unlinkMutation.mutate(contact.id)}
+                    size="icon"
+                    title={text.unlink}
+                    type="button"
+                    variant="ghost"
+                  >
+                    <Unlink aria-hidden="true" className="size-3.5" />
+                  </Button>
+                ) : null}
               </li>
             );
           })}
         </ul>
       ) : null}
 
-      {isExpanded && isAdding ? (
+      {isExpanded && isAdding && canEdit ? (
         <div className="mt-3 flex items-start gap-2">
           <div className="min-w-0 flex-1">
             <ContactPicker

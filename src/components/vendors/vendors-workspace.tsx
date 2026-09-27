@@ -39,6 +39,7 @@ import {
   vendorsQueryKey,
 } from "@/lib/api/catalog/vendors";
 import { formatDate } from "@/lib/format-date";
+import { can } from "@/lib/permissions";
 import { useAuth } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
 import type { Vendor } from "@/types/vendor";
@@ -223,7 +224,10 @@ function VendorForm({
 /** Справочник вендоров: таблица с поиском и отбором, карточка и правка. */
 export function VendorsWorkspace() {
   const { locale } = useLocale();
-  const { csrfToken } = useAuth();
+  const { csrfToken, user } = useAuth();
+  const canCreate = user !== null && can(user, "catalog.create");
+  const canUpdate = user !== null && can(user, "catalog.update");
+  const canDelete = user !== null && can(user, "catalog.delete");
   const text = copy[locale];
   const common = registryCopy[locale];
   const queryClient = useQueryClient();
@@ -355,14 +359,16 @@ export function VendorsWorkspace() {
     <div className="space-y-5">
       <RegistryHeader
         action={
-          <Button
-            onClick={() => setForm({ vendor: null })}
-            size="m"
-            type="button"
-          >
-            <Plus aria-hidden="true" className="size-4" />
-            {text.create}
-          </Button>
+          canCreate ? (
+            <Button
+              onClick={() => setForm({ vendor: null })}
+              size="m"
+              type="button"
+            >
+              <Plus aria-hidden="true" className="size-4" />
+              {text.create}
+            </Button>
+          ) : undefined
         }
         description={text.description}
         title={text.title}
@@ -410,23 +416,27 @@ export function VendorsWorkspace() {
         <Drawer
           closeLabel={common.close}
           footer={
-            vendor ? (
+            vendor && (canUpdate || canDelete) ? (
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <Button
-                  colorScheme="neutral"
-                  onClick={() => setForm({ vendor })}
-                  size="m"
-                  type="button"
-                  variant="outline"
-                >
-                  <Pencil aria-hidden="true" className="size-4" />
-                  {common.edit}
-                </Button>
-                <ConfirmDeleteButton
-                  isPending={deleteMutation.isPending}
-                  locale={locale}
-                  onConfirm={() => deleteMutation.mutate(vendor.id)}
-                />
+                {canUpdate ? (
+                  <Button
+                    colorScheme="neutral"
+                    onClick={() => setForm({ vendor })}
+                    size="m"
+                    type="button"
+                    variant="outline"
+                  >
+                    <Pencil aria-hidden="true" className="size-4" />
+                    {common.edit}
+                  </Button>
+                ) : null}
+                {canDelete ? (
+                  <ConfirmDeleteButton
+                    isPending={deleteMutation.isPending}
+                    locale={locale}
+                    onConfirm={() => deleteMutation.mutate(vendor.id)}
+                  />
+                ) : null}
               </div>
             ) : undefined
           }

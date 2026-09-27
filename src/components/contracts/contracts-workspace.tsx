@@ -59,6 +59,7 @@ import {
 import { getLicenses } from "@/lib/api/interactions/licenses";
 import { formatDate } from "@/lib/format-date";
 import { useAuth } from "@/providers/auth-provider";
+import { can } from "@/lib/permissions";
 import { useLocale } from "@/providers/locale-provider";
 import type { Contract } from "@/types/contract";
 
@@ -460,7 +461,11 @@ function ContractLicenses({
  */
 export function ContractsWorkspace() {
   const { locale } = useLocale();
-  const { csrfToken } = useAuth();
+  const { csrfToken, user } = useAuth();
+  const canCreate = user !== null && can(user, "contracts.create");
+  const canUpdate = user !== null && can(user, "contracts.update");
+  const canDelete = user !== null && can(user, "contracts.delete");
+  const canAttach = user !== null && can(user, "contracts.attach");
   const text = copy[locale];
   const common = registryCopy[locale];
   const queryClient = useQueryClient();
@@ -628,14 +633,16 @@ export function ContractsWorkspace() {
     <div className="space-y-5">
       <RegistryHeader
         action={
-          <Button
-            onClick={() => setForm({ contract: null })}
-            size="m"
-            type="button"
-          >
-            <Plus aria-hidden="true" className="size-4" />
-            {text.create}
-          </Button>
+          canCreate ? (
+            <Button
+              onClick={() => setForm({ contract: null })}
+              size="m"
+              type="button"
+            >
+              <Plus aria-hidden="true" className="size-4" />
+              {text.create}
+            </Button>
+          ) : undefined
         }
         description={text.description}
         title={text.title}
@@ -732,23 +739,27 @@ export function ContractsWorkspace() {
         <Drawer
           closeLabel={common.close}
           footer={
-            contract ? (
+            contract && (canUpdate || canDelete) ? (
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <Button
-                  colorScheme="neutral"
-                  onClick={() => setForm({ contract })}
-                  size="m"
-                  type="button"
-                  variant="outline"
-                >
-                  <Pencil aria-hidden="true" className="size-4" />
-                  {common.edit}
-                </Button>
-                <ConfirmDeleteButton
-                  isPending={deleteMutation.isPending}
-                  locale={locale}
-                  onConfirm={() => deleteMutation.mutate(contract.id)}
-                />
+                {canUpdate ? (
+                  <Button
+                    colorScheme="neutral"
+                    onClick={() => setForm({ contract })}
+                    size="m"
+                    type="button"
+                    variant="outline"
+                  >
+                    <Pencil aria-hidden="true" className="size-4" />
+                    {common.edit}
+                  </Button>
+                ) : null}
+                {canDelete ? (
+                  <ConfirmDeleteButton
+                    isPending={deleteMutation.isPending}
+                    locale={locale}
+                    onConfirm={() => deleteMutation.mutate(contract.id)}
+                  />
+                ) : null}
               </div>
             ) : undefined
           }
@@ -789,7 +800,11 @@ export function ContractsWorkspace() {
                   ]}
                 />
               </div>
-              <ContractFiles contract={contract} csrfToken={csrfToken} />
+              <ContractFiles
+                canUpload={canAttach}
+                contract={contract}
+                csrfToken={csrfToken}
+              />
               <ContractLicenses contractId={contract.id} text={text} />
             </>
           ) : contractQuery.isError ? (

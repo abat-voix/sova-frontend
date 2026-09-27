@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AuthProvider, useAuth } from "@/providers/auth-provider";
+import { kamPermissions } from "@/test/fixtures/permissions";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -48,6 +49,8 @@ describe("AuthProvider", () => {
               lastName: "",
               displayName: "Сова",
               isStaff: false,
+              isSuperuser: false,
+              permissions: kamPermissions,
               roles: [],
             },
           }),
