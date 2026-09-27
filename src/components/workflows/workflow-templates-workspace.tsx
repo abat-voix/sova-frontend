@@ -317,7 +317,8 @@ export function WorkflowTemplatesWorkspace() {
   );
   const canEdit = Boolean(
     selectedWorkflow &&
-    (user?.role === "platform_admin" ||
+    (user?.isSuperuser ||
+      user?.role === "platform_admin" ||
       selectedWorkflow.created_by?.id === user?.id),
   );
   const selectedStageId =

@@ -15,7 +15,7 @@ export function TeamSection({
   csrfToken: string;
   user: AuthenticatedUser;
 }) {
-  if (user.role === "platform_admin")
+  if (user.isSuperuser || user.role === "platform_admin")
     return <AdminTeamsWorkspace csrfToken={csrfToken} />;
   return <HeadTeamWorkspace csrfToken={csrfToken} />;
 }

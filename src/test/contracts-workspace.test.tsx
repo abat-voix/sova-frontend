@@ -14,6 +14,7 @@ import { AuthProvider } from "@/providers/auth-provider";
 import { LocaleProvider } from "@/providers/locale-provider";
 import type { Contract } from "@/types/contract";
 import type { ContractFile } from "@/types/contract-file";
+import { kamPermissions } from "@/test/fixtures/permissions";
 
 const contract: Contract = {
   id: "k1",
@@ -67,7 +68,23 @@ function stubApi() {
       urls.push(url);
 
       const body = url.startsWith("/api/auth/me/")
-        ? { authenticated: false }
+        ? {
+            authenticated: true,
+            csrfToken: "token",
+            user: {
+              id: 1,
+              email: "kam@example.com",
+              firstName: "Иван",
+              lastName: "Иванов",
+              displayName: "Иван Иванов",
+              isStaff: false,
+              isSuperuser: false,
+              permissions: kamPermissions,
+              role: "kam",
+              roleDisplay: "КАМ",
+              roles: [],
+            },
+          }
         : url.startsWith("/api/interactions/contracts/k1/")
           ? contract
           : url.startsWith("/api/interactions/contracts/?")

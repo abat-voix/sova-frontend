@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { ApiError } from "@/lib/api/http";
-import {
-  can,
-  canUseUnmigratedSection,
-  isAccessDenied,
-} from "@/lib/permissions";
+import { can, isAccessDenied } from "@/lib/permissions";
 import {
   kamPermissions,
   observerPermissions,
@@ -27,15 +23,6 @@ describe("permissions", () => {
         "interactions.update",
       ),
     ).toBe(true);
-  });
-
-  it("keeps an observer out of sections not yet on the policy", () => {
-    expect(canUseUnmigratedSection(observer)).toBe(false);
-    expect(canUseUnmigratedSection({ ...observer, isSuperuser: true })).toBe(
-      true,
-    );
-    expect(canUseUnmigratedSection({ ...observer, role: "kam" })).toBe(true);
-    expect(canUseUnmigratedSection({ ...observer, role: null })).toBe(true);
   });
 
   it("recognises a 403 from the backend", () => {

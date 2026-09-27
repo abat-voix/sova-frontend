@@ -88,7 +88,13 @@ describe("CrmShell", () => {
     ["kam", false],
     [null, false],
   ] as const)("shows the team item for role %s: %s", (role, visible) => {
-    renderShell("home", { ...user, role });
+    renderShell("home", {
+      ...user,
+      permissions: visible
+        ? [...kamPermissions, "teams.manage"]
+        : kamPermissions,
+      role,
+    });
 
     const link = screen.queryByRole("link", { name: /Команда/ });
     expect(Boolean(link)).toBe(visible);
@@ -147,7 +153,19 @@ describe("CrmShell", () => {
       const links = Array.from(navigation.querySelectorAll("a")).map((link) =>
         link.getAttribute("href"),
       );
-      expect(links).toEqual(["/", "/interactions"]);
+      expect(links).toEqual([
+        "/",
+        "/interactions",
+        "/tasks",
+        "/contracts",
+        "/licenses",
+        "/reports",
+        "/organizations",
+        "/b2c-clients",
+        "/contacts",
+        "/catalog/it",
+        "/catalog/vendors",
+      ]);
     });
 
     it("does not offer the messenger", () => {
@@ -158,8 +176,8 @@ describe("CrmShell", () => {
       ).toBeNull();
     });
 
-    it("restricts a section opened by its address", () => {
-      renderShell("contracts", observer);
+    it("restricts a personal section opened by its address", () => {
+      renderShell("notifications", observer);
 
       expect(screen.getByText("Доступ ограничен")).toBeInTheDocument();
     });

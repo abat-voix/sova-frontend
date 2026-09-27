@@ -49,11 +49,7 @@ import {
   type BoardSelection,
 } from "@/lib/workflow/board-to-gantt";
 import { parseInteractionLink } from "@/lib/workflow/interaction-link";
-import {
-  can,
-  canUseUnmigratedSection,
-  isAccessDenied,
-} from "@/lib/permissions";
+import { can, isAccessDenied } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
@@ -160,8 +156,11 @@ export function InteractionsWorkspace({
   const canCreate = user !== null && can(user, "interactions.create");
   const canUpdate = user !== null && can(user, "interactions.update");
   const canChat = user !== null && can(user, "interactions.chat");
-  // Процессы, договоры и лицензии ещё не на политике ролей
-  const canUseUnmigrated = user !== null && canUseUnmigratedSection(user);
+  const canReadProcesses = user !== null && can(user, "processes.read");
+  const canStartProcesses = user !== null && can(user, "processes.start");
+  const canExecuteProcesses = user !== null && can(user, "processes.execute");
+  const canReadDocuments =
+    user !== null && can(user, "contracts.read") && can(user, "licenses.read");
   // Ссылка из уведомления задаёт только начальный выбор: дальше пользователь
   // ходит по странице сам, и адрес за ним не следит.
   const searchParams = useSearchParams();
@@ -211,7 +210,7 @@ export function InteractionsWorkspace({
   const instancesQuery = useQuery({
     queryKey: ["processes", "workflow-instances", selectedInteractionId],
     queryFn: () => getWorkflowInstances(selectedInteractionId!),
-    enabled: selectedInteractionId !== null && canUseUnmigrated,
+    enabled: selectedInteractionId !== null && canReadProcesses,
   });
 
   const instances = useMemo(
@@ -298,7 +297,7 @@ export function InteractionsWorkspace({
 
         {viewingInteraction ? (
           <InteractionCardDialog
-            canSeeDocuments={canUseUnmigrated}
+            canSeeDocuments={canReadDocuments}
             interaction={viewingInteraction}
             key={viewingInteraction.id}
             onClose={() => setViewingInteraction(null)}
@@ -328,7 +327,7 @@ export function InteractionsWorkspace({
           />
         ) : null}
 
-        {isStartingProcess && selectedInteractionId ? (
+        {isStartingProcess && selectedInteractionId && canStartProcesses ? (
           <StartProcessDialog
             audience={audience}
             csrfToken={csrfToken}
@@ -457,7 +456,7 @@ export function InteractionsWorkspace({
               </label>
             ) : null}
 
-            {selectedInteractionId && canUseUnmigrated ? (
+            {selectedInteractionId && canStartProcesses ? (
               <Button
                 colorScheme={instances.length === 0 ? "accent" : "neutral"}
                 onClick={() => setIsStartingProcess(true)}
@@ -585,7 +584,7 @@ export function InteractionsWorkspace({
             <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
               {selectedInteractionId === null ? (
                 <BoardState label={text.noInteraction} />
-              ) : !canUseUnmigrated ||
+              ) : !canReadProcesses ||
                 isAccessDenied(instancesQuery.error) ||
                 isAccessDenied(boardQuery.error) ? (
                 <BoardState label={text.boardAccessDenied} />
@@ -638,6 +637,7 @@ export function InteractionsWorkspace({
 
             {selection && boardQuery.data ? (
               <BoardDetailsDrawer
+                canExecute={canExecuteProcesses}
                 csrfToken={csrfToken}
                 onClose={closeDetails}
                 selection={selection}

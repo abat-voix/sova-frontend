@@ -96,9 +96,10 @@ export function UserRolesWorkspace() {
     [rolesQuery.data, t],
   );
 
-  // Бэк не даёт администратору снять с себя роль администратора
+  // Прикладной администратор не может заблокировать себя; Django superuser
+  // управляет своей прикладной ролью без этого ограничения.
   function isSelf(row: SovaUser) {
-    return row.id === user?.id;
+    return row.id === user?.id && !user?.isSuperuser;
   }
 
   function save(user: SovaUser, role: UserRole) {

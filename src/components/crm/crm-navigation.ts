@@ -19,11 +19,7 @@ import {
 } from "lucide-react";
 
 import type { TranslationKey } from "@/i18n/translations";
-import {
-  can,
-  canUseUnmigratedSection,
-  type PolicyAction,
-} from "@/lib/permissions";
+import { can, type PolicyAction } from "@/lib/permissions";
 import type { AuthenticatedUser } from "@/providers/auth-provider";
 
 export type CrmSection =
@@ -44,17 +40,9 @@ export type CrmSection =
   | "userRoles"
   | "team";
 
-export type SectionAccess =
-  // Любой вошедший, в том числе без роли: главная сама решает, что показать
-  | "everyone"
-  | "authenticated"
-  | "workflow_manager"
-  | "team_manager"
-  | "platform_operator"
-  | "platform_admin";
+export type SectionAccess = "everyone";
 
 export type CrmNavigationItem = {
-  /** Прежнее правило доступа — для разделов, ещё не переведённых на политику. */
   access?: SectionAccess;
   /** Операция политики, открывающая раздел; важнее `access`. */
   permission?: PolicyAction;
@@ -92,6 +80,7 @@ export const crmNavigation: CrmNavigationGroup[] = [
       },
       {
         id: "myTasks",
+        permission: "processes.read",
         labelKey: "myTasks",
         descriptionKey: "myTasksDescription",
         href: "/tasks",
@@ -99,14 +88,15 @@ export const crmNavigation: CrmNavigationGroup[] = [
       },
       {
         id: "notifications",
+        permission: "notifications.use",
         labelKey: "notifications",
         descriptionKey: "notificationsDescription",
         href: "/notifications",
         icon: Bell,
       },
       {
-        access: "team_manager",
         id: "team",
+        permission: "teams.manage",
         labelKey: "team",
         descriptionKey: "teamDescription",
         href: "/team",
@@ -119,6 +109,7 @@ export const crmNavigation: CrmNavigationGroup[] = [
     items: [
       {
         id: "contracts",
+        permission: "contracts.read",
         labelKey: "contracts",
         descriptionKey: "contractsDescription",
         href: "/contracts",
@@ -126,6 +117,7 @@ export const crmNavigation: CrmNavigationGroup[] = [
       },
       {
         id: "licenses",
+        permission: "licenses.read",
         labelKey: "licenses",
         descriptionKey: "licensesDescription",
         href: "/licenses",
@@ -133,6 +125,7 @@ export const crmNavigation: CrmNavigationGroup[] = [
       },
       {
         id: "reports",
+        permission: "reports.read",
         labelKey: "reports",
         descriptionKey: "reportsDescription",
         href: "/reports",
@@ -145,6 +138,7 @@ export const crmNavigation: CrmNavigationGroup[] = [
     items: [
       {
         id: "organizations",
+        permission: "catalog.read",
         labelKey: "organizations",
         descriptionKey: "organizationsDescription",
         href: "/organizations",
@@ -152,6 +146,7 @@ export const crmNavigation: CrmNavigationGroup[] = [
       },
       {
         id: "b2cClients",
+        permission: "catalog.read",
         labelKey: "b2cClients",
         descriptionKey: "b2cClientsDescription",
         href: "/b2c-clients",
@@ -159,6 +154,7 @@ export const crmNavigation: CrmNavigationGroup[] = [
       },
       {
         id: "contacts",
+        permission: "catalog.read",
         labelKey: "contacts",
         descriptionKey: "contactsDescription",
         href: "/contacts",
@@ -171,6 +167,7 @@ export const crmNavigation: CrmNavigationGroup[] = [
     items: [
       {
         id: "itCatalog",
+        permission: "catalog.read",
         labelKey: "itCatalog",
         descriptionKey: "itCatalogDescription",
         href: "/catalog/it",
@@ -178,6 +175,7 @@ export const crmNavigation: CrmNavigationGroup[] = [
       },
       {
         id: "vendors",
+        permission: "catalog.read",
         labelKey: "vendors",
         descriptionKey: "vendorsDescription",
         href: "/catalog/vendors",
@@ -189,24 +187,24 @@ export const crmNavigation: CrmNavigationGroup[] = [
     labelKey: "navAdministration",
     items: [
       {
-        access: "workflow_manager",
         id: "workflowTemplates",
+        permission: "workflows.manage",
         labelKey: "workflowTemplates",
         descriptionKey: "workflowTemplatesDescription",
         href: "/settings/workflows",
         icon: Settings2,
       },
       {
-        access: "platform_operator",
         id: "integrations",
+        permission: "integrations.manage",
         labelKey: "integrations",
         descriptionKey: "integrationsDescription",
         href: "/settings/integrations",
         icon: PlugZap,
       },
       {
-        access: "platform_admin",
         id: "userRoles",
+        permission: "users.manage",
         labelKey: "userRoles",
         descriptionKey: "userRolesDescription",
         href: "/settings/users",
@@ -229,18 +227,7 @@ export function canAccessCrmSection(
 ): boolean {
   if (item.permission) return can(user, item.permission);
 
-  const access = item.access ?? "authenticated";
-
-  if (access === "everyone") return true;
-  if (access === "authenticated") return canUseUnmigratedSection(user);
-  // Команду ведёт руководитель, администратор — команды всех руководителей
-  if (access === "workflow_manager" || access === "team_manager") {
-    return user.role === "head" || user.role === "platform_admin";
-  }
-  if (access === "platform_operator") {
-    return user.isStaff || user.role === "platform_admin";
-  }
-  return user.role === "platform_admin";
+  return item.access === "everyone";
 }
 
 export function canAccessCrmGroup(

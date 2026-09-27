@@ -371,17 +371,13 @@ describe("InteractionsWorkspace", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows an observer the interaction read-only and without processes", async () => {
+  it("shows an observer the interaction and processes read-only", async () => {
     const fetchMock = stubApi({ sessionUser: observerSession });
     renderWorkspace({ session: observerSession });
 
     fireEvent.click(await screen.findByText("Первый университет"));
 
-    expect(
-      await screen.findByText(
-        "Доступ ограничен: процессы недоступны для вашей роли.",
-      ),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Найти контакт")).toBeInTheDocument();
     expect(
       await screen.findByText("Контакты пока не привязаны."),
     ).toBeVisible();
@@ -393,7 +389,10 @@ describe("InteractionsWorkspace", () => {
       fetchMock.mock.calls.some(([input]) =>
         String(input).startsWith("/api/processes/"),
       ),
-    ).toBe(false);
+    ).toBe(true);
+    expect(
+      screen.queryByRole("button", { name: "Запустить процесс" }),
+    ).toBeNull();
   });
 
   it("offers a kam to create interactions and start processes", async () => {

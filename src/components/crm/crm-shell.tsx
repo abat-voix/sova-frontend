@@ -47,7 +47,7 @@ import {
   getUnreadCount,
   unreadCountQueryKey,
 } from "@/lib/api/messaging/messaging";
-import { canUseUnmigratedSection } from "@/lib/permissions";
+import { can } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 import type { AuthenticatedUser } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
@@ -345,9 +345,8 @@ export function CrmShell(props: CrmShellProps) {
     crmNavigationItems.find((item) => item.id === activeSection) ??
     crmNavigationItems[0];
   const isFullHeight = fullHeightSections.has(activeSection);
-  const canManageWorkflows =
-    user.role === "head" || user.role === "platform_admin";
-  const canManageIntegrations = user.isStaff || user.role === "platform_admin";
+  const canManageWorkflows = can(user, "workflows.manage");
+  const canManageIntegrations = can(user, "integrations.manage");
   const canManageTeam = canAccessCrmSection(
     crmNavigationItems.find((item) => item.id === "team")!,
     user,
@@ -357,9 +356,7 @@ export function CrmShell(props: CrmShellProps) {
     user,
   );
   const canOpenSection = canAccessCrmSection(currentSection, user);
-  // Переписка и уведомления — не на политике ролей: наблюдателю их запросы
-  // не отправляем вовсе.
-  const canUseMessenger = canUseUnmigratedSection(user);
+  const canUseMessenger = can(user, "messaging.use");
 
   const unreadCountQuery = useQuery({
     queryKey: unreadCountQueryKey(),

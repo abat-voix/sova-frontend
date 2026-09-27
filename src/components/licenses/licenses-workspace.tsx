@@ -54,6 +54,7 @@ import {
 } from "@/lib/api/interactions/licenses";
 import { formatDate } from "@/lib/format-date";
 import { useAuth } from "@/providers/auth-provider";
+import { can } from "@/lib/permissions";
 import { useLocale } from "@/providers/locale-provider";
 import type { License } from "@/types/license";
 
@@ -447,7 +448,10 @@ function LicenseDetails({ license, text }: { license: License; text: Text }) {
  */
 export function LicensesWorkspace() {
   const { locale } = useLocale();
-  const { csrfToken } = useAuth();
+  const { csrfToken, user } = useAuth();
+  const canCreate = user !== null && can(user, "licenses.create");
+  const canUpdate = user !== null && can(user, "licenses.update");
+  const canDelete = user !== null && can(user, "licenses.delete");
   const text = copy[locale];
   const common = registryCopy[locale];
   const queryClient = useQueryClient();
@@ -608,14 +612,16 @@ export function LicensesWorkspace() {
     <div className="space-y-5">
       <RegistryHeader
         action={
-          <Button
-            onClick={() => setForm({ license: null })}
-            size="m"
-            type="button"
-          >
-            <Plus aria-hidden="true" className="size-4" />
-            {text.create}
-          </Button>
+          canCreate ? (
+            <Button
+              onClick={() => setForm({ license: null })}
+              size="m"
+              type="button"
+            >
+              <Plus aria-hidden="true" className="size-4" />
+              {text.create}
+            </Button>
+          ) : undefined
         }
         description={text.description}
         title={text.title}
@@ -721,23 +727,27 @@ export function LicensesWorkspace() {
         <Drawer
           closeLabel={common.close}
           footer={
-            license ? (
+            license && (canUpdate || canDelete) ? (
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <Button
-                  colorScheme="neutral"
-                  onClick={() => setForm({ license })}
-                  size="m"
-                  type="button"
-                  variant="outline"
-                >
-                  <Pencil aria-hidden="true" className="size-4" />
-                  {common.edit}
-                </Button>
-                <ConfirmDeleteButton
-                  isPending={deleteMutation.isPending}
-                  locale={locale}
-                  onConfirm={() => deleteMutation.mutate(license.id)}
-                />
+                {canUpdate ? (
+                  <Button
+                    colorScheme="neutral"
+                    onClick={() => setForm({ license })}
+                    size="m"
+                    type="button"
+                    variant="outline"
+                  >
+                    <Pencil aria-hidden="true" className="size-4" />
+                    {common.edit}
+                  </Button>
+                ) : null}
+                {canDelete ? (
+                  <ConfirmDeleteButton
+                    isPending={deleteMutation.isPending}
+                    locale={locale}
+                    onConfirm={() => deleteMutation.mutate(license.id)}
+                  />
+                ) : null}
               </div>
             ) : undefined
           }

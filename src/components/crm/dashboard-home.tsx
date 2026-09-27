@@ -26,7 +26,7 @@ import {
 } from "@/lib/api/interactions/interactions";
 import { resolveActionState } from "@/lib/workflow/board-to-gantt";
 import { formatMoment } from "@/lib/workflow/format-moment";
-import { can, canUseUnmigratedSection } from "@/lib/permissions";
+import { can } from "@/lib/permissions";
 import type { AuthenticatedUser } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
 
@@ -256,11 +256,11 @@ export function DashboardHome({ user }: { user: AuthenticatedUser }) {
 
       {/* Виджет раздела показываем, только если раздел доступен роли: иначе его запрос получит 403 */}
       <div className="grid gap-4 lg:grid-cols-3">
-        {canUseUnmigratedSection(user) ? <MyTasksWidget text={text} /> : null}
+        {can(user, "processes.read") ? <MyTasksWidget text={text} /> : null}
         {can(user, "interactions.read") ? (
           <InteractionsWidget text={text} />
         ) : null}
-        {canUseUnmigratedSection(user) ? <NotificationsWidget /> : null}
+        {can(user, "notifications.use") ? <NotificationsWidget /> : null}
       </div>
 
       <QuickLinks text={text} user={user} />

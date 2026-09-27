@@ -41,7 +41,10 @@ function stubApi(role: "kam" | "head") {
             displayName: "Иван Иванов",
             isStaff: false,
             isSuperuser: false,
-            permissions: kamPermissions,
+            permissions:
+              role === "head"
+                ? [...kamPermissions, "teams.manage"]
+                : kamPermissions,
             role,
             roleDisplay: "",
             roles: [],

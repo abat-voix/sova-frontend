@@ -17,6 +17,7 @@ import { useCompleteAction } from "@/hooks/use-complete-action";
 import { usePersistedFlag } from "@/hooks/use-persisted-flag";
 import type { ActionInstanceScope } from "@/lib/api/processes/action-instances";
 import { cn } from "@/lib/utils";
+import { can } from "@/lib/permissions";
 import { actionInstanceToBoardAction } from "@/lib/workflow/action-instance-to-board";
 import { useAuth } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
@@ -83,7 +84,12 @@ export function MyTasksWorkspace() {
   const [selectedInteractionId, setSelectedInteractionId] = useState<
     string | null
   >(null);
-  const [scope, setScope] = useState<ActionInstanceScope>("mine");
+  const canCreateInteraction =
+    user !== null && can(user, "interactions.create");
+  const canExecute = user !== null && can(user, "processes.execute");
+  const [scope, setScope] = useState<ActionInstanceScope>(
+    user?.role === "observer" ? "all" : "mine",
+  );
   const [isWholeTime, setIsWholeTime] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [pending, setPending] = useState<{
@@ -154,8 +160,7 @@ export function MyTasksWorkspace() {
 
   // Переключатель охвата КАМу ничего не меняет: бэкенд и так отдаёт только
   // доступное ему. Показываем его тем, у кого есть подчинённые.
-  const canSwitchScope =
-    user?.role === "head" || user?.role === "platform_admin";
+  const canSwitchScope = user !== null && can(user, "teams.manage");
 
   const actualEndGte = useMemo(
     () => (isWholeTime ? undefined : isoDate(completedWindowDays)),
@@ -178,6 +183,7 @@ export function MyTasksWorkspace() {
    */
   const handleOutcome = useCallback(
     (action: ActionInstance, outcome: BoardOutcome) => {
+      if (!canExecute) return;
       const needsAttachment =
         outcome.is_attachment_required && action.attachments_count === 0;
 
@@ -196,7 +202,7 @@ export function MyTasksWorkspace() {
         closeAction();
       }
     },
-    [closeAction, mutation, openedAction],
+    [canExecute, closeAction, mutation, openedAction],
   );
 
   const columns = [
@@ -271,7 +277,7 @@ export function MyTasksWorkspace() {
                 <PanelLeftClose aria-hidden="true" className="size-4" />
               )}
             </Button>
-            {user ? (
+            {canCreateInteraction ? (
               <Button
                 className={cn("flex-1", isListCollapsed && "lg:hidden")}
                 onClick={() => setIsCreating(true)}
@@ -352,7 +358,7 @@ export function MyTasksWorkspace() {
                   key={status}
                   onActionsLoaded={handleActionsLoaded}
                   onOpen={openAction}
-                  onOutcome={handleOutcome}
+                  onOutcome={canExecute ? handleOutcome : undefined}
                   ordering={ordering}
                   scope={scope}
                   selectedTaskId={openedAction?.id ?? pendingTaskId}
@@ -375,6 +381,7 @@ export function MyTasksWorkspace() {
 
             {openedAction ? (
               <BoardDetailsDrawer
+                canExecute={canExecute}
                 csrfToken={csrfToken}
                 onActionChanged={closeAction}
                 onClose={closeAction}

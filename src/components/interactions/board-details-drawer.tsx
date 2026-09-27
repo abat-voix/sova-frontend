@@ -15,6 +15,7 @@ const copy = {
 } as const;
 
 type BoardDetailsDrawerProps = {
+  canExecute?: boolean;
   csrfToken: string;
   onActionChanged?: () => void;
   onClose: () => void;
@@ -33,6 +34,7 @@ type BoardDetailsDrawerProps = {
  * остаётся оверлеем во всю ширину: сужать диаграмму там не до чего.
  */
 export function BoardDetailsDrawer({
+  canExecute = true,
   csrfToken,
   onActionChanged,
   onClose,
@@ -77,6 +79,7 @@ export function BoardDetailsDrawer({
 
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
         <BoardDetails
+          canExecute={canExecute}
           csrfToken={csrfToken}
           onActionChanged={onActionChanged}
           selection={selection}

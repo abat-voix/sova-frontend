@@ -37,7 +37,7 @@ type TaskCardProps = {
   isSelected?: boolean;
   /** Открыть детали. Что именно открыть — решает рабочий стол. */
   onOpen: () => void;
-  onOutcome: (outcome: BoardOutcome) => void;
+  onOutcome?: (outcome: BoardOutcome) => void;
   /** Ответственный нужен только в режиме «Все»: в «Моих» это всегда сам пользователь. */
   showResponsible: boolean;
 };
@@ -136,7 +136,7 @@ export function TaskCard({
         </div>
       ) : null}
 
-      {action.available_outcomes.length > 0 ? (
+      {onOutcome && action.available_outcomes.length > 0 ? (
         <div className="relative z-10 mt-3 flex flex-wrap gap-1.5 border-t pt-3">
           {action.available_outcomes.map((outcome) => (
             <Button

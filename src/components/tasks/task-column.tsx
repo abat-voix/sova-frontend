@@ -42,7 +42,7 @@ type TaskColumnProps = {
   /** Сообщает родителю о загруженных задачах — нужно для выбора по id из query param. */
   onActionsLoaded?: (actions: ActionInstance[]) => void;
   onOpen: (action: ActionInstance) => void;
-  onOutcome: (action: ActionInstance, outcome: BoardOutcome) => void;
+  onOutcome?: (action: ActionInstance, outcome: BoardOutcome) => void;
   ordering: string;
   scope: ActionInstanceScope;
   /** Id выбранной задачи — открытой в панели или указанной в query param. */
@@ -151,7 +151,9 @@ export function TaskColumn({
               isSelected={selectedTaskId === action.id}
               key={action.id}
               onOpen={() => onOpen(action)}
-              onOutcome={(outcome) => onOutcome(action, outcome)}
+              onOutcome={
+                onOutcome ? (outcome) => onOutcome(action, outcome) : undefined
+              }
               showResponsible={scope === "all"}
             />
           ))

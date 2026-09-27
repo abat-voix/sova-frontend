@@ -15,7 +15,36 @@ export type PolicyAction =
   | "interactions.delete"
   | "interactions.responsibles.assign"
   | "interactions.responsibles.unassign"
-  | "interactions.chat";
+  | "interactions.chat"
+  | "contracts.read"
+  | "contracts.create"
+  | "contracts.update"
+  | "contracts.delete"
+  | "contracts.attach"
+  | "licenses.read"
+  | "licenses.create"
+  | "licenses.update"
+  | "licenses.delete"
+  | "processes.read"
+  | "processes.start"
+  | "processes.execute"
+  | "processes.attachments.upload"
+  | "reports.read"
+  | "reports.export"
+  | "catalog.read"
+  | "catalog.create"
+  | "catalog.update"
+  | "catalog.delete"
+  | "catalog.import"
+  | "catalog.mappings.manage"
+  | "workflows.manage"
+  | "users.read"
+  | "users.manage"
+  | "teams.manage"
+  | "integrations.manage"
+  | "notifications.use"
+  | "messaging.use"
+  | "realtime.connect";
 
 type PermissionSubject = Pick<
   AuthenticatedUser,
@@ -25,18 +54,6 @@ type PermissionSubject = Pick<
 /** Разрешена ли пользователю операция (без учёта конкретной записи). */
 export function can(user: PermissionSubject, action: PolicyAction): boolean {
   return user.permissions.includes(action);
-}
-
-/**
- * Доступны ли пользователю разделы, ещё не переведённые на политику
- * (договоры, процессы, уведомления, переписка…).
- *
- * Повторяет правило бэкенда `PolicyPermission`: такие разделы открыты любому
- * вошедшему, кроме наблюдателя. Когда раздел переедет на политику, проверку
- * нужно заменить на `can` с его кодом операции.
- */
-export function canUseUnmigratedSection(user: PermissionSubject): boolean {
-  return user.isSuperuser || user.role !== "observer";
 }
 
 /** Бэкенд отказал в доступе (403): роль не позволяет эту операцию. */
