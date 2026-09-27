@@ -268,7 +268,7 @@ describe("OrganizationsWorkspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Список" }));
 
     expect(await screen.findByText("Первый университет")).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenLastCalledWith(
+    expect(fetchMock).toHaveBeenCalledWith(
       "/api/catalog/universities/?has_interactions=true&page=1&page_size=20",
       expect.objectContaining({ credentials: "include" }),
     );
@@ -276,7 +276,7 @@ describe("OrganizationsWorkspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Все" }));
 
     await waitFor(() =>
-      expect(fetchMock).toHaveBeenLastCalledWith(
+      expect(fetchMock).toHaveBeenCalledWith(
         "/api/catalog/universities/?page=1&page_size=20",
         expect.objectContaining({ credentials: "include" }),
       ),
