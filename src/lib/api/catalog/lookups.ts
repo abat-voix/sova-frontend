@@ -14,6 +14,7 @@ import type { PaginatedResponse } from "@/types/api";
 import type { B2CClient, Direction, Product, Program } from "@/types/catalog";
 import type { Contract } from "@/types/contract";
 import type { University } from "@/types/university";
+import type { Vendor } from "@/types/vendor";
 import type {
   Interaction,
   InteractionProduct,
@@ -90,6 +91,21 @@ export function searchProducts(search: string, programId: string) {
     `${apiEndpoints.catalog.products.list}?${lookupQuery(search, {
       program__ids: programId,
     })}`,
+    (product) => ({ id: product.id, name: product.name }),
+  );
+}
+
+export function searchVendors(search: string) {
+  return fetchOptions<Vendor>(
+    `${apiEndpoints.catalog.vendors.list}?${lookupQuery(search)}`,
+    (vendor) => ({ id: vendor.id, name: vendor.name }),
+  );
+}
+
+/** Продукты одного вендора — за них отвечает его контактное лицо. */
+export function searchVendorProducts(search: string, vendorId: string) {
+  return fetchOptions<Product>(
+    `${apiEndpoints.catalog.products.list}?${lookupQuery(search, { vendor__ids: vendorId })}`,
     (product) => ({ id: product.id, name: product.name }),
   );
 }

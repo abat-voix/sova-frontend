@@ -7,62 +7,147 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ContactsWorkspace } from "@/components/contacts/contacts-workspace";
 import { LocaleProvider } from "@/providers/locale-provider";
+import {
+  kamPermissions,
+  observerPermissions,
+} from "@/test/fixtures/permissions";
 import type { ContactPerson } from "@/types/contact-person";
+
+vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+const auth = vi.hoisted(() => ({ permissions: [] as string[] }));
+vi.mock("@/providers/auth-provider", () => ({
+  useAuth: () => ({
+    csrfToken: "csrf",
+    user: {
+      id: 1,
+      isSuperuser: false,
+      permissions: auth.permissions,
+      role: "kam",
+    },
+  }),
+}));
+
+beforeEach(() => {
+  auth.permissions = kamPermissions;
+});
 
 const universityContact: ContactPerson = {
   id: "c1",
   full_name: "Анна Иванова",
-  position: "Проректор",
   email: "anna@example.com",
   phone: "+7 900 000-00-01",
+  telegram: "anna_iv",
   is_active: true,
-  university: { id: "u1", name: "Тюменский университет" },
-  b2c_client: null,
+  affiliations: [
+    {
+      id: "a1",
+      type: "university",
+      organization: { id: "u1", name: "Тюменский университет" },
+      position: "Проректор",
+      preferred_channels: ["email"],
+      products: [],
+    },
+    {
+      id: "a2",
+      type: "vendor",
+      organization: { id: "v1", name: "ООО «Базис»" },
+      position: "Консультант",
+      preferred_channels: [],
+      products: [{ id: "p1", name: "Базис Dynamix" }],
+    },
+  ],
   created_at: "2026-09-01T10:00:00+03:00",
   updated_at: "2026-09-02T10:00:00+03:00",
 };
 
-const b2cContact: ContactPerson = {
+const inactiveContact: ContactPerson = {
   id: "c2",
   full_name: "Борис Петров",
-  position: "",
   email: "",
   phone: "",
+  telegram: "",
   is_active: false,
-  university: null,
-  b2c_client: { id: "b1", full_name: "ООО «Ромашка»", kind: "legal_entity" },
+  affiliations: [],
   created_at: "2026-09-03T10:00:00+03:00",
   updated_at: "2026-09-03T10:00:00+03:00",
 };
 
-/** Запоминает адреса запросов, чтобы проверять параметры отбора и сортировки. */
-function stubCatalog() {
-  const urls: string[] = [];
-  const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-    const url = String(input);
-    urls.push(url);
+type Call = { body: unknown; method: string; url: URL };
 
-    const body = url.includes("/contact-persons/c1/")
-      ? universityContact
-      : {
-          count: 2,
+/** Каталог контактов; все запросы запоминаются, чтобы проверять параметры и записи. */
+function stubCatalog() {
+  const calls: Call[] = [];
+  const fetchMock = vi.fn(
+    async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input), "http://localhost");
+      const method = init?.method ?? "GET";
+      const body = init?.body ? JSON.parse(String(init.body)) : undefined;
+      calls.push({ body, method, url });
+      const json = (value: unknown, status = 200) =>
+        new Response(JSON.stringify(value), {
+          headers: { "content-type": "application/json" },
+          status,
+        });
+
+      if (method === "DELETE") return new Response(null, { status: 204 });
+      if (url.pathname === "/api/catalog/contact-persons/c1/") {
+        return json({ ...universityContact, ...(body as object) });
+      }
+      if (url.pathname === "/api/catalog/contact-persons/c2/") {
+        return json({ ...inactiveContact, ...(body as object) });
+      }
+      if (url.pathname === "/api/catalog/contact-persons/c9/") {
+        return json({ ...inactiveContact, id: "c9", is_active: true });
+      }
+      if (
+        url.pathname === "/api/catalog/contact-persons/possible-duplicates/"
+      ) {
+        return json([]);
+      }
+      if (
+        url.pathname === "/api/catalog/contact-persons/" &&
+        method === "POST"
+      ) {
+        return json(
+          {
+            ...inactiveContact,
+            ...(body as object),
+            id: "c9",
+            is_active: true,
+          },
+          201,
+        );
+      }
+      if (url.pathname === "/api/catalog/universities/") {
+        return json({
+          count: 1,
           next: null,
           previous: null,
-          results: [universityContact, b2cContact],
-        };
+          results: [{ id: "u2", name: "МГУ" }],
+        });
+      }
+      if (
+        url.pathname === "/api/catalog/university-contacts/" &&
+        method === "POST"
+      ) {
+        return json({ id: "a9" }, 201);
+      }
 
-    return new Response(JSON.stringify(body), {
-      headers: { "content-type": "application/json" },
-      status: 200,
-    });
-  });
+      return json({
+        count: 2,
+        next: null,
+        previous: null,
+        results: [universityContact, inactiveContact],
+      });
+    },
+  );
   vi.stubGlobal("fetch", fetchMock);
 
-  return urls;
+  return calls;
 }
 
 function renderWorkspace() {
@@ -80,10 +165,26 @@ function renderWorkspace() {
 }
 
 /** Последний запрос списка: запросы карточки сюда попадать не должны. */
-function lastListUrl(urls: string[]) {
-  const listUrls = urls.filter((url) => url.includes("contact-persons/?"));
+function lastListUrl(calls: Call[]) {
+  const listCalls = calls.filter(
+    (call) =>
+      call.url.pathname === "/api/catalog/contact-persons/" &&
+      call.method === "GET",
+  );
 
-  return new URL(listUrls[listUrls.length - 1], "http://localhost");
+  return listCalls[listCalls.length - 1].url;
+}
+
+async function openCard(name: string) {
+  fireEvent.click(await screen.findByText(name));
+
+  return screen.findByRole("dialog");
+}
+
+function writes(calls: Call[], method: string, pathname: string) {
+  return calls.filter(
+    (call) => call.method === method && call.url.pathname === pathname,
+  );
 }
 
 afterEach(() => {
@@ -92,61 +193,239 @@ afterEach(() => {
 });
 
 describe("ContactsWorkspace", () => {
-  it("shows contacts of both counterparty kinds with the page summary", async () => {
+  it("shows every organization of a person with the position there", async () => {
     stubCatalog();
     renderWorkspace();
 
     expect(await screen.findByText("Анна Иванова")).toBeInTheDocument();
     expect(screen.getByText("Тюменский университет")).toBeInTheDocument();
-    expect(screen.getByText("ООО «Ромашка»")).toBeInTheDocument();
+    expect(screen.getByText("ООО «Базис»")).toBeInTheDocument();
+    expect(screen.getAllByText(/Проректор/).length).toBeGreaterThan(0);
     expect(screen.getByText("Строки 1–2 из 2")).toBeInTheDocument();
   });
 
-  it("opens the contact card in a drawer when a row is picked", async () => {
-    const urls = stubCatalog();
+  it("opens the card with affiliations, products, and the Telegram link", async () => {
+    const calls = stubCatalog();
     renderWorkspace();
 
-    fireEvent.click(await screen.findByText("Анна Иванова"));
+    const drawer = await openCard("Анна Иванова");
 
-    const drawer = await screen.findByRole("dialog");
     expect(
       within(drawer).getByRole("heading", { name: "Анна Иванова" }),
     ).toBeInTheDocument();
-    expect(within(drawer).getByText("anna@example.com")).toBeInTheDocument();
+    expect(within(drawer).getByText("Базис Dynamix")).toBeInTheDocument();
+    expect(
+      within(drawer).getByRole("link", { name: "@anna_iv" }),
+    ).toHaveAttribute("href", "https://t.me/anna_iv");
     await waitFor(() =>
-      expect(urls).toContain("/api/catalog/contact-persons/c1/"),
+      expect(
+        writes(calls, "GET", "/api/catalog/contact-persons/c1/"),
+      ).not.toHaveLength(0),
     );
-
-    fireEvent.click(within(drawer).getByRole("button", { name: "Закрыть" }));
-
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
   it("asks the catalog for the reversed order after a second click on a header", async () => {
-    const urls = stubCatalog();
+    const calls = stubCatalog();
     renderWorkspace();
 
     await screen.findByText("Анна Иванова");
-    expect(lastListUrl(urls).searchParams.get("ordering")).toBe("full_name");
+    expect(lastListUrl(calls).searchParams.get("ordering")).toBe("full_name");
 
     fireEvent.click(screen.getByRole("button", { name: /ФИО/ }));
 
     await waitFor(() =>
-      expect(lastListUrl(urls).searchParams.get("ordering")).toBe("-full_name"),
+      expect(lastListUrl(calls).searchParams.get("ordering")).toBe(
+        "-full_name",
+      ),
     );
   });
 
   it("filters the catalog by activity", async () => {
-    const urls = stubCatalog();
+    const calls = stubCatalog();
     renderWorkspace();
 
     await screen.findByText("Анна Иванова");
-    expect(lastListUrl(urls).searchParams.has("is_active")).toBe(false);
+    expect(lastListUrl(calls).searchParams.has("is_active")).toBe(false);
 
     fireEvent.click(screen.getByRole("button", { name: "Активные" }));
 
     await waitFor(() =>
-      expect(lastListUrl(urls).searchParams.get("is_active")).toBe("true"),
+      expect(lastListUrl(calls).searchParams.get("is_active")).toBe("true"),
     );
+  });
+
+  it("creates a new person", async () => {
+    const calls = stubCatalog();
+    renderWorkspace();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Новый контакт" }),
+    );
+    const dialog = screen.getByRole("dialog");
+    fireEvent.change(within(dialog).getByLabelText(/ФИО/), {
+      target: { value: "Вера Сидорова" },
+    });
+    fireEvent.change(within(dialog).getByLabelText("Telegram"), {
+      target: { value: "t.me/vera_s" },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Сохранить" }));
+
+    await waitFor(() =>
+      expect(
+        writes(calls, "POST", "/api/catalog/contact-persons/"),
+      ).toHaveLength(1),
+    );
+    expect(
+      writes(calls, "POST", "/api/catalog/contact-persons/")[0].body,
+    ).toEqual({
+      email: "",
+      full_name: "Вера Сидорова",
+      phone: "",
+      telegram: "t.me/vera_s",
+    });
+  });
+
+  it("edits the person's own data", async () => {
+    const calls = stubCatalog();
+    renderWorkspace();
+
+    const drawer = await openCard("Анна Иванова");
+    fireEvent.click(
+      within(drawer).getByRole("button", { name: "Изменить контакт" }),
+    );
+    const form = screen.getByRole("dialog", { name: "Изменить контакт" });
+    fireEvent.change(within(form).getByLabelText("Телефон"), {
+      target: { value: "+7 900 111-11-11" },
+    });
+    fireEvent.click(within(form).getByRole("button", { name: "Сохранить" }));
+
+    await waitFor(() =>
+      expect(
+        writes(calls, "PATCH", "/api/catalog/contact-persons/c1/"),
+      ).toHaveLength(1),
+    );
+    expect(
+      writes(calls, "PATCH", "/api/catalog/contact-persons/c1/")[0].body,
+    ).toMatchObject({
+      full_name: "Анна Иванова",
+      phone: "+7 900 111-11-11",
+    });
+  });
+
+  it("deactivates a person only after the consequences are confirmed", async () => {
+    const calls = stubCatalog();
+    renderWorkspace();
+
+    const drawer = await openCard("Анна Иванова");
+    fireEvent.click(within(drawer).getByRole("button", { name: "Выключить" }));
+    expect(
+      within(drawer).getByText(/связи с организациями удалятся/),
+    ).toBeInTheDocument();
+    expect(
+      writes(calls, "PATCH", "/api/catalog/contact-persons/c1/"),
+    ).toHaveLength(0);
+    fireEvent.click(
+      within(drawer).getByRole("button", { name: "Выключить контакт" }),
+    );
+
+    await waitFor(() =>
+      expect(
+        writes(calls, "PATCH", "/api/catalog/contact-persons/c1/"),
+      ).toHaveLength(1),
+    );
+    expect(
+      writes(calls, "PATCH", "/api/catalog/contact-persons/c1/")[0].body,
+    ).toEqual({ is_active: false });
+  });
+
+  it("turns an inactive person back on", async () => {
+    const calls = stubCatalog();
+    renderWorkspace();
+
+    const drawer = await openCard("Борис Петров");
+    fireEvent.click(within(drawer).getByRole("button", { name: "Включить" }));
+
+    await waitFor(() =>
+      expect(
+        writes(calls, "PATCH", "/api/catalog/contact-persons/c2/"),
+      ).toHaveLength(1),
+    );
+    expect(
+      writes(calls, "PATCH", "/api/catalog/contact-persons/c2/")[0].body,
+    ).toEqual({ is_active: true });
+  });
+
+  it("removes a person from one organization in the card", async () => {
+    const calls = stubCatalog();
+    renderWorkspace();
+
+    const drawer = await openCard("Анна Иванова");
+    const removeButtons = within(drawer).getAllByRole("button", {
+      name: "Удалить из организации",
+    });
+    fireEvent.click(removeButtons[0]);
+    fireEvent.click(
+      within(drawer).getByRole("button", { name: "Да, удалить" }),
+    );
+
+    await waitFor(() =>
+      expect(
+        writes(calls, "DELETE", "/api/catalog/university-contacts/a1/"),
+      ).toHaveLength(1),
+    );
+  });
+
+  it("adds the person to one more organization", async () => {
+    const calls = stubCatalog();
+    renderWorkspace();
+
+    const drawer = await openCard("Анна Иванова");
+    fireEvent.click(
+      within(drawer).getByRole("button", { name: "Добавить организацию" }),
+    );
+    const form = screen.getByRole("dialog", { name: "Добавить организацию" });
+    fireEvent.click(
+      within(form).getByRole("combobox", { name: "Организация" }),
+    );
+    fireEvent.click(await screen.findByRole("option", { name: "МГУ" }));
+    fireEvent.change(within(form).getByLabelText("Должность"), {
+      target: { value: "Доцент" },
+    });
+    fireEvent.click(within(form).getByRole("button", { name: "Добавить" }));
+
+    await waitFor(() =>
+      expect(
+        writes(calls, "POST", "/api/catalog/university-contacts/"),
+      ).toHaveLength(1),
+    );
+    expect(
+      writes(calls, "POST", "/api/catalog/university-contacts/")[0].body,
+    ).toEqual({
+      contact: "c1",
+      position: "Доцент",
+      preferred_channels: [],
+      university: "u2",
+    });
+  });
+
+  it("shows an observer the card without any editing actions", async () => {
+    auth.permissions = observerPermissions;
+    stubCatalog();
+    renderWorkspace();
+
+    const drawer = await openCard("Анна Иванова");
+
+    expect(within(drawer).getByText("Базис Dynamix")).toBeInTheDocument();
+    for (const name of [
+      "Новый контакт",
+      "Изменить контакт",
+      "Выключить",
+      "Удалить",
+      "Добавить организацию",
+      "Изменить",
+      "Удалить из организации",
+    ]) {
+      expect(screen.queryByRole("button", { name })).toBeNull();
+    }
   });
 });

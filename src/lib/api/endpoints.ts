@@ -13,9 +13,14 @@ export const apiEndpoints = {
       detail: (id: string) => `/api/catalog/b2c-clients/${id}/`,
       list: "/api/catalog/b2c-clients/",
     },
+    b2cClientContacts: {
+      detail: (id: string) => `/api/catalog/b2c-client-contacts/${id}/`,
+      list: "/api/catalog/b2c-client-contacts/",
+    },
     contactPersons: {
       detail: (id: string) => `/api/catalog/contact-persons/${id}/`,
       list: "/api/catalog/contact-persons/",
+      possibleDuplicates: "/api/catalog/contact-persons/possible-duplicates/",
     },
     directions: {
       detail: (id: string) => `/api/catalog/directions/${id}/`,
@@ -29,10 +34,18 @@ export const apiEndpoints = {
       detail: (id: string) => `/api/catalog/programs/${id}/`,
       list: "/api/catalog/programs/",
     },
+    universityContacts: {
+      detail: (id: string) => `/api/catalog/university-contacts/${id}/`,
+      list: "/api/catalog/university-contacts/",
+    },
     universities: {
       detail: (id: string) => `/api/catalog/universities/${id}/`,
       list: "/api/catalog/universities/",
       map: "/api/catalog/universities/map/",
+    },
+    vendorContacts: {
+      detail: (id: string) => `/api/catalog/vendor-contacts/${id}/`,
+      list: "/api/catalog/vendor-contacts/",
     },
     vendors: {
       detail: (id: string) => `/api/catalog/vendors/${id}/`,
@@ -102,6 +115,9 @@ export const apiEndpoints = {
       list: "/api/notifications/inbox/",
       read: (id: string) => `/api/notifications/inbox/${id}/read/`,
       readAll: "/api/notifications/inbox/read-all/",
+    },
+    telegram: {
+      link: "/api/notifications/telegram/",
     },
   },
   processes: {

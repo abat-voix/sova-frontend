@@ -59,9 +59,12 @@ export type ActionFeatureExecution = {
 
 export type CreateContactPersonFeaturePayload = {
   full_name: string;
+  /** Должность у контрагента взаимодействия — уходит в связь с ним. */
   position: string;
   email: string;
   phone: string;
+  /** Ник, `@ник` или ссылка t.me — бэкенд приводит к нику. */
+  telegram: string;
 };
 
 export type SelectContactPersonFeaturePayload = {

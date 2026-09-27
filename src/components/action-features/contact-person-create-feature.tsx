@@ -23,6 +23,7 @@ const copy = {
     position: "Должность",
     email: "Email",
     phone: "Телефон",
+    telegram: "Telegram",
     save: "Добавить контакт",
     saving: "Сохраняем…",
     success: "Контакт добавлен.",
@@ -35,6 +36,7 @@ const copy = {
     position: "Position",
     email: "Email",
     phone: "Phone",
+    telegram: "Telegram",
     save: "Add contact",
     saving: "Saving…",
     success: "Contact added.",
@@ -52,7 +54,7 @@ type Props = {
   executions?: ActionFeatureExecution[];
 };
 
-const fields = ["full_name", "position", "email", "phone"] as const;
+const fields = ["full_name", "position", "email", "phone", "telegram"] as const;
 type FieldName = (typeof fields)[number];
 
 export function ContactPersonCreateFeature({
@@ -70,6 +72,7 @@ export function ContactPersonCreateFeature({
     position: "",
     email: "",
     phone: "",
+    telegram: "",
   });
   const [saved, setSaved] = useState<ExecuteActionFeatureResult | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -93,7 +96,13 @@ export function ContactPersonCreateFeature({
     },
     onSuccess: (result) => {
       setSaved(result);
-      setValues({ full_name: "", position: "", email: "", phone: "" });
+      setValues({
+        full_name: "",
+        position: "",
+        email: "",
+        phone: "",
+        telegram: "",
+      });
       setFieldErrors({});
       setFormError(null);
       toast.success(text.success);
@@ -119,6 +128,7 @@ export function ContactPersonCreateFeature({
     position: text.position,
     email: text.email,
     phone: text.phone,
+    telegram: text.telegram,
   };
 
   return (
@@ -157,7 +167,9 @@ export function ContactPersonCreateFeature({
                   ? 255
                   : name === "phone"
                     ? 50
-                    : 254
+                    : name === "telegram"
+                      ? 100
+                      : 254
               }
               onChange={(event) =>
                 setValues((previous) => ({

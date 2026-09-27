@@ -9,24 +9,29 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
-  contactPersonOptions,
+  affiliationOptions,
   ContactPersonSelectFeature,
 } from "@/components/action-features/contact-person-select-feature";
 import { LocaleProvider } from "@/providers/locale-provider";
-import type { ContactPerson } from "@/types/contact-person";
+import type { OrganizationAffiliation } from "@/types/contact-person";
 
-const contact: ContactPerson = {
-  b2c_client: null,
+const affiliation: OrganizationAffiliation = {
+  contact: {
+    email: "2@1.ru",
+    full_name: "Колоков",
+    id: "contact-1",
+    is_active: true,
+    phone: "89999999912",
+    telegram: "",
+  },
   created_at: "2026-09-22T00:00:00Z",
-  email: "2@1.ru",
-  full_name: "Колоков",
-  id: "contact-1",
-  is_active: true,
-  phone: "89999999912",
+  id: "affiliation-1",
   position: "Директор",
-  university: { id: "university-1", name: "Академия" },
+  preferred_channels: [],
+  products: [],
   updated_at: "2026-09-22T00:00:00Z",
 };
+const contact = affiliation.contact;
 
 afterEach(() => {
   cleanup();
@@ -34,19 +39,13 @@ afterEach(() => {
 });
 
 describe("contact person select options", () => {
-  it("supports a bare array response from the catalog", () => {
-    expect(contactPersonOptions([contact])).toEqual([
-      { id: "contact-1", name: "Колоков · Директор" },
-    ]);
-  });
-
-  it("supports a paginated catalog response", () => {
+  it("offers the person with the position at this organization", () => {
     expect(
-      contactPersonOptions({
+      affiliationOptions({
         count: 1,
         next: null,
         previous: null,
-        results: [contact],
+        results: [affiliation],
       }),
     ).toEqual([{ id: "contact-1", name: "Колоков · Директор" }]);
   });
@@ -60,13 +59,16 @@ describe("contact person select options", () => {
           status: 200,
         });
       }
-      if (url.startsWith("/api/catalog/contact-persons/")) {
+      if (url.startsWith("/api/catalog/university-contacts/")) {
+        const query = new URL(url, "http://localhost").searchParams;
+        expect(query.get("university__ids")).toBe("university-1");
+        expect(query.get("contact__is_active")).toBe("true");
         return new Response(
           JSON.stringify({
             count: 1,
             next: null,
             previous: null,
-            results: [contact],
+            results: [affiliation],
           }),
           { headers: { "content-type": "application/json" }, status: 200 },
         );

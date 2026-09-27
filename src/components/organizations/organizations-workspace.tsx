@@ -278,7 +278,13 @@ export function OrganizationsWorkspace() {
         labels={detailLabels}
         organization={selectedUniversityQuery.data}
       />
-      <OrganizationContacts universityId={selectedUniversityQuery.data.id} />
+      <OrganizationContacts
+        organization={{
+          id: selectedUniversityQuery.data.id,
+          type: "university",
+        }}
+        organizationName={selectedUniversityQuery.data.name}
+      />
     </>
   ) : null;
 

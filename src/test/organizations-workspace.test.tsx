@@ -10,7 +10,20 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { OrganizationsWorkspace } from "@/components/organizations/organizations-workspace";
 import { LocaleProvider } from "@/providers/locale-provider";
+import { kamPermissions } from "@/test/fixtures/permissions";
 import type { University } from "@/types/university";
+
+vi.mock("@/providers/auth-provider", () => ({
+  useAuth: () => ({
+    csrfToken: "csrf",
+    user: {
+      id: 1,
+      isSuperuser: false,
+      permissions: kamPermissions,
+      role: "kam",
+    },
+  }),
+}));
 
 vi.mock("@/components/organizations/organizations-map", () => ({
   OrganizationsMap: ({
@@ -66,24 +79,24 @@ describe("OrganizationsWorkspace", () => {
         ];
       } else if (url.pathname === "/api/catalog/universities/university-1/") {
         body = selectedUniversity;
-      } else if (url.pathname === "/api/catalog/contact-persons/") {
+      } else if (url.pathname === "/api/catalog/university-contacts/") {
         body = {
           count: 1,
           next: null,
           previous: null,
           results: [
             {
-              id: "contact-1",
-              full_name: "Анна Смирнова",
-              position: "Проректор",
-              email: "anna@example.test",
-              phone: "+7 900 000-00-00",
-              is_active: true,
-              university: {
-                id: selectedUniversity.id,
-                name: selectedUniversity.name,
+              id: "affiliation-1",
+              contact: {
+                id: "contact-1",
+                full_name: "Анна Смирнова",
+                email: "anna@example.test",
+                phone: "+7 900 000-00-00",
+                telegram: "",
+                is_active: true,
               },
-              b2c_client: null,
+              position: "Проректор",
+              preferred_channels: [],
               created_at: "2026-09-20T17:18:08.681266+03:00",
               updated_at: "2026-09-20T17:18:08.681272+03:00",
             },
@@ -127,7 +140,7 @@ describe("OrganizationsWorkspace", () => {
     await waitFor(() => {
       const contactUrl = fetchMock.mock.calls
         .map(([input]) => new URL(String(input), "http://localhost"))
-        .find((url) => url.pathname === "/api/catalog/contact-persons/");
+        .find((url) => url.pathname === "/api/catalog/university-contacts/");
 
       expect(contactUrl?.searchParams.get("university__ids")).toBe(
         "university-1",

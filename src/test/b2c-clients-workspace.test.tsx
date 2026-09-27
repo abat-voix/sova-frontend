@@ -11,7 +11,20 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { B2CClientsWorkspace } from "@/components/b2c-clients/b2c-clients-workspace";
 import { LocaleProvider } from "@/providers/locale-provider";
+import { kamPermissions } from "@/test/fixtures/permissions";
 import type { B2CClient } from "@/types/catalog";
+
+vi.mock("@/providers/auth-provider", () => ({
+  useAuth: () => ({
+    csrfToken: "csrf",
+    user: {
+      id: 1,
+      isSuperuser: false,
+      permissions: kamPermissions,
+      role: "kam",
+    },
+  }),
+}));
 
 const company: B2CClient = {
   id: "b1",
