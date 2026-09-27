@@ -100,6 +100,9 @@ function stubCatalog() {
       if (url.pathname === "/api/catalog/contact-persons/c2/") {
         return json({ ...inactiveContact, ...(body as object) });
       }
+      if (url.pathname === "/api/catalog/contact-persons/c9/") {
+        return json({ ...inactiveContact, id: "c9", is_active: true });
+      }
       if (
         url.pathname === "/api/catalog/contact-persons/possible-duplicates/"
       ) {
