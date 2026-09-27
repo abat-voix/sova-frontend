@@ -5,6 +5,7 @@ import {
   Building2,
   ContactRound,
   Factory,
+  FileSpreadsheet,
   FileText,
   Handshake,
   House,
@@ -37,6 +38,7 @@ export type CrmSection =
   | "vendors"
   | "workflowTemplates"
   | "integrations"
+  | "catalogImport"
   | "userRoles"
   | "team";
 
@@ -201,6 +203,14 @@ export const crmNavigation: CrmNavigationGroup[] = [
         descriptionKey: "integrationsDescription",
         href: "/settings/integrations",
         icon: PlugZap,
+      },
+      {
+        id: "catalogImport",
+        permission: "catalog.import",
+        labelKey: "catalogImport",
+        descriptionKey: "catalogImportDescription",
+        href: "/settings/catalog-import",
+        icon: FileSpreadsheet,
       },
       {
         id: "userRoles",

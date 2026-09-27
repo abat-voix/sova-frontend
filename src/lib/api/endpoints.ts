@@ -9,6 +9,12 @@ export const apiEndpoints = {
     },
   },
   catalog: {
+    imports: {
+      list: "/api/catalog/imports/",
+      headers: "/api/catalog/imports/headers/",
+      mappingByType: (catalogType: string) =>
+        `/api/catalog/import-mappings/by-type/${catalogType}/`,
+    },
     b2cClients: {
       detail: (id: string) => `/api/catalog/b2c-clients/${id}/`,
       list: "/api/catalog/b2c-clients/",

@@ -18,6 +18,8 @@ export class ApiError extends Error {
   readonly code: string | null;
   readonly detail: string | null;
   readonly fieldErrors: Record<string, string[]>;
+  /** Разобранный JSON ответа — для ошибок со своей формой, например ошибок строк импорта. */
+  readonly body: unknown;
 
   constructor(
     status: number,
@@ -25,6 +27,7 @@ export class ApiError extends Error {
     detail: string | null,
     message: string,
     fieldErrors: Record<string, string[]> = {},
+    body: unknown = null,
   ) {
     super(message);
     this.name = "ApiError";
@@ -32,6 +35,7 @@ export class ApiError extends Error {
     this.code = code;
     this.detail = detail;
     this.fieldErrors = fieldErrors;
+    this.body = body;
   }
 }
 
@@ -112,13 +116,20 @@ async function readErrorBody(response: Response) {
     collectFieldErrors(validation, "", fieldErrors);
 
     return {
+      body: body as unknown,
       code: typeof body.code === "string" ? body.code : null,
       detail: typeof body.detail === "string" ? body.detail : null,
       fieldErrors,
       loginUrl: typeof body.login_url === "string" ? body.login_url : null,
     };
   } catch {
-    return { code: null, detail: null, fieldErrors: {}, loginUrl: null };
+    return {
+      body: null,
+      code: null,
+      detail: null,
+      fieldErrors: {},
+      loginUrl: null,
+    };
   }
 }
 
@@ -132,7 +143,7 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    const { code, detail, fieldErrors, loginUrl } =
+    const { body, code, detail, fieldErrors, loginUrl } =
       await readErrorBody(response);
 
     // `session_expired` — сессия жива, но id token протух; `not_authenticated`
@@ -149,6 +160,7 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
       detail,
       `Request to ${url} failed with status ${response.status}`,
       fieldErrors,
+      body,
     );
   }
 
