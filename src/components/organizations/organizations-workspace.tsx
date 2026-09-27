@@ -197,7 +197,7 @@ export function OrganizationsWorkspace() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [interactions, setInteractions] = useState<InteractionsFilter>("all");
+  const [interactions, setInteractions] = useState<InteractionsFilter>("with");
   const isCompactViewport = useMediaQuery(compactViewportQuery);
 
   useEffect(() => {
@@ -339,6 +339,12 @@ export function OrganizationsWorkspace() {
           className="bg-card flex w-fit items-center gap-1 rounded-xl border p-1 shadow-sm"
           role="group"
         >
+          <span
+            aria-hidden="true"
+            className="text-muted-foreground px-2 text-sm"
+          >
+            {text.interactionsFilter}
+          </span>
           {interactionsFilters.map(({ labelKey, value }) => (
             <Button
               aria-pressed={interactions === value}

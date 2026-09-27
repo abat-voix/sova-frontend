@@ -184,7 +184,7 @@ describe("OrganizationsWorkspace", () => {
     expect(await screen.findByText("Третий университет")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Подгрузить" })).toBeNull();
     expect(fetchMock).toHaveBeenLastCalledWith(
-      "/api/catalog/universities/?page=2&page_size=20",
+      "/api/catalog/universities/?has_interactions=true&page=2&page_size=20",
       expect.objectContaining({ credentials: "include" }),
     );
   });
@@ -234,13 +234,13 @@ describe("OrganizationsWorkspace", () => {
     ).toBeInTheDocument();
     await waitFor(() =>
       expect(fetchMock).toHaveBeenLastCalledWith(
-        "/api/catalog/universities/?page=1&page_size=20&search=%D0%A2%D1%8E%D0%BC%D0%B5%D0%BD%D1%8C",
+        "/api/catalog/universities/?has_interactions=true&page=1&page_size=20&search=%D0%A2%D1%8E%D0%BC%D0%B5%D0%BD%D1%8C",
         expect.objectContaining({ credentials: "include" }),
       ),
     );
   });
 
-  it("asks the endpoint for universities with interactions", async () => {
+  it("shows universities with interactions by default and can show all", async () => {
     const fetchMock = vi.fn(
       async () =>
         new Response(
@@ -268,12 +268,16 @@ describe("OrganizationsWorkspace", () => {
     fireEvent.click(screen.getByRole("button", { name: "Список" }));
 
     expect(await screen.findByText("Первый университет")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      "/api/catalog/universities/?has_interactions=true&page=1&page_size=20",
+      expect.objectContaining({ credentials: "include" }),
+    );
 
-    fireEvent.click(screen.getByRole("button", { name: "Есть" }));
+    fireEvent.click(screen.getByRole("button", { name: "Все" }));
 
     await waitFor(() =>
       expect(fetchMock).toHaveBeenLastCalledWith(
-        "/api/catalog/universities/?has_interactions=true&page=1&page_size=20",
+        "/api/catalog/universities/?page=1&page_size=20",
         expect.objectContaining({ credentials: "include" }),
       ),
     );
