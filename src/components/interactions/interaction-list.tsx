@@ -409,6 +409,11 @@ export function InteractionList({
                         <span className="block truncate text-sm leading-5 font-medium">
                           {interactionTitle(interaction, text.unnamed)}
                         </span>
+                        {interaction.number ? (
+                          <span className="text-muted-foreground mt-0.5 block text-xs">
+                            № {interaction.number}
+                          </span>
+                        ) : null}
                         <span className="mt-1.5 flex items-center gap-2">
                           <span className="text-muted-foreground flex min-w-0 flex-1 items-center gap-1 text-xs">
                             <User

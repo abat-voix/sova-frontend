@@ -48,12 +48,14 @@ export type ResponsibleShort = {
 
 export type InteractionShort = {
   id: string;
+  number?: string;
   university: UniversityShort | null;
   b2c_client: B2CClientShort | null;
 };
 
 export type Interaction = {
   id: string;
+  number?: string;
   comment?: string;
   is_active?: boolean;
   university: UniversityShort | null;

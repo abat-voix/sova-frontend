@@ -783,15 +783,20 @@ export function InteractionCardDialog({
           <Section title={text.overview}>
             <DetailRows
               noValue={common.noValue}
-              rows={[
+              rows={
                 [
-                  text.responsible,
-                  responsibleNames(interaction) || text.unassigned,
-                ],
-                [text.comment, interaction.comment || null],
-                [text.createdAt, formatDate(interaction.created_at, locale)],
-                [text.updatedAt, formatDate(interaction.updated_at, locale)],
-              ]}
+                  ...(interaction.number
+                    ? [["Номер", `№ ${interaction.number}`]]
+                    : []),
+                  [
+                    text.responsible,
+                    responsibleNames(interaction) || text.unassigned,
+                  ],
+                  [text.comment, interaction.comment || null],
+                  [text.createdAt, formatDate(interaction.created_at, locale)],
+                  [text.updatedAt, formatDate(interaction.updated_at, locale)],
+                ] as [string, ReactNode][]
+              }
             />
           </Section>
 
