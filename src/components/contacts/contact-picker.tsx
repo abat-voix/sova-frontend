@@ -13,10 +13,13 @@ import type { InteractionShort } from "@/types/workflow-board";
 
 const copy = {
   ru: {
+    alreadyLinked: "Все найденные контакты уже привязаны к взаимодействию.",
     label: "Контактное лицо",
     placeholder: "ФИО, должность, email или телефон",
   },
   en: {
+    alreadyLinked:
+      "All matching contacts are already linked to the interaction.",
     label: "Contact person",
     placeholder: "Name, position, email or phone",
   },
@@ -73,6 +76,7 @@ export function ContactPicker({
     <EntitySelect
       disabled={disabled}
       excludeIds={excludeIds}
+      excludedEmptyMessage={text.alreadyLinked}
       id={id}
       label={text.label}
       onChange={onChange}
