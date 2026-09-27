@@ -103,6 +103,9 @@ export const apiEndpoints = {
       read: (id: string) => `/api/notifications/inbox/${id}/read/`,
       readAll: "/api/notifications/inbox/read-all/",
     },
+    telegram: {
+      link: "/api/notifications/telegram/",
+    },
   },
   processes: {
     actionAttachments: {
