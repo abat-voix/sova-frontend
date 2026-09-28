@@ -14,6 +14,7 @@ import {
   Plus,
   UserRound,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -192,17 +193,16 @@ function ClientCard({
             <ClientIcon className="size-7" kind={client.kind} />
           </span>
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <h2 className="leading-5 font-medium">{client.full_name}</h2>
-              <span className="flex flex-wrap gap-2">
-                <StatusChip tone="accent">
-                  {kindLabel(client.kind, text)}
-                </StatusChip>
-                <StatusChip tone={client.is_active ? "positive" : "neutral"}>
-                  {client.is_active ? text.active : text.inactive}
-                </StatusChip>
-              </span>
-            </div>
+            <h2 className="leading-5 font-medium">{client.full_name}</h2>
+            <span className="mt-2 flex flex-wrap gap-2">
+              <RankChip label={text.placeLabel} rank={client.rank} />
+              <StatusChip tone="accent">
+                {kindLabel(client.kind, text)}
+              </StatusChip>
+              <StatusChip tone={client.is_active ? "positive" : "neutral"}>
+                {client.is_active ? text.active : text.inactive}
+              </StatusChip>
+            </span>
             {client.email ? (
               <p className="text-muted-foreground mt-3 flex items-center gap-2 text-sm">
                 <Mail aria-hidden="true" className="size-4 shrink-0" />
@@ -236,47 +236,6 @@ function ClientCard({
         </Button>
       ) : null}
     </article>
-    <button
-      aria-pressed={isSelected}
-      className={`bg-card focus-visible:ring-ring w-full rounded-xl border p-5 text-left shadow-sm transition-colors outline-none hover:border-[var(--atmr-accent-primary)] focus-visible:ring-2 ${isSelected ? "border-[var(--atmr-accent-primary)]" : ""}`}
-      onClick={onSelect}
-      type="button"
-    >
-      <div className="flex items-start gap-4">
-        <span className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-[var(--atmr-background-accent-soft)] text-[var(--atmr-accent-primary)]">
-          <ClientIcon className="size-7" kind={client.kind} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <h2 className="leading-5 font-medium">{client.full_name}</h2>
-          <span className="mt-2 flex flex-wrap gap-2">
-            <RankChip label={text.placeLabel} rank={client.rank} />
-            <StatusChip tone="accent">
-              {kindLabel(client.kind, text)}
-            </StatusChip>
-            <StatusChip tone={client.is_active ? "positive" : "neutral"}>
-              {client.is_active ? text.active : text.inactive}
-            </StatusChip>
-          </span>
-          {client.email ? (
-            <p className="text-muted-foreground mt-3 flex items-center gap-2 text-sm">
-              <Mail aria-hidden="true" className="size-4 shrink-0" />
-              <span className="truncate">{client.email}</span>
-            </p>
-          ) : null}
-          {client.phone ? (
-            <p className="text-muted-foreground mt-2 flex items-center gap-2 text-sm">
-              <Phone aria-hidden="true" className="size-4 shrink-0" />
-              {client.phone}
-            </p>
-          ) : null}
-          {client.inn ? (
-            <p className="text-muted-foreground mt-2 text-xs">
-              {text.inn}: {client.inn}
-            </p>
-          ) : null}
-        </div>
-      </div>
-    </button>
   );
 }
 
@@ -386,7 +345,6 @@ export function B2CClientsWorkspace() {
   const [creatingFor, setCreatingFor] = useState<B2CClient | null>(null);
   const canCreateInteraction =
     user !== null && can(user, "interactions.create");
-  const { user } = useAuth();
   const canCreate = user !== null && can(user, "catalog.create");
   const canUpdate = user !== null && can(user, "catalog.update");
   const queryClient = useQueryClient();
@@ -489,13 +447,6 @@ export function B2CClientsWorkspace() {
           }}
         />
       ) : null}
-      <div>
-        <h1 className="text-3xl font-medium tracking-[-0.025em] sm:text-4xl">
-          {text.title}
-        </h1>
-        <p className="text-muted-foreground mt-2 max-w-2xl text-base leading-7">
-          {text.description}
-        </p>
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <h1 className="text-3xl font-medium tracking-[-0.025em] sm:text-4xl">

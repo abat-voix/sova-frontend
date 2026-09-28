@@ -41,8 +41,6 @@ import {
 import { can } from "@/lib/permissions";
 import { useAuth } from "@/providers/auth-provider";
 import type { RankFilter } from "@/lib/api/catalog/rank";
-import { can } from "@/lib/permissions";
-import { useAuth } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
 import type { InteractionsFilter, University } from "@/types/university";
 
@@ -207,7 +205,6 @@ function OrganizationCard({
   labels,
   onCreateInteraction,
   onSelect,
-  organization,
 }: {
   canCreateInteraction: boolean;
   createInteractionLabel: string;
@@ -216,60 +213,65 @@ function OrganizationCard({
   labels: OrganizationDetailsLabels;
   onCreateInteraction: () => void;
   onSelect: () => void;
-  organization: University;
 }) {
   return (
-    <button
-      aria-pressed={isSelected}
-      className={`bg-card focus-visible:ring-ring w-full rounded-xl border p-5 text-left shadow-sm transition-colors outline-none hover:border-[var(--atmr-accent-primary)] focus-visible:ring-2 ${isSelected ? "border-[var(--atmr-accent-primary)]" : ""}`}
-      onClick={onSelect}
-      type="button"
+    <article
+      className={`bg-card rounded-xl border p-5 text-left shadow-sm transition-colors hover:border-[var(--atmr-accent-primary)] ${isSelected ? "border-[var(--atmr-accent-primary)]" : ""}`}
     >
-      <div className="flex items-start gap-4">
-        <span className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-[var(--atmr-background-accent-soft)] text-[var(--atmr-accent-primary)]">
-          <Building2 aria-hidden="true" className="size-7" />
-        </span>
-        <div className="min-w-0 flex-1">
-          <h2 className="leading-5 font-medium">{organization.name}</h2>
-          <span className="mt-2 flex flex-wrap gap-2">
-            <RankChip label={labels.place} rank={organization.rank} />
-            <StatusChip
-              tone={organization.has_interactions ? "accent" : "neutral"}
-            >
-              {organization.has_interactions
-                ? labels.hasInteractions
-                : labels.noInteractions}
-            </StatusChip>
-            <StatusChip tone={organization.is_active ? "positive" : "neutral"}>
-              {organization.is_active ? labels.active : labels.inactive}
-            </StatusChip>
+      <button
+        aria-pressed={isSelected}
+        className="focus-visible:ring-ring w-full text-left outline-none focus-visible:ring-2"
+        onClick={onSelect}
+        type="button"
+      >
+        <div className="flex items-start gap-4">
+          <span className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-[var(--atmr-background-accent-soft)] text-[var(--atmr-accent-primary)]">
+            <Building2 aria-hidden="true" className="size-7" />
           </span>
-          {organization.city ? (
-            <p className="text-muted-foreground mt-3 flex items-center gap-2 text-sm">
-              <MapPin aria-hidden="true" className="size-4 shrink-0" />
-              {organization.city}
-            </p>
-          ) : null}
-          {organization.inn ? (
-            <p className="text-muted-foreground mt-2 text-xs">
-              {labels.inn}: {organization.inn}
-            </p>
-          ) : null}
-          {canCreateInteraction ? (
-            <Button
-              className="mt-4"
-              onClick={onCreateInteraction}
-              size="s"
-              type="button"
-              variant="outline"
-            >
-              <Plus aria-hidden="true" className="size-3.5" />
-              {createInteractionLabel}
-            </Button>
-          ) : null}
+          <div className="min-w-0 flex-1">
+            <h2 className="leading-5 font-medium">{organization.name}</h2>
+            <span className="mt-2 flex flex-wrap gap-2">
+              <RankChip label={labels.place} rank={organization.rank} />
+              <StatusChip
+                tone={organization.has_interactions ? "accent" : "neutral"}
+              >
+                {organization.has_interactions
+                  ? labels.hasInteractions
+                  : labels.noInteractions}
+              </StatusChip>
+              <StatusChip
+                tone={organization.is_active ? "positive" : "neutral"}
+              >
+                {organization.is_active ? labels.active : labels.inactive}
+              </StatusChip>
+            </span>
+            {organization.city ? (
+              <p className="text-muted-foreground mt-3 flex items-center gap-2 text-sm">
+                <MapPin aria-hidden="true" className="size-4 shrink-0" />
+                {organization.city}
+              </p>
+            ) : null}
+            {organization.inn ? (
+              <p className="text-muted-foreground mt-2 text-xs">
+                {labels.inn}: {organization.inn}
+              </p>
+            ) : null}
+          </div>
         </div>
-      </div>
-    </button>
+      </button>
+      {canCreateInteraction ? (
+        <Button
+          className="mt-4"
+          onClick={onCreateInteraction}
+          size="s"
+          type="button"
+          variant="outline"
+        >
+          <Plus aria-hidden="true" className="size-3.5" />
+          {createInteractionLabel}
+        </Button>
+      ) : null}
+    </article>
   );
 }
 
@@ -309,7 +311,6 @@ export function OrganizationsWorkspace() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [interactions, setInteractions] = useState<InteractionsFilter>("with");
   const [creatingFor, setCreatingFor] = useState<University | null>(null);
   const [interactions, setInteractions] = useState<InteractionsFilter>("all");
   const [activity, setActivity] = useState<ActivityFilter>("all");
@@ -318,7 +319,6 @@ export function OrganizationsWorkspace() {
   const isCompactViewport = useMediaQuery(compactViewportQuery);
   const canCreateInteraction =
     user !== null && can(user, "interactions.create");
-  const { user } = useAuth();
   const canCreate = user !== null && can(user, "catalog.create");
   const canUpdate = user !== null && can(user, "catalog.update");
   const queryClient = useQueryClient();
@@ -410,38 +410,6 @@ export function OrganizationsWorkspace() {
     setSelectedId(null);
   }, []);
 
-  const selectedContent = selectedUniversityQuery.isPending ? (
-    <p className="text-muted-foreground flex items-center gap-2 text-sm">
-      <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
-      {text.loadingDetails}
-    </p>
-  ) : selectedUniversityQuery.isError ? (
-    <RequestState
-      label={text.detailsError}
-      onRetry={() => void selectedUniversityQuery.refetch()}
-      retryLabel={text.retry}
-    />
-  ) : selectedUniversityQuery.data ? (
-    <>
-      <OrganizationDetails
-        headingId={isCompactViewport ? sheetHeadingId : panelHeadingId}
-        labels={detailLabels}
-        onCreateInteraction={
-          canCreateInteraction
-            ? () => setCreatingFor(selectedUniversityQuery.data!)
-            : undefined
-        }
-        organization={selectedUniversityQuery.data}
-      />
-      <OrganizationContacts
-        organization={{
-          id: selectedUniversityQuery.data.id,
-          type: "university",
-        }}
-        organizationName={selectedUniversityQuery.data.name}
-      />
-    </>
-  ) : null;
   const selectedUniversity = selectedUniversityQuery.data;
   const editButton =
     canUpdate && selectedUniversity ? (
@@ -481,6 +449,11 @@ export function OrganizationsWorkspace() {
           headingId={headingId}
           labels={detailLabels}
           locale={locale}
+          onCreateInteraction={
+            canCreateInteraction
+              ? () => setCreatingFor(selectedUniversityQuery.data!)
+              : undefined
+          }
           organization={selectedUniversityQuery.data}
         />
         {withEditButton && editButton ? (
