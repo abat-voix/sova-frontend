@@ -1,10 +1,30 @@
 "use client";
 
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { Briefcase, LoaderCircle, Mail, Phone, UserRound } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import {
+  Briefcase,
+  LoaderCircle,
+  Mail,
+  Pencil,
+  Phone,
+  Plus,
+  UserRound,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
+import { B2CClientForm } from "@/components/b2c-clients/b2c-client-form";
+
+import { RankChip } from "@/components/catalog/rank-chip";
 import { OrganizationContacts } from "@/components/organizations/organization-contacts";
+import {
+  OrganizationInspector,
+  type OrganizationInspectorRow,
+} from "@/components/organizations/organization-inspector";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { StatusChip } from "@/components/ui/status-chip";
@@ -14,7 +34,10 @@ import {
   getB2CClient,
   getB2CClients,
 } from "@/lib/api/catalog/b2c-clients";
+import type { RankFilter } from "@/lib/api/catalog/rank";
 import { formatDate } from "@/lib/format-date";
+import { can } from "@/lib/permissions";
+import { useAuth } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
 import type { B2CClient, B2CClientKind } from "@/types/catalog";
 
@@ -34,6 +57,11 @@ const copy = {
     clearSearch: "Очистить поиск",
     kindFilter: "Тип клиента",
     activityFilter: "Активность",
+    rankFilter: "Рейтинг",
+    rankTop: "Топ-10",
+    ranked: "С местом",
+    unranked: "Без места",
+    placeLabel: (rank: number) => `${rank} место`,
     all: "Все",
     individual: "Физлицо",
     legalEntity: "Юрлицо",
@@ -58,6 +86,10 @@ const copy = {
     details: "Карточка клиента",
     loadingDetails: "Загружаем карточку клиента…",
     detailsError: "Не удалось загрузить карточку клиента.",
+    create: "Новый клиент",
+    edit: "Изменить",
+    created: "Клиент добавлен.",
+    saved: "Изменения сохранены.",
   },
   en: {
     title: "B2C clients",
@@ -69,6 +101,11 @@ const copy = {
     clearSearch: "Clear search",
     kindFilter: "Client type",
     activityFilter: "Activity",
+    rankFilter: "Ranking",
+    rankTop: "Top 10",
+    ranked: "Ranked",
+    unranked: "Unranked",
+    placeLabel: (rank: number) => `#${rank}`,
     all: "All",
     individual: "Individual",
     legalEntity: "Company",
@@ -93,6 +130,10 @@ const copy = {
     details: "Client card",
     loadingDetails: "Loading the client card…",
     detailsError: "The client card could not be loaded.",
+    create: "New client",
+    edit: "Edit",
+    created: "Client added.",
+    saved: "Changes saved.",
   },
 } as const;
 
@@ -137,17 +178,16 @@ function ClientCard({
           <ClientIcon className="size-7" kind={client.kind} />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <h2 className="leading-5 font-medium">{client.full_name}</h2>
-            <span className="flex flex-wrap gap-2">
-              <StatusChip tone="accent">
-                {kindLabel(client.kind, text)}
-              </StatusChip>
-              <StatusChip tone={client.is_active ? "positive" : "neutral"}>
-                {client.is_active ? text.active : text.inactive}
-              </StatusChip>
-            </span>
-          </div>
+          <h2 className="leading-5 font-medium">{client.full_name}</h2>
+          <span className="mt-2 flex flex-wrap gap-2">
+            <RankChip label={text.placeLabel} rank={client.rank} />
+            <StatusChip tone="accent">
+              {kindLabel(client.kind, text)}
+            </StatusChip>
+            <StatusChip tone={client.is_active ? "positive" : "neutral"}>
+              {client.is_active ? text.active : text.inactive}
+            </StatusChip>
+          </span>
           {client.email ? (
             <p className="text-muted-foreground mt-3 flex items-center gap-2 text-sm">
               <Mail aria-hidden="true" className="size-4 shrink-0" />
@@ -207,7 +247,7 @@ function ClientDetails({
   locale: "ru" | "en";
   text: Text;
 }) {
-  const rows: [string, ReactNode][] = [
+  const rows: OrganizationInspectorRow[] = [
     [text.kind, kindLabel(client.kind, text)],
     [text.inn, client.inn],
     [
@@ -235,35 +275,21 @@ function ClientDetails({
 
   return (
     <>
-      <div className="flex items-start gap-3">
-        <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[var(--atmr-background-accent-soft)] text-[var(--atmr-accent-primary)]">
-          <ClientIcon className="size-6" kind={client.kind} />
-        </span>
-        <div className="min-w-0">
-          <h2 className="text-xl font-medium" id={drawerHeadingId}>
-            {client.full_name}
-          </h2>
-          <span className="mt-2 inline-flex">
+      <OrganizationInspector
+        chips={
+          <>
             <StatusChip tone={client.is_active ? "positive" : "neutral"}>
               {client.is_active ? text.active : text.inactive}
             </StatusChip>
-          </span>
-        </div>
-      </div>
-      <dl className="mt-5 divide-y">
-        {rows.map(([label, value]) => (
-          <div className="py-3" key={label}>
-            <dt className="text-muted-foreground text-xs font-medium tracking-[0.08em] uppercase">
-              {label}
-            </dt>
-            <dd className="mt-1 text-sm break-words">
-              {value || (
-                <span className="text-muted-foreground">{text.noValue}</span>
-              )}
-            </dd>
-          </div>
-        ))}
-      </dl>
+            <RankChip label={text.placeLabel} rank={client.rank} />
+          </>
+        }
+        headingId={drawerHeadingId}
+        icon={<ClientIcon className="size-6" kind={client.kind} />}
+        noValueLabel={text.noValue}
+        rows={rows}
+        title={client.full_name}
+      />
       <OrganizationContacts
         organization={{ id: client.id, type: "b2c_client" }}
         organizationName={client.full_name}
@@ -284,7 +310,14 @@ export function B2CClientsWorkspace() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [kind, setKind] = useState<KindFilter>("all");
   const [activity, setActivity] = useState<ActivityFilter>("all");
+  const [rank, setRank] = useState<RankFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { user } = useAuth();
+  const canCreate = user !== null && can(user, "catalog.create");
+  const canUpdate = user !== null && can(user, "catalog.update");
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState<{ client: B2CClient | null } | null>(null);
+  const closeForm = useCallback(() => setForm(null), []);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(
@@ -298,6 +331,7 @@ export function B2CClientsWorkspace() {
   const params = {
     isActive: activity === "all" ? null : activity === "active",
     kind: kind === "all" ? null : kind,
+    rank,
     search: debouncedSearch,
   };
 
@@ -346,17 +380,42 @@ export function B2CClientsWorkspace() {
       ],
       value: activity,
     },
+    {
+      label: text.rankFilter,
+      name: "rank",
+      onChange: (value) => setRank(value as RankFilter),
+      options: [
+        { label: text.all, value: "all" },
+        { label: text.rankTop, value: "top10" },
+        { label: text.ranked, value: "ranked" },
+        { label: text.unranked, value: "unranked" },
+      ],
+      value: rank,
+    },
   ];
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-3xl font-medium tracking-[-0.025em] sm:text-4xl">
-          {text.title}
-        </h1>
-        <p className="text-muted-foreground mt-2 max-w-2xl text-base leading-7">
-          {text.description}
-        </p>
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div>
+          <h1 className="text-3xl font-medium tracking-[-0.025em] sm:text-4xl">
+            {text.title}
+          </h1>
+          <p className="text-muted-foreground mt-2 max-w-2xl text-base leading-7">
+            {text.description}
+          </p>
+        </div>
+        {canCreate ? (
+          <Button
+            className="w-fit"
+            onClick={() => setForm({ client: null })}
+            size="m"
+            type="button"
+          >
+            <Plus aria-hidden="true" className="size-4" />
+            {text.create}
+          </Button>
+        ) : null}
       </div>
 
       <TableToolbar
@@ -427,6 +486,20 @@ export function B2CClientsWorkspace() {
       {selectedId ? (
         <Drawer
           closeLabel={text.close}
+          footer={
+            canUpdate && clientQuery.data ? (
+              <Button
+                colorScheme="neutral"
+                onClick={() => setForm({ client: clientQuery.data ?? null })}
+                size="m"
+                type="button"
+                variant="outline"
+              >
+                <Pencil aria-hidden="true" className="size-4" />
+                {text.edit}
+              </Button>
+            ) : undefined
+          }
           labelledBy={drawerHeadingId}
           onClose={() => setSelectedId(null)}
         >
@@ -456,6 +529,22 @@ export function B2CClientsWorkspace() {
             </p>
           )}
         </Drawer>
+      ) : null}
+
+      {form ? (
+        <B2CClientForm
+          client={form.client}
+          onClose={closeForm}
+          onSaved={(saved) => {
+            toast.success(form.client ? text.saved : text.created);
+            setForm(null);
+            setSelectedId(saved.id);
+            // Место в рейтинге считается в списке — перезапрашиваем и карточку
+            void queryClient.invalidateQueries({
+              queryKey: ["catalog", "b2c-clients"],
+            });
+          }}
+        />
       ) : null}
     </div>
   );

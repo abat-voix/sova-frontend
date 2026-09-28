@@ -1,10 +1,16 @@
 import { apiEndpoints } from "@/lib/api/endpoints";
-import { buildQuery, getJson } from "@/lib/api/http";
+import {
+  rankOrdering,
+  rankParams,
+  type RankFilter,
+} from "@/lib/api/catalog/rank";
+import { buildQuery, getJson, patchJson, postJson } from "@/lib/api/http";
 import type { PaginatedResponse } from "@/types/api";
 import type {
   InteractionsFilter,
   University,
   UniversityMapPoint,
+  WriteUniversity,
 } from "@/types/university";
 
 export const universitiesPageSize = 20;
@@ -29,9 +35,14 @@ export function getUniversities(
   page: number,
   search = "",
   interactions: InteractionsFilter = "all",
+  rank: RankFilter = "all",
+  isActive: boolean | null = null,
 ) {
   const query = buildQuery({
+    ...rankParams(rank),
     has_interactions: interactionsParam(interactions),
+    is_active: isActive === null ? undefined : String(isActive),
+    ordering: rankOrdering(rank),
     page,
     page_size: universitiesPageSize,
     search: search.trim(),
@@ -46,12 +57,36 @@ export function getUniversity(id: string) {
   return getJson<University>(apiEndpoints.catalog.universities.detail(id));
 }
 
+export function createUniversity(payload: WriteUniversity, csrfToken: string) {
+  return postJson<University>(
+    apiEndpoints.catalog.universities.list,
+    payload,
+    csrfToken,
+  );
+}
+
+export function updateUniversity(
+  id: string,
+  payload: WriteUniversity,
+  csrfToken: string,
+) {
+  return patchJson<University>(
+    apiEndpoints.catalog.universities.detail(id),
+    payload,
+    csrfToken,
+  );
+}
+
 export function getUniversityMapPoints(
   search = "",
   interactions: InteractionsFilter = "all",
+  rank: RankFilter = "all",
+  isActive: boolean | null = null,
 ) {
   const query = buildQuery({
+    ...rankParams(rank),
     has_interactions: interactionsParam(interactions),
+    is_active: isActive === null ? undefined : String(isActive),
     search: search.trim(),
   });
 

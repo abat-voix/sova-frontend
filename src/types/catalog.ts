@@ -13,7 +13,15 @@ export type B2CClient = {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  /** Место в рейтинге по числу зачисленных людей; `null` — места нет. */
+  rank?: number | null;
 };
+
+/** Поля, которые принимает бэкенд при создании и изменении B2C-клиента. */
+export type WriteB2CClient = Pick<
+  B2CClient,
+  "full_name" | "inn" | "email" | "phone" | "kind" | "is_active"
+>;
 
 export type DirectionShort = {
   id: string;
@@ -32,6 +40,8 @@ export type Direction = {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  /** Место в рейтинге по числу зачисленных людей; `null` — места нет. */
+  rank?: number | null;
 };
 
 export type Program = {
@@ -42,6 +52,8 @@ export type Program = {
   direction: DirectionShort;
   created_at: string;
   updated_at: string;
+  /** Место в рейтинге по числу зачисленных людей; `null` — места нет. */
+  rank?: number | null;
   products_count: number;
 };
 
@@ -54,4 +66,6 @@ export type Product = {
   programs: ProgramShort[];
   created_at: string;
   updated_at: string;
+  /** Место в рейтинге по числу взаимодействий с продуктом; `null` — места нет. */
+  rank?: number | null;
 };

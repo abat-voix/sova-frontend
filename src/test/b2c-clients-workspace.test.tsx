@@ -36,6 +36,7 @@ const company: B2CClient = {
   is_active: true,
   created_at: "2026-09-01T10:00:00+03:00",
   updated_at: "2026-09-02T10:00:00+03:00",
+  rank: 2,
 };
 
 function stubCatalog() {
@@ -89,6 +90,28 @@ describe("B2CClientsWorkspace", () => {
     expect(await screen.findByText("ООО «Ромашка»")).toBeInTheDocument();
     expect(screen.getByText("1 клиентов")).toBeInTheDocument();
     expect(screen.getByText("info@romashka.ru")).toBeInTheDocument();
+    expect(screen.getByText("2 место")).toBeInTheDocument();
+  });
+
+  it("filters the list by the ranking and orders it by place", async () => {
+    const urls = stubCatalog();
+    renderWorkspace();
+    await screen.findByText("ООО «Ромашка»");
+
+    fireEvent.click(screen.getByRole("button", { name: "С местом" }));
+
+    await waitFor(() =>
+      expect(
+        urls.some((url) => {
+          const params = new URL(url, "http://localhost").searchParams;
+          return (
+            url.startsWith("/api/catalog/b2c-clients/?") &&
+            params.get("has_rank") === "true" &&
+            params.get("ordering") === "rank"
+          );
+        }),
+      ).toBe(true),
+    );
   });
 
   it("filters the list by the client type", async () => {

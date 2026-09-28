@@ -69,7 +69,7 @@ export const translations = {
     trainingInstructors: "Преподаватели",
     trainingInstructorsDescription:
       "Преподаватели вузов и B2C-организаций и их подготовка.",
-    learnerImport: "Загрузка пользователей",
+    learnerImport: "Загрузка обучающихся",
     learnerImportDescription:
       "Загрузка файла «Пользователи» с потоком или без него.",
     userRoles: "Роли пользователей",
@@ -181,7 +181,7 @@ export const translations = {
     trainingInstructors: "Instructors",
     trainingInstructorsDescription:
       "Instructors of universities and B2C organizations and their qualification.",
-    learnerImport: "Users upload",
+    learnerImport: "Learners upload",
     learnerImportDescription: "Upload the users file with or without a stream.",
     userRoles: "User roles",
     userRolesDescription: "Assign application roles to SOVA users.",

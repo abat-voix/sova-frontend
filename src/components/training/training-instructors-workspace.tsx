@@ -113,8 +113,13 @@ export function TrainingInstructorsWorkspace() {
     },
     {
       name: "organization",
-      render: (item) =>
-        item.university?.name ?? item.b2c_client?.full_name ?? common.noValue,
+      render: (item) => (
+        <span className="text-muted-foreground">
+          {item.university?.name ??
+            item.b2c_client?.full_name ??
+            common.noValue}
+        </span>
+      ),
       title: text.organization,
       width: "30%",
     },

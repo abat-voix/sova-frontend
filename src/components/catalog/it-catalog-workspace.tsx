@@ -8,6 +8,7 @@ import {
   type DataTableColumn,
   type DataTableLabels,
 } from "@/components/ui/data-table";
+import { RankChip } from "@/components/catalog/rank-chip";
 import { Drawer } from "@/components/ui/drawer";
 import { EntitySelect } from "@/components/ui/entity-select";
 import { StatusChip } from "@/components/ui/status-chip";
@@ -28,6 +29,7 @@ import {
   getPrograms,
   itCatalogPageSize,
 } from "@/lib/api/catalog/it-catalog";
+import { rankOrdering, type RankFilter } from "@/lib/api/catalog/rank";
 import { formatDate } from "@/lib/format-date";
 import { useLocale } from "@/providers/locale-provider";
 import type { Direction, Product, Program } from "@/types/catalog";
@@ -58,6 +60,12 @@ const copy = {
     hasProducts: "Продукты",
     withProducts: "Есть продукты",
     withoutProducts: "Нет продуктов",
+    rank: "Рейтинг",
+    rankTop: "Топ-10",
+    ranked: "С местом",
+    unranked: "Без места",
+    place: "Место",
+    placeLabel: (rank: number) => `${rank} место`,
     name: "Название",
     code: "Внешний код",
     status: "Статус",
@@ -104,6 +112,12 @@ const copy = {
     hasProducts: "Products",
     withProducts: "Has products",
     withoutProducts: "No products",
+    rank: "Ranking",
+    rankTop: "Top 10",
+    ranked: "Ranked",
+    unranked: "Unranked",
+    place: "Place",
+    placeLabel: (rank: number) => `#${rank}`,
     name: "Name",
     code: "External code",
     status: "Status",
@@ -145,6 +159,7 @@ export function ItCatalogWorkspace() {
   const [tab, setTab] = useState<CatalogTab>("directions");
   const [activity, setActivity] = useState<Activity>("all");
   const [hasProducts, setHasProducts] = useState("all");
+  const [rank, setRank] = useState<RankFilter>("all");
   const [direction, setDirection] = useState<LookupOption | null>(null);
   const [program, setProgram] = useState<LookupOption | null>(null);
   const [selected, setSelected] = useState<{
@@ -162,6 +177,7 @@ export function ItCatalogWorkspace() {
     ordering: table.ordering,
     page: table.page,
     programId: tab === "products" ? program?.id : null,
+    rank,
     search: table.debouncedSearch,
   };
   const directionsQuery = useQuery({
@@ -265,20 +281,51 @@ export function ItCatalogWorkspace() {
           },
         ]
       : []),
+    {
+      label: text.rank,
+      name: "rank",
+      value: rank,
+      onChange: (value: string) => {
+        const next = value as RankFilter;
+        setRank(next);
+        // Отбор по рейтингу показывает места по порядку
+        if (rankOrdering(next))
+          table.setSort({ direction: "asc", field: "rank" });
+        else table.setPage(1);
+      },
+      options: [
+        { label: text.all, value: "all" },
+        { label: text.rankTop, value: "top10" },
+        { label: text.ranked, value: "ranked" },
+        { label: text.unranked, value: "unranked" },
+      ],
+    },
   ];
   const statusCell = (item: CatalogItem) => (
     <StatusChip tone={item.is_active ? "positive" : "neutral"}>
       {item.is_active ? text.active : text.inactive}
     </StatusChip>
   );
+  const rankColumn: DataTableColumn<CatalogItem> = {
+    name: "rank",
+    title: text.place,
+    sortField: "rank",
+    width: "10%",
+    render: (item) => (
+      <span className="text-muted-foreground tabular-nums">
+        {item.rank ?? "—"}
+      </span>
+    ),
+  };
   const columns: DataTableColumn<CatalogItem>[] =
     tab === "directions"
       ? [
+          rankColumn,
           {
             name: "name",
             title: text.name,
             sortField: "name",
-            width: "50%",
+            width: "45%",
             render: (item) => <span className="font-medium">{item.name}</span>,
           },
           {
@@ -297,17 +344,18 @@ export function ItCatalogWorkspace() {
           {
             name: "is_active",
             title: text.status,
-            width: "25%",
+            width: "20%",
             render: statusCell,
           },
         ]
       : tab === "programs"
         ? [
+            rankColumn,
             {
               name: "name",
               title: text.name,
               sortField: "name",
-              width: "40%",
+              width: "35%",
               render: (item) => (
                 <span className="font-medium">{item.name}</span>
               ),
@@ -316,7 +364,7 @@ export function ItCatalogWorkspace() {
               name: "direction",
               title: text.direction,
               sortField: "direction__name",
-              width: "30%",
+              width: "25%",
               render: (item) =>
                 isProgram(item) ? item.direction.name : text.noValue,
             },
@@ -335,11 +383,12 @@ export function ItCatalogWorkspace() {
             },
           ]
         : [
+            rankColumn,
             {
               name: "name",
               title: text.name,
               sortField: "name",
-              width: "34%",
+              width: "30%",
               render: (item) => (
                 <span className="font-medium">{item.name}</span>
               ),
@@ -347,7 +396,7 @@ export function ItCatalogWorkspace() {
             {
               name: "programs",
               title: text.relatedPrograms,
-              width: "28%",
+              width: "25%",
               render: (item) =>
                 isProduct(item)
                   ? item.programs.map((p) => p.name).join(", ") || text.noValue
@@ -356,7 +405,7 @@ export function ItCatalogWorkspace() {
             {
               name: "vendor",
               title: text.vendor,
-              width: "23%",
+              width: "20%",
               render: (item) =>
                 isProduct(item)
                   ? (item.vendor?.name ?? text.noValue)
@@ -378,6 +427,7 @@ export function ItCatalogWorkspace() {
     setDirection(null);
     setProgram(null);
     setHasProducts("all");
+    setRank("all");
     setSelected(null);
   }
 
@@ -519,7 +569,10 @@ export function ItCatalogWorkspace() {
               <h2 className="text-xl font-medium" id={headingId}>
                 {detail.name}
               </h2>
-              <span className="mt-3 inline-flex">{statusCell(detail)}</span>
+              <span className="mt-3 flex flex-wrap gap-2">
+                {statusCell(detail)}
+                <RankChip label={text.placeLabel} rank={detail.rank} />
+              </span>
               <dl className="mt-5 divide-y">
                 {detailRows.map(([label, value]) => (
                   <div className="py-3" key={label}>

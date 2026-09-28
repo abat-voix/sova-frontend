@@ -1,23 +1,33 @@
 "use client";
 
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   Building2,
   List,
   LoaderCircle,
   Map as MapIcon,
   MapPin,
+  Pencil,
+  Plus,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import {
   OrganizationDetails,
   type OrganizationDetailsLabels,
 } from "@/components/organizations/organization-details";
+import { RankChip } from "@/components/catalog/rank-chip";
 import { OrganizationContacts } from "@/components/organizations/organization-contacts";
 import { OrganizationSheet } from "@/components/organizations/organization-sheet";
+import { UniversityForm } from "@/components/organizations/university-form";
 import { OrganizationsMap } from "@/components/organizations/organizations-map";
 import { Button } from "@/components/ui/button";
+import { Drawer } from "@/components/ui/drawer";
 import { SearchInput } from "@/components/ui/search-input";
 import { StatusChip } from "@/components/ui/status-chip";
 import { useMediaQuery } from "@/hooks/use-media-query";
@@ -26,14 +36,19 @@ import {
   getUniversity,
   getUniversityMapPoints,
 } from "@/lib/api/catalog/universities";
+import type { RankFilter } from "@/lib/api/catalog/rank";
+import { can } from "@/lib/permissions";
+import { useAuth } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
 import type { InteractionsFilter, University } from "@/types/university";
 
 const compactViewportQuery = "(max-width: 1023.98px)";
 const panelHeadingId = "organization-panel-title";
 const sheetHeadingId = "organization-sheet-title";
+const drawerHeadingId = "organization-drawer-title";
 
 type ViewMode = "list" | "map";
+type ActivityFilter = "all" | "active" | "inactive";
 
 const interactionsFilters = [
   { labelKey: "interactionsFilterAll", value: "all" },
@@ -42,6 +57,25 @@ const interactionsFilters = [
 ] as const satisfies readonly {
   labelKey: string;
   value: InteractionsFilter;
+}[];
+
+const activityFilters = [
+  { labelKey: "activityFilterAll", value: "all" },
+  { labelKey: "activityFilterActive", value: "active" },
+  { labelKey: "activityFilterInactive", value: "inactive" },
+] as const satisfies readonly {
+  labelKey: string;
+  value: ActivityFilter;
+}[];
+
+const rankFilters = [
+  { labelKey: "rankFilterAll", value: "all" },
+  { labelKey: "rankFilterTop", value: "top10" },
+  { labelKey: "rankFilterRanked", value: "ranked" },
+  { labelKey: "rankFilterUnranked", value: "unranked" },
+] as const satisfies readonly {
+  labelKey: string;
+  value: RankFilter;
 }[];
 
 const copy = {
@@ -59,7 +93,24 @@ const copy = {
     interactionsFilterAll: "Все",
     interactionsFilterWith: "Есть",
     interactionsFilterWithout: "Нет",
+    activityFilter: "Активность",
+    activityFilterAll: "Все",
+    activityFilterActive: "Активные",
+    activityFilterInactive: "Неактивные",
+    rankFilter: "Рейтинг",
+    rankFilterAll: "Все",
+    rankFilterTop: "Топ-10",
+    rankFilterRanked: "С местом",
+    rankFilterUnranked: "Без места",
+    place: (rank: number) => `${rank} место`,
     inn: "ИНН",
+    city: "Город",
+    email: "Email",
+    phone: "Телефон",
+    externalCode: "Внешний код",
+    createdAt: "Добавлена",
+    updatedAt: "Обновлена",
+    noValue: "Не указано",
     noInteractions: "Без взаимодействий",
     selectedOrganization: "Выбранный вуз",
     selectMarker: "Выберите маркер на карте",
@@ -78,6 +129,10 @@ const copy = {
     searchPlaceholder: "Название, ИНН, email или внешний код",
     clearSearch: "Очистить поиск",
     noResults: "По вашему запросу ничего не найдено.",
+    create: "Новый вуз",
+    edit: "Изменить",
+    created: "Вуз добавлен.",
+    saved: "Изменения сохранены.",
   },
   en: {
     title: "Organizations",
@@ -93,7 +148,24 @@ const copy = {
     interactionsFilterAll: "All",
     interactionsFilterWith: "Yes",
     interactionsFilterWithout: "No",
+    activityFilter: "Activity",
+    activityFilterAll: "All",
+    activityFilterActive: "Active",
+    activityFilterInactive: "Inactive",
+    rankFilter: "Ranking",
+    rankFilterAll: "All",
+    rankFilterTop: "Top 10",
+    rankFilterRanked: "Ranked",
+    rankFilterUnranked: "Unranked",
+    place: (rank: number) => `#${rank}`,
     inn: "Tax ID",
+    city: "City",
+    email: "Email",
+    phone: "Phone",
+    externalCode: "External code",
+    createdAt: "Added",
+    updatedAt: "Updated",
+    noValue: "Not provided",
     noInteractions: "No interactions",
     selectedOrganization: "Selected university",
     selectMarker: "Select a marker on the map",
@@ -112,40 +184,50 @@ const copy = {
     searchPlaceholder: "Name, tax ID, email, or external code",
     clearSearch: "Clear search",
     noResults: "No universities matched your search.",
+    create: "New university",
+    edit: "Edit",
+    created: "University added.",
+    saved: "Changes saved.",
   },
 } as const;
 
 function OrganizationCard({
-  organization,
+  isSelected,
   labels,
+  onSelect,
+  organization,
 }: {
-  organization: University;
+  isSelected: boolean;
   labels: OrganizationDetailsLabels;
+  onSelect: () => void;
+  organization: University;
 }) {
   return (
-    <article className="bg-card rounded-xl border p-5 shadow-sm">
+    <button
+      aria-pressed={isSelected}
+      className={`bg-card focus-visible:ring-ring w-full rounded-xl border p-5 text-left shadow-sm transition-colors outline-none hover:border-[var(--atmr-accent-primary)] focus-visible:ring-2 ${isSelected ? "border-[var(--atmr-accent-primary)]" : ""}`}
+      onClick={onSelect}
+      type="button"
+    >
       <div className="flex items-start gap-4">
         <span className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-[var(--atmr-background-accent-soft)] text-[var(--atmr-accent-primary)]">
           <Building2 aria-hidden="true" className="size-7" />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <h2 className="leading-5 font-medium">{organization.name}</h2>
-            <span className="flex flex-wrap gap-2">
-              <StatusChip
-                tone={organization.has_interactions ? "accent" : "neutral"}
-              >
-                {organization.has_interactions
-                  ? labels.hasInteractions
-                  : labels.noInteractions}
-              </StatusChip>
-              <StatusChip
-                tone={organization.is_active ? "positive" : "neutral"}
-              >
-                {organization.is_active ? labels.active : labels.inactive}
-              </StatusChip>
-            </span>
-          </div>
+          <h2 className="leading-5 font-medium">{organization.name}</h2>
+          <span className="mt-2 flex flex-wrap gap-2">
+            <RankChip label={labels.place} rank={organization.rank} />
+            <StatusChip
+              tone={organization.has_interactions ? "accent" : "neutral"}
+            >
+              {organization.has_interactions
+                ? labels.hasInteractions
+                : labels.noInteractions}
+            </StatusChip>
+            <StatusChip tone={organization.is_active ? "positive" : "neutral"}>
+              {organization.is_active ? labels.active : labels.inactive}
+            </StatusChip>
+          </span>
           {organization.city ? (
             <p className="text-muted-foreground mt-3 flex items-center gap-2 text-sm">
               <MapPin aria-hidden="true" className="size-4 shrink-0" />
@@ -159,7 +241,7 @@ function OrganizationCard({
           ) : null}
         </div>
       </div>
-    </article>
+    </button>
   );
 }
 
@@ -193,12 +275,23 @@ function RequestState({
 export function OrganizationsWorkspace() {
   const { locale } = useLocale();
   const text = copy[locale];
-  const [view, setView] = useState<ViewMode>("map");
+  const [view, setView] = useState<ViewMode>("list");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [interactions, setInteractions] = useState<InteractionsFilter>("with");
+  const [interactions, setInteractions] = useState<InteractionsFilter>("all");
+  const [activity, setActivity] = useState<ActivityFilter>("all");
+  const isActive = activity === "all" ? null : activity === "active";
+  const [rank, setRank] = useState<RankFilter>("all");
   const isCompactViewport = useMediaQuery(compactViewportQuery);
+  const { user } = useAuth();
+  const canCreate = user !== null && can(user, "catalog.create");
+  const canUpdate = user !== null && can(user, "catalog.update");
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState<{ university: University | null } | null>(
+    null,
+  );
+  const closeForm = useCallback(() => setForm(null), []);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -212,10 +305,10 @@ export function OrganizationsWorkspace() {
     queryKey: [
       "catalog",
       "universities",
-      { interactions, search: debouncedSearch },
+      { interactions, isActive, rank, search: debouncedSearch },
     ],
     queryFn: ({ pageParam }) =>
-      getUniversities(pageParam, debouncedSearch, interactions),
+      getUniversities(pageParam, debouncedSearch, interactions, rank, isActive),
     initialPageParam: 1,
     getNextPageParam: (lastPage, pages) =>
       lastPage.next ? pages.length + 1 : undefined,
@@ -225,15 +318,16 @@ export function OrganizationsWorkspace() {
       "catalog",
       "universities",
       "map",
-      { interactions, search: debouncedSearch },
+      { interactions, isActive, rank, search: debouncedSearch },
     ],
-    queryFn: () => getUniversityMapPoints(debouncedSearch, interactions),
+    queryFn: () =>
+      getUniversityMapPoints(debouncedSearch, interactions, rank, isActive),
     enabled: view === "map",
   });
   const selectedUniversityQuery = useQuery({
     queryKey: ["catalog", "universities", selectedId],
     queryFn: () => getUniversity(selectedId!),
-    enabled: view === "map" && selectedId !== null,
+    enabled: selectedId !== null,
   });
 
   const organizations = useMemo(
@@ -243,10 +337,18 @@ export function OrganizationsWorkspace() {
   const total = universitiesQuery.data?.pages[0]?.count;
   const detailLabels: OrganizationDetailsLabels = {
     active: text.active,
+    city: text.city,
+    createdAt: text.createdAt,
+    email: text.email,
+    externalCode: text.externalCode,
     hasInteractions: text.hasInteractions,
     inactive: text.inactive,
     inn: text.inn,
     noInteractions: text.noInteractions,
+    noValue: text.noValue,
+    phone: text.phone,
+    place: text.place,
+    updatedAt: text.updatedAt,
   };
   const clearSelection = useCallback(() => setSelectedId(null), []);
   const handleSearchChange = useCallback((value: string) => {
@@ -259,34 +361,73 @@ export function OrganizationsWorkspace() {
     setInteractions(value);
     setSelectedId(null);
   }, []);
+  const handleActivityChange = useCallback((value: ActivityFilter) => {
+    setActivity(value);
+    setSelectedId(null);
+  }, []);
+  const handleRankChange = useCallback((value: RankFilter) => {
+    setRank(value);
+    setSelectedId(null);
+  }, []);
+  // Карточка вуза открыта только в том режиме, где его выбрали
+  const handleViewChange = useCallback((value: ViewMode) => {
+    setView(value);
+    setSelectedId(null);
+  }, []);
 
-  const selectedContent = selectedUniversityQuery.isPending ? (
-    <p className="text-muted-foreground flex items-center gap-2 text-sm">
-      <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
-      {text.loadingDetails}
-    </p>
-  ) : selectedUniversityQuery.isError ? (
-    <RequestState
-      label={text.detailsError}
-      onRetry={() => void selectedUniversityQuery.refetch()}
-      retryLabel={text.retry}
-    />
-  ) : selectedUniversityQuery.data ? (
-    <>
-      <OrganizationDetails
-        headingId={isCompactViewport ? sheetHeadingId : panelHeadingId}
-        labels={detailLabels}
-        organization={selectedUniversityQuery.data}
-      />
-      <OrganizationContacts
-        organization={{
-          id: selectedUniversityQuery.data.id,
-          type: "university",
-        }}
-        organizationName={selectedUniversityQuery.data.name}
-      />
-    </>
-  ) : null;
+  const selectedUniversity = selectedUniversityQuery.data;
+  const editButton =
+    canUpdate && selectedUniversity ? (
+      <Button
+        colorScheme="neutral"
+        onClick={() => setForm({ university: selectedUniversity })}
+        size="m"
+        type="button"
+        variant="outline"
+      >
+        <Pencil aria-hidden="true" className="size-4" />
+        {text.edit}
+      </Button>
+    ) : null;
+
+  // В боковой панели списка кнопка правки — в её подвале, на карте — под карточкой
+  const renderSelected = (headingId: string, withEditButton = true) =>
+    selectedUniversityQuery.isPending ? (
+      <p
+        className="text-muted-foreground flex items-center gap-2 text-sm"
+        id={headingId}
+      >
+        <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
+        {text.loadingDetails}
+      </p>
+    ) : selectedUniversityQuery.isError ? (
+      <div id={headingId}>
+        <RequestState
+          label={text.detailsError}
+          onRetry={() => void selectedUniversityQuery.refetch()}
+          retryLabel={text.retry}
+        />
+      </div>
+    ) : selectedUniversityQuery.data ? (
+      <>
+        <OrganizationDetails
+          headingId={headingId}
+          labels={detailLabels}
+          locale={locale}
+          organization={selectedUniversityQuery.data}
+        />
+        {withEditButton && editButton ? (
+          <div className="mt-4">{editButton}</div>
+        ) : null}
+        <OrganizationContacts
+          organization={{
+            id: selectedUniversityQuery.data.id,
+            type: "university",
+          }}
+          organizationName={selectedUniversityQuery.data.name}
+        />
+      </>
+    ) : null;
 
   return (
     <div className="space-y-5">
@@ -300,33 +441,45 @@ export function OrganizationsWorkspace() {
           </p>
         </div>
 
-        <div
-          aria-label={locale === "ru" ? "Режим отображения" : "View mode"}
-          className="bg-card flex w-fit items-center gap-1 rounded-xl border p-1 shadow-sm"
-          role="group"
-        >
-          <Button
-            aria-pressed={view === "list"}
-            colorScheme={view === "list" ? "accent" : "neutral"}
-            onClick={() => setView("list")}
-            size="m"
-            type="button"
-            variant={view === "list" ? "secondary" : "ghost"}
+        <div className="flex flex-wrap items-center gap-3">
+          {canCreate ? (
+            <Button
+              onClick={() => setForm({ university: null })}
+              size="m"
+              type="button"
+            >
+              <Plus aria-hidden="true" className="size-4" />
+              {text.create}
+            </Button>
+          ) : null}
+          <div
+            aria-label={locale === "ru" ? "Режим отображения" : "View mode"}
+            className="bg-card flex w-fit items-center gap-1 rounded-xl border p-1 shadow-sm"
+            role="group"
           >
-            <List aria-hidden="true" className="size-4" />
-            {text.list}
-          </Button>
-          <Button
-            aria-pressed={view === "map"}
-            colorScheme={view === "map" ? "accent" : "neutral"}
-            onClick={() => setView("map")}
-            size="m"
-            type="button"
-            variant={view === "map" ? "secondary" : "ghost"}
-          >
-            <MapIcon aria-hidden="true" className="size-4" />
-            {text.map}
-          </Button>
+            <Button
+              aria-pressed={view === "list"}
+              colorScheme={view === "list" ? "accent" : "neutral"}
+              onClick={() => handleViewChange("list")}
+              size="m"
+              type="button"
+              variant={view === "list" ? "secondary" : "ghost"}
+            >
+              <List aria-hidden="true" className="size-4" />
+              {text.list}
+            </Button>
+            <Button
+              aria-pressed={view === "map"}
+              colorScheme={view === "map" ? "accent" : "neutral"}
+              onClick={() => handleViewChange("map")}
+              size="m"
+              type="button"
+              variant={view === "map" ? "secondary" : "ghost"}
+            >
+              <MapIcon aria-hidden="true" className="size-4" />
+              {text.map}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -365,6 +518,58 @@ export function OrganizationsWorkspace() {
             </Button>
           ))}
         </div>
+
+        <div
+          aria-label={text.activityFilter}
+          className="bg-card flex w-fit items-center gap-1 rounded-xl border p-1 shadow-sm"
+          role="group"
+        >
+          <span
+            aria-hidden="true"
+            className="text-muted-foreground px-2 text-sm"
+          >
+            {text.activityFilter}
+          </span>
+          {activityFilters.map(({ labelKey, value }) => (
+            <Button
+              aria-pressed={activity === value}
+              colorScheme={activity === value ? "accent" : "neutral"}
+              key={value}
+              onClick={() => handleActivityChange(value)}
+              size="m"
+              type="button"
+              variant={activity === value ? "secondary" : "ghost"}
+            >
+              {text[labelKey]}
+            </Button>
+          ))}
+        </div>
+
+        <div
+          aria-label={text.rankFilter}
+          className="bg-card flex w-fit items-center gap-1 rounded-xl border p-1 shadow-sm"
+          role="group"
+        >
+          <span
+            aria-hidden="true"
+            className="text-muted-foreground px-2 text-sm"
+          >
+            {text.rankFilter}
+          </span>
+          {rankFilters.map(({ labelKey, value }) => (
+            <Button
+              aria-pressed={rank === value}
+              colorScheme={rank === value ? "accent" : "neutral"}
+              key={value}
+              onClick={() => handleRankChange(value)}
+              size="m"
+              type="button"
+              variant={rank === value ? "secondary" : "ghost"}
+            >
+              {text[labelKey]}
+            </Button>
+          ))}
+        </div>
       </div>
 
       {total !== undefined ? (
@@ -389,8 +594,10 @@ export function OrganizationsWorkspace() {
             <div className="grid gap-4 lg:grid-cols-2">
               {organizations.map((organization) => (
                 <OrganizationCard
+                  isSelected={organization.id === selectedId}
                   key={organization.id}
                   labels={detailLabels}
+                  onSelect={() => setSelectedId(organization.id)}
                   organization={organization}
                 />
               ))}
@@ -416,6 +623,19 @@ export function OrganizationsWorkspace() {
                     : text.loadMore}
                 </Button>
               </div>
+            ) : null}
+            {selectedId ? (
+              <Drawer
+                closeLabel={text.close}
+                footer={editButton}
+                labelledBy={drawerHeadingId}
+                onClose={clearSelection}
+              >
+                <p className="text-muted-foreground mb-4 text-xs font-medium tracking-[0.08em] uppercase">
+                  {text.selectedOrganization}
+                </p>
+                {renderSelected(drawerHeadingId, false)}
+              </Drawer>
             ) : null}
           </>
         )
@@ -443,7 +663,7 @@ export function OrganizationsWorkspace() {
                 <p className="text-muted-foreground mb-5 text-xs font-medium tracking-[0.08em] uppercase">
                   {text.selectedOrganization}
                 </p>
-                {selectedContent}
+                {renderSelected(panelHeadingId)}
               </>
             ) : (
               <div className="flex min-h-80 flex-col items-center justify-center text-center">
@@ -463,11 +683,28 @@ export function OrganizationsWorkspace() {
               labelledBy={sheetHeadingId}
               onClose={clearSelection}
             >
-              {selectedContent}
+              {renderSelected(sheetHeadingId)}
             </OrganizationSheet>
           ) : null}
         </div>
       )}
+
+      {form ? (
+        <UniversityForm
+          onClose={closeForm}
+          onSaved={(saved) => {
+            toast.success(form.university ? text.saved : text.created);
+            setForm(null);
+            setSelectedId(saved.id);
+            // Ответ записи без аннотаций списка (взаимодействия, место) —
+            // карточку и список перезапрашиваем целиком
+            void queryClient.invalidateQueries({
+              queryKey: ["catalog", "universities"],
+            });
+          }}
+          university={form.university}
+        />
+      ) : null}
     </div>
   );
 }

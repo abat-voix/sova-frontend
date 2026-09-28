@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { FileImportFlow } from "@/components/catalog-import/file-import-flow";
+import { RegistryHeader } from "@/components/registry/registry-shared";
 import { EntitySelect } from "@/components/ui/entity-select";
 import type { LookupOption } from "@/lib/api/catalog/lookups";
 import { uploadLearners } from "@/lib/api/training/learners";
@@ -59,15 +60,12 @@ export function LearnerImportWorkspace() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-medium">Загрузка пользователей</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Обучающиеся и их персональные данные из файла «Пользователи».
-          Существующий обучающийся находится по email, затем по телефону; пустая
-          ячейка стирает значение, колонки, которой нет в файле, это не
-          касается.
-        </p>
-        <p className="text-muted-foreground mt-1 text-sm">
+      <div>
+        <RegistryHeader
+          description="Обучающиеся и их персональные данные из файла «Пользователи». Существующий обучающийся находится по email, затем по телефону; пустая ячейка стирает значение, колонки, которой нет в файле, это не касается."
+          title="Загрузка обучающихся"
+        />
+        <p className="text-muted-foreground mt-2 max-w-2xl text-base leading-7">
           Оплаты из JSON загружаются в разделе{" "}
           {canManageIntegrations ? (
             <Link className="underline" href="/settings/integrations">
@@ -78,7 +76,7 @@ export function LearnerImportWorkspace() {
           )}{" "}
           (маппинг «Оплата обучения»).
         </p>
-      </header>
+      </div>
 
       <section className="bg-card space-y-3 rounded-xl border p-4">
         <h2 className="text-lg font-medium">1. Поток</h2>

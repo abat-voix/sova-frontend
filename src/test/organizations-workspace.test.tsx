@@ -5,6 +5,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -124,6 +125,7 @@ describe("OrganizationsWorkspace", () => {
       </QueryClientProvider>,
     );
 
+    fireEvent.click(screen.getByRole("button", { name: "Карта" }));
     fireEvent.click(
       await screen.findByRole("button", {
         name: "Выбрать университет на карте",
@@ -146,6 +148,64 @@ describe("OrganizationsWorkspace", () => {
         "university-1",
       );
     });
+  });
+
+  it("opens the university card in a drawer from the list", async () => {
+    const selectedUniversity = {
+      ...university("university-1", "Тюменский университет"),
+      rank: 3,
+    };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input), "http://localhost");
+      const body =
+        url.pathname === "/api/catalog/universities/"
+          ? {
+              count: 1,
+              next: null,
+              previous: null,
+              results: [selectedUniversity],
+            }
+          : url.pathname === "/api/catalog/universities/university-1/"
+            ? selectedUniversity
+            : { count: 0, next: null, previous: null, results: [] };
+
+      return new Response(JSON.stringify(body), {
+        headers: { "content-type": "application/json" },
+        status: 200,
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <LocaleProvider>
+          <OrganizationsWorkspace />
+        </LocaleProvider>
+      </QueryClientProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Список" }));
+    fireEvent.click(await screen.findByText("Тюменский университет"));
+
+    const drawer = await screen.findByRole("dialog");
+    expect(
+      await within(drawer).findByRole("heading", {
+        name: "Тюменский университет",
+      }),
+    ).toBeInTheDocument();
+    expect(within(drawer).getByText("3 место")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(
+          ([input]) =>
+            new URL(String(input), "http://localhost").searchParams.get(
+              "university__ids",
+            ) === "university-1",
+        ),
+      ).toBe(true),
+    );
   });
 
   it("loads the next page when the user clicks the load-more button", async () => {
@@ -197,7 +257,7 @@ describe("OrganizationsWorkspace", () => {
     expect(await screen.findByText("Третий университет")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Подгрузить" })).toBeNull();
     expect(fetchMock).toHaveBeenLastCalledWith(
-      "/api/catalog/universities/?has_interactions=true&page=2&page_size=20",
+      "/api/catalog/universities/?page=2&page_size=20",
       expect.objectContaining({ credentials: "include" }),
     );
   });
@@ -247,13 +307,13 @@ describe("OrganizationsWorkspace", () => {
     ).toBeInTheDocument();
     await waitFor(() =>
       expect(fetchMock).toHaveBeenLastCalledWith(
-        "/api/catalog/universities/?has_interactions=true&page=1&page_size=20&search=%D0%A2%D1%8E%D0%BC%D0%B5%D0%BD%D1%8C",
+        "/api/catalog/universities/?page=1&page_size=20&search=%D0%A2%D1%8E%D0%BC%D0%B5%D0%BD%D1%8C",
         expect.objectContaining({ credentials: "include" }),
       ),
     );
   });
 
-  it("shows universities with interactions by default and can show all", async () => {
+  it("shows all universities by default and filters by interactions and activity", async () => {
     const fetchMock = vi.fn(
       async () =>
         new Response(
@@ -282,15 +342,43 @@ describe("OrganizationsWorkspace", () => {
 
     expect(await screen.findByText("Первый университет")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/catalog/universities/?has_interactions=true&page=1&page_size=20",
+      "/api/catalog/universities/?page=1&page_size=20",
       expect.objectContaining({ credentials: "include" }),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Все" }));
+    fireEvent.click(
+      within(screen.getByRole("group", { name: "Взаимодействия" })).getByRole(
+        "button",
+        { name: "Есть" },
+      ),
+    );
 
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
-        "/api/catalog/universities/?page=1&page_size=20",
+        "/api/catalog/universities/?has_interactions=true&page=1&page_size=20",
+        expect.objectContaining({ credentials: "include" }),
+      ),
+    );
+
+    fireEvent.click(
+      within(screen.getByRole("group", { name: "Активность" })).getByRole(
+        "button",
+        { name: "Неактивные" },
+      ),
+    );
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/catalog/universities/?has_interactions=true&is_active=false&page=1&page_size=20",
+        expect.objectContaining({ credentials: "include" }),
+      ),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Топ-10" }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/catalog/universities/?has_rank=true&rank_max=10&has_interactions=true&is_active=false&ordering=rank&page=1&page_size=20",
         expect.objectContaining({ credentials: "include" }),
       ),
     );

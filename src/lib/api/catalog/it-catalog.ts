@@ -1,4 +1,5 @@
 import { apiEndpoints } from "@/lib/api/endpoints";
+import { rankParams, type RankFilter } from "@/lib/api/catalog/rank";
 import { buildQuery, getJson } from "@/lib/api/http";
 import type { PaginatedResponse } from "@/types/api";
 import type { Direction, Product, Program } from "@/types/catalog";
@@ -12,6 +13,7 @@ export type CatalogListQuery = {
   ordering?: string | null;
   page: number;
   programId?: string | null;
+  rank?: RankFilter;
   search?: string;
 };
 
@@ -22,9 +24,11 @@ function catalogQuery({
   ordering,
   page,
   programId,
+  rank = "all",
   search,
 }: CatalogListQuery) {
   return buildQuery({
+    ...rankParams(rank),
     direction__ids: directionId ?? undefined,
     has_products:
       hasProducts === null || hasProducts === undefined
