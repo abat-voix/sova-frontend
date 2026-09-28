@@ -30,8 +30,19 @@ const contract: Contract = {
     organization: { id: "u1", name: "Тюменский университет" },
     b2c_client: null,
   },
+  organization: { id: "u1", name: "Тюменский университет" },
+  b2c_client: null,
   created_at: "2026-08-30T10:00:00+03:00",
   updated_at: "2026-09-10T10:00:00+03:00",
+};
+
+/** Договор из реестра: ещё не привязан к взаимодействию, контрагент — у самого договора. */
+const headlessContract: Contract = {
+  ...contract,
+  id: "k2",
+  contract_number: "Д-РЕЕСТР/1",
+  interaction: null,
+  organization: { id: "u2", name: "Тестовый университет Альфа" },
 };
 
 const files: ContractFile[] = [
@@ -59,7 +70,7 @@ const files: ContractFile[] = [
 
 const emptyPage = { count: 0, next: null, previous: null, results: [] };
 
-function stubApi() {
+function stubApi(contracts: Contract[] = [contract]) {
   const urls: string[] = [];
   vi.stubGlobal(
     "fetch",
@@ -88,7 +99,12 @@ function stubApi() {
         : url.startsWith("/api/interactions/contracts/k1/")
           ? contract
           : url.startsWith("/api/interactions/contracts/?")
-            ? { count: 1, next: null, previous: null, results: [contract] }
+            ? {
+                count: contracts.length,
+                next: null,
+                previous: null,
+                results: contracts,
+              }
             : url.startsWith("/api/interactions/contract-files/?")
               ? { count: 2, next: null, previous: null, results: files }
               : emptyPage;
@@ -147,6 +163,14 @@ describe("ContractsWorkspace", () => {
         name: "Скачать текущий файл: dogovor-v2.pdf",
       }),
     ).toHaveAttribute("href", "/api/interactions/contracts/k1/download/");
+  });
+
+  it("lists a registry contract without an interaction", async () => {
+    stubApi([headlessContract]);
+    renderWorkspace();
+
+    expect(await screen.findByText("Д-РЕЕСТР/1")).toBeInTheDocument();
+    expect(screen.getByText("Тестовый университет Альфа")).toBeInTheDocument();
   });
 
   it("sends the signing filter to the backend", async () => {
