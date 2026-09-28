@@ -5,7 +5,8 @@ test("administrator configures and reopens an integration mapping", async ({
 }) => {
   await page.goto("/settings/integrations");
   await expect(page.getByRole("heading", { name: "Интеграции" })).toBeVisible();
-  await page.getByRole("button", { name: "Создать mapping" }).click();
+  await page.getByRole("link", { name: "Создать mapping" }).click();
+  await expect(page).toHaveURL(/\/settings\/integrations\/new$/);
   await page.getByLabel("Название").fill("Зачисление студента из LMS");
   await page.getByLabel("Система").selectOption("lms");
   await page.getByLabel("event_type").fill("student.enrolled");
@@ -25,6 +26,7 @@ test("administrator configures and reopens an integration mapping", async ({
   await page.getByRole("button", { name: "Проверить" }).click();
   await expect(page.getByTestId("mapping-preview")).toBeVisible();
   await page.getByRole("button", { name: "Сохранить" }).click();
+  await expect(page).toHaveURL(/\/settings\/integrations$/);
   await page
     .getByRole("button", { name: /Открыть Зачисление студента/ })
     .click();

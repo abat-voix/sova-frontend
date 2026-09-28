@@ -17,6 +17,17 @@ export const integrationMappingsQueryKey = [
   "mappings",
 ] as const;
 
+/** Список mapping в разделе «Интеграции». */
+export const integrationsHref = "/settings/integrations";
+
+/** Страница создания mapping. */
+export const newIntegrationMappingHref = `${integrationsHref}/new`;
+
+/** Страница редактирования mapping. */
+export function integrationMappingHref(id: string) {
+  return `${integrationsHref}/${id}`;
+}
+
 export function getIntegrationEntities() {
   return getJson<IntegrationEntityMetadata[]>(
     apiEndpoints.integrations.entities,

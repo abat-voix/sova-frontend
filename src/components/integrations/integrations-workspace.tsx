@@ -2,11 +2,13 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Copy, FileUp, Pencil, Plus, Power, Trash2 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
-import { IntegrationMappingEditor } from "@/components/integrations/integration-mapping-editor";
 import { IntegrationMappingProcessDialog } from "@/components/integrations/integration-mapping-process-dialog";
+import { readableError } from "@/components/integrations/readable-error";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
@@ -14,30 +16,16 @@ import {
   createIntegrationMapping,
   deleteIntegrationMapping,
   getIntegrationEntities,
-  getIntegrationMapping,
   getIntegrationMappings,
   getIntegrationSystems,
+  integrationMappingHref,
   integrationMappingsQueryKey,
-  previewIntegrationMapping,
+  newIntegrationMappingHref,
   processIntegrationMapping,
   updateIntegrationMapping,
 } from "@/lib/api/integrations/integrations";
-import { ApiError } from "@/lib/api/http";
 import { useAuth } from "@/providers/auth-provider";
-import type {
-  CreateIntegrationMappingDto,
-  IntegrationMapping,
-} from "@/types/integration";
-
-function readableError(error: unknown) {
-  if (error instanceof ApiError) {
-    const fields = Object.values(error.fieldErrors).flat().join(" ");
-    return fields || error.detail || "Операция отклонена сервером.";
-  }
-  return error instanceof Error
-    ? error.message
-    : "Не удалось выполнить операцию.";
-}
+import type { IntegrationMapping } from "@/types/integration";
 
 const tableLabels = {
   empty: "Mappings пока нет. Создайте первую конфигурацию.",
@@ -52,8 +40,7 @@ const tableLabels = {
 export function IntegrationsWorkspace() {
   const { csrfToken } = useAuth();
   const queryClient = useQueryClient();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
+  const router = useRouter();
   const [processing, setProcessing] = useState<IntegrationMapping | null>(null);
   const closeProcessing = useCallback(() => setProcessing(null), []);
 
@@ -69,11 +56,6 @@ export function IntegrationsWorkspace() {
     queryKey: ["integrations", "systems"],
     queryFn: getIntegrationSystems,
   });
-  const selected = useQuery({
-    enabled: Boolean(selectedId),
-    queryKey: ["integrations", "mappings", selectedId],
-    queryFn: () => getIntegrationMapping(selectedId!),
-  });
 
   async function refresh(id?: string) {
     await queryClient.invalidateQueries({
@@ -85,22 +67,9 @@ export function IntegrationsWorkspace() {
       });
   }
 
-  const save = useMutation({
-    mutationFn: async (payload: CreateIntegrationMappingDto) =>
-      selectedId
-        ? updateIntegrationMapping(selectedId, payload, csrfToken)
-        : createIntegrationMapping(payload, csrfToken),
-    onSuccess: async (mapping) => {
-      await refresh(mapping.id);
-      setIsCreating(false);
-      setSelectedId(mapping.id);
-      toast.success("Mapping сохранён.");
-    },
-  });
   const remove = useMutation({
     mutationFn: (id: string) => deleteIntegrationMapping(id, csrfToken),
     onSuccess: async (_, id) => {
-      if (selectedId === id) setSelectedId(null);
       await refresh(id);
       toast.success("Mapping удалён.");
     },
@@ -132,7 +101,6 @@ export function IntegrationsWorkspace() {
       ),
     onSuccess: async (mapping) => {
       await refresh(mapping.id);
-      setSelectedId(mapping.id);
       toast.success("Копия создана.");
     },
     onError: (error) => toast.error(readableError(error)),
@@ -206,10 +174,7 @@ export function IntegrationsWorkspace() {
           <Button
             aria-label={`Открыть ${row.name}`}
             colorScheme="neutral"
-            onClick={() => {
-              setIsCreating(false);
-              setSelectedId(row.id);
-            }}
+            onClick={() => router.push(integrationMappingHref(row.id))}
             size="icon"
             title="Открыть"
             type="button"
@@ -273,7 +238,6 @@ export function IntegrationsWorkspace() {
 
   const catalogLoading = entities.isLoading || systems.isLoading;
   const catalogError = entities.isError || systems.isError;
-  const editorOpen = isCreating || Boolean(selectedId);
 
   return (
     <div className="space-y-4">
@@ -287,18 +251,19 @@ export function IntegrationsWorkspace() {
             и управляйте версиями.
           </p>
         </div>
-        <Button
-          disabled={catalogLoading || catalogError}
-          onClick={() => {
-            setSelectedId(null);
-            setIsCreating(true);
-          }}
-          size="m"
-          type="button"
-        >
-          <Plus className="size-4" />
-          Создать mapping
-        </Button>
+        {catalogLoading || catalogError ? (
+          <Button disabled size="m" type="button">
+            <Plus className="size-4" />
+            Создать mapping
+          </Button>
+        ) : (
+          <Button asChild size="m">
+            <Link href={newIntegrationMappingHref}>
+              <Plus className="size-4" />
+              Создать mapping
+            </Link>
+          </Button>
+        )}
       </header>
 
       {catalogLoading ? (
@@ -339,44 +304,6 @@ export function IntegrationsWorkspace() {
         </div>
       ) : null}
 
-      {editorOpen && !catalogLoading && !catalogError ? (
-        selectedId && selected.isLoading ? (
-          <div className="bg-card h-64 animate-pulse rounded-xl border" />
-        ) : selectedId && selected.isError ? (
-          <div
-            className="border-destructive/30 rounded-xl border p-5"
-            role="alert"
-          >
-            Не удалось загрузить выбранный mapping.
-          </div>
-        ) : (
-          <IntegrationMappingEditor
-            entities={entities.data ?? []}
-            isSaving={save.isPending}
-            mapping={selectedId ? (selected.data ?? null) : null}
-            onCancel={() => {
-              setSelectedId(null);
-              setIsCreating(false);
-            }}
-            onPreview={async (payload) => {
-              try {
-                return await previewIntegrationMapping(payload, csrfToken);
-              } catch (error) {
-                throw new Error(readableError(error));
-              }
-            }}
-            onSave={async (payload) => {
-              try {
-                await save.mutateAsync(payload);
-              } catch (error) {
-                throw new Error(readableError(error));
-              }
-            }}
-            systems={systems.data ?? []}
-          />
-        )
-      ) : null}
-
       <DataTable
         caption="Mappings интеграций"
         columns={columns}
@@ -385,12 +312,8 @@ export function IntegrationsWorkspace() {
         isLoading={mappings.isLoading}
         labels={tableLabels}
         onRetry={() => void mappings.refetch()}
-        onRowClick={(row) => {
-          setIsCreating(false);
-          setSelectedId(row.id);
-        }}
+        onRowClick={(row) => router.push(integrationMappingHref(row.id))}
         rows={mappings.data ?? []}
-        selectedRowId={selectedId}
       />
 
       {processing ? (
