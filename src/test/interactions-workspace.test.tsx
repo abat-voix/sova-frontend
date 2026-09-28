@@ -147,9 +147,11 @@ const observerSession = {
 function stubApi({
   forbidInteractions = false,
   sessionUser = kamSession,
+  workflowStatus = "running",
 }: {
   forbidInteractions?: boolean;
   sessionUser?: typeof kamSession;
+  workflowStatus?: "running" | "completed";
 } = {}) {
   const fetchMock = vi.fn<typeof fetch>(async (input) => {
     const url = String(input);
@@ -206,7 +208,16 @@ function stubApi({
         count: 1,
         next: null,
         previous: null,
-        results: [instance],
+        results: [
+          {
+            ...instance,
+            completed_at:
+              workflowStatus === "completed"
+                ? "2026-09-02T09:00:00+03:00"
+                : null,
+            status: workflowStatus,
+          },
+        ],
       });
     }
 
@@ -268,6 +279,21 @@ describe("InteractionsWorkspace", () => {
     renderWorkspace({ withDashboardCache: true });
 
     expect(await screen.findByText("Первый университет")).toBeInTheDocument();
+  });
+
+  it("marks completed interactions and filters them by process status", async () => {
+    stubApi({ workflowStatus: "completed" });
+    renderWorkspace();
+
+    expect(await screen.findByText("Завершено")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Завершённые" }));
+    expect(screen.getByText("Первый университет")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "В работе" }));
+    expect(
+      await screen.findByText("По вашему запросу ничего не найдено."),
+    ).toBeInTheDocument();
   });
 
   it("creates a contact from the action panel without asking for its counterparty", async () => {

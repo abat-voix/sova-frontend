@@ -78,6 +78,9 @@ export function useCompleteAction(csrfToken: string) {
       void queryClient.invalidateQueries({
         queryKey: boardQueryKey(action.workflow_instance),
       });
+      void queryClient.invalidateQueries({
+        queryKey: ["processes", "workflow-instances"],
+      });
     },
   });
 }

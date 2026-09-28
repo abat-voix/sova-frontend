@@ -29,10 +29,38 @@ export function workflowInstancesQueryKey(interactionId: string) {
   return ["processes", "workflow-instances", interactionId] as const;
 }
 
+export function workflowInstancesForInteractionsQueryKey(
+  interactionIds: string[],
+) {
+  return [
+    "processes",
+    "workflow-instances",
+    "cards",
+    { interactionIds },
+  ] as const;
+}
+
 export function getWorkflowInstances(interactionId: string) {
   const query = buildQuery({
     interaction__ids: interactionId,
     ordering: "-started_at",
+  });
+
+  return getJson<PaginatedResponse<WorkflowInstance>>(
+    `${apiEndpoints.processes.workflowInstances.list}?${query}`,
+  );
+}
+
+/**
+ * Статусы последних процессов для карточек взаимодействий. Один запрос вместо
+ * запроса на каждую карточку; порядок нужен, чтобы первым для взаимодействия
+ * оказался его самый свежий процесс.
+ */
+export function getWorkflowInstancesForInteractions(interactionIds: string[]) {
+  const query = buildQuery({
+    interaction__ids: interactionIds.join(","),
+    ordering: "-started_at",
+    page_size: 200,
   });
 
   return getJson<PaginatedResponse<WorkflowInstance>>(

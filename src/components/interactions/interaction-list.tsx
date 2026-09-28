@@ -3,7 +3,9 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import {
   Building2,
+  CheckCircle2,
   Eye,
+  ListFilter,
   LoaderCircle,
   MessageCircle,
   MoreVertical,
@@ -20,6 +22,10 @@ import {
   getInteractions,
   interactionsInfiniteQueryKey,
 } from "@/lib/api/interactions/interactions";
+import {
+  getWorkflowInstancesForInteractions,
+  workflowInstancesForInteractionsQueryKey,
+} from "@/lib/api/processes/board";
 import {
   getInteractionChat,
   interactionChatQueryKey,
@@ -39,6 +45,8 @@ const copy = {
     chatNoAccess: "Нет доступа к чату этого взаимодействия.",
     chatOpen: "Открыть чат",
     clearSearch: "Очистить поиск",
+    completed: "Завершено",
+    completedFilter: "Завершённые",
     interactionsCount: "взаимодействий",
     edit: "Редактировать взаимодействие",
     listError: "Не удалось загрузить список взаимодействий.",
@@ -46,6 +54,10 @@ const copy = {
     loading: "Загружаем взаимодействия…",
     loadingMore: "Загружаем…",
     noResults: "По вашему запросу ничего не найдено.",
+    processFilter: "Статус процесса",
+    running: "В работе",
+    runningFilter: "В работе",
+    allFilter: "Все статусы",
     retry: "Повторить",
     searchLabel: "Поиск взаимодействий",
     searchPlaceholder: "Вуз, клиент или ответственный",
@@ -62,6 +74,8 @@ const copy = {
     chatNoAccess: "You don't have access to this interaction's chat.",
     chatOpen: "Open chat",
     clearSearch: "Clear search",
+    completed: "Completed",
+    completedFilter: "Completed",
     interactionsCount: "interactions",
     edit: "Edit interaction",
     listError: "The interaction list could not be loaded.",
@@ -69,6 +83,10 @@ const copy = {
     loading: "Loading interactions…",
     loadingMore: "Loading…",
     noResults: "Nothing matched your search.",
+    processFilter: "Process status",
+    running: "In progress",
+    runningFilter: "In progress",
+    allFilter: "All statuses",
     retry: "Retry",
     searchLabel: "Search interactions",
     searchPlaceholder: "University, client, or responsible",
@@ -77,6 +95,29 @@ const copy = {
     view: "Interaction card",
   },
 } as const;
+
+type ProcessFilter = "all" | "running" | "completed";
+
+function latestProcessStatuses(
+  interactionIds: Set<string>,
+  instances: { interaction: { id: string }; status: string }[],
+) {
+  const statuses = new Map<string, ProcessFilter>();
+
+  for (const instance of instances) {
+    const interactionId = instance.interaction.id;
+    if (
+      !interactionIds.has(interactionId) ||
+      statuses.has(interactionId) ||
+      (instance.status !== "running" && instance.status !== "completed")
+    ) {
+      continue;
+    }
+    statuses.set(interactionId, instance.status);
+  }
+
+  return statuses;
+}
 
 /** Принимает и полное взаимодействие, и краткое: читаются только контрагенты. */
 export function interactionTitle(
@@ -327,6 +368,7 @@ export function InteractionList({
   const text = copy[locale];
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [processFilter, setProcessFilter] = useState<ProcessFilter>("all");
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -349,6 +391,38 @@ export function InteractionList({
     [interactionsQuery.data],
   );
   const total = interactionsQuery.data?.pages[0]?.count;
+  const interactionIds = useMemo(
+    () => interactions.map((interaction) => interaction.id),
+    [interactions],
+  );
+  const interactionIdSet = useMemo(
+    () => new Set(interactionIds),
+    [interactionIds],
+  );
+  const workflowInstancesQuery = useQuery({
+    queryKey: workflowInstancesForInteractionsQueryKey(interactionIds),
+    queryFn: () => getWorkflowInstancesForInteractions(interactionIds),
+    enabled: interactionIds.length > 0,
+  });
+  const processStatusByInteractionId = useMemo(
+    () =>
+      latestProcessStatuses(
+        interactionIdSet,
+        workflowInstancesQuery.data?.results ?? [],
+      ),
+    [interactionIdSet, workflowInstancesQuery.data],
+  );
+  const filteredInteractions = useMemo(
+    () =>
+      processFilter === "all"
+        ? interactions
+        : interactions.filter(
+            (interaction) =>
+              processStatusByInteractionId.get(interaction.id) ===
+              processFilter,
+          ),
+    [interactions, processFilter, processStatusByInteractionId],
+  );
   const selected = selectedId
     ? interactions.find((interaction) => interaction.id === selectedId)
     : undefined;
@@ -367,7 +441,35 @@ export function InteractionList({
           placeholder={text.searchPlaceholder}
           value={search}
         />
-        {total !== undefined ? (
+        <div
+          aria-label={text.processFilter}
+          className="flex gap-1"
+          role="group"
+        >
+          {(
+            [
+              ["all", text.allFilter, ListFilter],
+              ["running", text.runningFilter, LoaderCircle],
+              ["completed", text.completedFilter, CheckCircle2],
+            ] as const
+          ).map(([filter, label, Icon]) => (
+            <Button
+              aria-label={label}
+              aria-pressed={processFilter === filter}
+              className="size-6 min-w-0 p-0"
+              colorScheme="neutral"
+              key={filter}
+              onClick={() => setProcessFilter(filter)}
+              size="s"
+              title={label}
+              type="button"
+              variant={processFilter === filter ? "secondary" : "ghost"}
+            >
+              <Icon aria-hidden="true" className="size-3.5" />
+            </Button>
+          ))}
+        </div>
+        {total !== undefined && processFilter === "all" ? (
           <p className="text-muted-foreground px-1 text-xs">
             {total} {text.interactionsCount}
           </p>
@@ -385,11 +487,11 @@ export function InteractionList({
             onRetry={() => void interactionsQuery.refetch()}
             retryLabel={text.retry}
           />
-        ) : interactions.length === 0 ? (
+        ) : filteredInteractions.length === 0 ? (
           <ListState label={text.noResults} />
         ) : (
           <ul className="space-y-1.5">
-            {interactions.map((interaction) => (
+            {filteredInteractions.map((interaction) => (
               <li key={interaction.id}>
                 <div
                   className={cn(
@@ -417,6 +519,37 @@ export function InteractionList({
                         {interaction.number ? (
                           <span className="text-muted-foreground mt-0.5 block text-xs">
                             № {interaction.number}
+                          </span>
+                        ) : null}
+                        {processStatusByInteractionId.get(interaction.id) ? (
+                          <span
+                            className={cn(
+                              "mt-1.5 flex items-center gap-1 text-xs",
+                              processStatusByInteractionId.get(
+                                interaction.id,
+                              ) === "completed"
+                                ? "text-emerald-600"
+                                : "text-[var(--atmr-accent-primary)]",
+                            )}
+                          >
+                            {processStatusByInteractionId.get(
+                              interaction.id,
+                            ) === "completed" ? (
+                              <CheckCircle2
+                                aria-hidden="true"
+                                className="size-3.5 shrink-0"
+                              />
+                            ) : (
+                              <LoaderCircle
+                                aria-hidden="true"
+                                className="size-3.5 shrink-0"
+                              />
+                            )}
+                            {processStatusByInteractionId.get(
+                              interaction.id,
+                            ) === "completed"
+                              ? text.completed
+                              : text.running}
                           </span>
                         ) : null}
                         <span className="mt-1.5 flex items-center gap-2">

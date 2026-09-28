@@ -9,10 +9,7 @@ import { EntitySelect } from "@/components/ui/entity-select";
 import { Modal } from "@/components/ui/modal";
 import { searchWorkflows, type LookupOption } from "@/lib/api/catalog/lookups";
 import { ApiError } from "@/lib/api/http";
-import {
-  startWorkflowInstance,
-  workflowInstancesQueryKey,
-} from "@/lib/api/processes/board";
+import { startWorkflowInstance } from "@/lib/api/processes/board";
 import { useLocale } from "@/providers/locale-provider";
 import type { WorkflowAudience } from "@/types/workflow-board";
 
@@ -99,7 +96,7 @@ export function StartProcessDialog({
       setError(null);
       toast.success(text.started);
       void queryClient.invalidateQueries({
-        queryKey: workflowInstancesQueryKey(interactionId),
+        queryKey: ["processes", "workflow-instances"],
       });
       onStarted(instance.id);
     },
