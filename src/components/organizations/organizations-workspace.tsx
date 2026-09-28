@@ -28,6 +28,7 @@ import { OrganizationSheet } from "@/components/organizations/organization-sheet
 import { UniversityForm } from "@/components/organizations/university-form";
 import { OrganizationsMap } from "@/components/organizations/organizations-map";
 import { NewInteractionDialog } from "@/components/interactions/new-interaction-dialog";
+import { InteractionLinkBadge } from "@/components/interactions/interaction-link-badge";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { SearchInput } from "@/components/ui/search-input";
@@ -204,6 +205,7 @@ function OrganizationCard({
   isSelected,
   labels,
   onCreateInteraction,
+  onOpenInteractions,
   onSelect,
 }: {
   canCreateInteraction: boolean;
@@ -212,6 +214,7 @@ function OrganizationCard({
   isSelected: boolean;
   labels: OrganizationDetailsLabels;
   onCreateInteraction: () => void;
+  onOpenInteractions: () => void;
   onSelect: () => void;
 }) {
   return (
@@ -230,21 +233,6 @@ function OrganizationCard({
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="leading-5 font-medium">{organization.name}</h2>
-            <span className="mt-2 flex flex-wrap gap-2">
-              <RankChip label={labels.place} rank={organization.rank} />
-              <StatusChip
-                tone={organization.has_interactions ? "accent" : "neutral"}
-              >
-                {organization.has_interactions
-                  ? labels.hasInteractions
-                  : labels.noInteractions}
-              </StatusChip>
-              <StatusChip
-                tone={organization.is_active ? "positive" : "neutral"}
-              >
-                {organization.is_active ? labels.active : labels.inactive}
-              </StatusChip>
-            </span>
             {organization.city ? (
               <p className="text-muted-foreground mt-3 flex items-center gap-2 text-sm">
                 <MapPin aria-hidden="true" className="size-4 shrink-0" />
@@ -259,6 +247,20 @@ function OrganizationCard({
           </div>
         </div>
       </button>
+      <span className="mt-2 flex flex-wrap gap-2">
+        <RankChip label={labels.place} rank={organization.rank} />
+        {organization.has_interactions ? (
+          <InteractionLinkBadge
+            label={labels.hasInteractions}
+            onClick={onOpenInteractions}
+          />
+        ) : (
+          <StatusChip tone="neutral">{labels.noInteractions}</StatusChip>
+        )}
+        <StatusChip tone={organization.is_active ? "positive" : "neutral"}>
+          {organization.is_active ? labels.active : labels.inactive}
+        </StatusChip>
+      </span>
       {canCreateInteraction ? (
         <Button
           className="mt-4"
@@ -452,6 +454,14 @@ export function OrganizationsWorkspace() {
           onCreateInteraction={
             canCreateInteraction
               ? () => setCreatingFor(selectedUniversityQuery.data!)
+              : undefined
+          }
+          onOpenInteractions={
+            selectedUniversityQuery.data.has_interactions
+              ? () =>
+                  router.push(
+                    `/interactions?university__ids=${selectedUniversityQuery.data!.id}`,
+                  )
               : undefined
           }
           organization={selectedUniversityQuery.data}
@@ -659,6 +669,11 @@ export function OrganizationsWorkspace() {
                   key={organization.id}
                   labels={detailLabels}
                   onCreateInteraction={() => setCreatingFor(organization)}
+                  onOpenInteractions={() =>
+                    router.push(
+                      `/interactions?university__ids=${organization.id}`,
+                    )
+                  }
                   onSelect={() => setSelectedId(organization.id)}
                   organization={organization}
                 />

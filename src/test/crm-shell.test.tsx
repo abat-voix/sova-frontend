@@ -159,6 +159,51 @@ describe("CrmShell", () => {
     ).toBeInTheDocument();
   });
 
+  it("opens an interaction from its preview on the home page", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(async (input) => {
+        const url = String(input);
+        const body = url.startsWith("/api/notifications/inbox/kinds/")
+          ? []
+          : url.startsWith("/api/interactions/interactions/")
+            ? {
+                count: 1,
+                next: null,
+                previous: null,
+                results: [
+                  {
+                    id: "interaction-1",
+                    university: {
+                      id: "university-1",
+                      name: "Первый университет",
+                    },
+                    b2c_client: null,
+                    created_at: "2026-09-01T10:00:00+03:00",
+                    updated_at: "2026-09-01T10:00:00+03:00",
+                    current_responsibles: [],
+                    directions_count: 0,
+                    programs_count: 0,
+                    products_count: 0,
+                  },
+                ],
+              }
+            : { count: 0, next: null, previous: null, results: [] };
+
+        return new Response(JSON.stringify(body), {
+          headers: { "content-type": "application/json" },
+          status: 200,
+        });
+      }),
+    );
+
+    renderShell("home");
+
+    expect(
+      await screen.findByRole("link", { name: "Первый университет" }),
+    ).toHaveAttribute("href", "/interactions?interaction=interaction-1");
+  });
+
   describe("observer", () => {
     const observer: AuthenticatedUser = {
       ...user,

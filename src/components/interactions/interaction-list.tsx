@@ -21,6 +21,7 @@ import { ApiError } from "@/lib/api/http";
 import {
   getInteractions,
   interactionsInfiniteQueryKey,
+  type InteractionCounterpartyFilter,
 } from "@/lib/api/interactions/interactions";
 import {
   getWorkflowInstancesForInteractions,
@@ -166,6 +167,7 @@ function ListState({
 }
 
 type InteractionListProps = {
+  counterpartyFilter?: InteractionCounterpartyFilter;
   /**
    * Выбранный снаружи id нашёлся в загруженных данных. Так рабочий стол
    * получает объект взаимодействия, которое выбрали не кликом по списку —
@@ -356,6 +358,7 @@ function InteractionCardMenu({
  * только выбранный элемент.
  */
 export function InteractionList({
+  counterpartyFilter = null,
   onResolve,
   onCreateChat,
   onEdit,
@@ -379,8 +382,9 @@ export function InteractionList({
   }, [search]);
 
   const interactionsQuery = useInfiniteQuery({
-    queryKey: interactionsInfiniteQueryKey(debouncedSearch),
-    queryFn: ({ pageParam }) => getInteractions(pageParam, debouncedSearch),
+    queryKey: interactionsInfiniteQueryKey(debouncedSearch, counterpartyFilter),
+    queryFn: ({ pageParam }) =>
+      getInteractions(pageParam, debouncedSearch, counterpartyFilter),
     initialPageParam: 1,
     getNextPageParam: (lastPage, pages) =>
       lastPage.next ? pages.length + 1 : undefined,

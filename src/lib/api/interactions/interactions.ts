@@ -15,15 +15,46 @@ import type {
 
 export const interactionsPageSize = 20;
 
+export type InteractionCounterpartyFilter = {
+  id: string;
+  kind: "university" | "b2c_client";
+} | null;
+
 /** Максимум бэкенда (`max_page_size`); карточке взаимодействия хватает одной страницы. */
 const compositionPageSize = 200;
 
-export function interactionsQueryKey(search: string) {
-  return ["interactions", "list", "page", { search }] as const;
+function interactionCounterpartyFilterParams(
+  counterpartyFilter: InteractionCounterpartyFilter,
+) {
+  if (!counterpartyFilter) return {};
+
+  return counterpartyFilter.kind === "university"
+    ? { university__ids: counterpartyFilter.id }
+    : { b2c_client__ids: counterpartyFilter.id };
 }
 
-export function interactionsInfiniteQueryKey(search: string) {
-  return ["interactions", "list", "infinite", { search }] as const;
+export function interactionsQueryKey(
+  search: string,
+  counterpartyFilter: InteractionCounterpartyFilter = null,
+) {
+  return [
+    "interactions",
+    "list",
+    "page",
+    { counterpartyFilter, search },
+  ] as const;
+}
+
+export function interactionsInfiniteQueryKey(
+  search: string,
+  counterpartyFilter: InteractionCounterpartyFilter = null,
+) {
+  return [
+    "interactions",
+    "list",
+    "infinite",
+    { counterpartyFilter, search },
+  ] as const;
 }
 
 export function interactionDirectionsQueryKey(interactionId: string) {
@@ -38,10 +69,16 @@ export function interactionProductsQueryKey(interactionId: string) {
   return ["interactions", "products", interactionId] as const;
 }
 
-export function getInteractions(page: number, search = "") {
+export function getInteractions(
+  page: number,
+  search = "",
+  counterpartyFilter: InteractionCounterpartyFilter = null,
+  pageSize = interactionsPageSize,
+) {
   const query = buildQuery({
+    ...interactionCounterpartyFilterParams(counterpartyFilter),
     page,
-    page_size: interactionsPageSize,
+    page_size: pageSize,
     search: search.trim(),
   });
 
