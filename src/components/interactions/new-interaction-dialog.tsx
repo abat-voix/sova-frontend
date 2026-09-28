@@ -15,6 +15,7 @@ import {
   selectedProductIds,
   selectedProgramIds,
   type DirectionNode,
+  type CounterpartyKind,
   type DraftAction,
   type InteractionDraft,
   type ProgramNode,
@@ -41,6 +42,12 @@ import {
 import type { AuthenticatedUser } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
 import type { Interaction } from "@/types/workflow-board";
+
+export type PreselectedCounterparty = {
+  id: string;
+  kind: CounterpartyKind;
+  name: string;
+};
 
 const copy = {
   ru: {
@@ -164,22 +171,36 @@ function resolveErrorDetail(error: unknown, kamHasHead: string) {
   return error.detail ?? error.fieldErrors.manager?.[0] ?? null;
 }
 
-function initialDraft(
-  value: Interaction | { id: string; name: string } | null,
-): InteractionDraft {
-  if (value && "current_responsibles" in value) {
+function initialDraft({
+  editInteraction,
+  preselectedCounterparty,
+  responsible,
+}: {
+  editInteraction?: Interaction;
+  preselectedCounterparty?: PreselectedCounterparty;
+  responsible: { id: string; name: string } | null;
+}): InteractionDraft {
+  if (editInteraction) {
     return {
-      comment: value.comment ?? "",
-      counterparty: value.university
-        ? { id: value.university.id, name: value.university.name }
-        : value.b2c_client
-          ? { id: value.b2c_client.id, name: value.b2c_client.full_name }
+      comment: editInteraction.comment ?? "",
+      counterparty: editInteraction.university
+        ? {
+            id: editInteraction.university.id,
+            name: editInteraction.university.name,
+          }
+        : editInteraction.b2c_client
+          ? {
+              id: editInteraction.b2c_client.id,
+              name: editInteraction.b2c_client.full_name,
+            }
           : null,
-      counterpartyKind: value.b2c_client ? "b2c_client" : "university",
+      counterpartyKind: editInteraction.b2c_client
+        ? "b2c_client"
+        : "university",
       createdInteractionId: null,
       directions: [],
-      isActive: value.is_active ?? true,
-      responsibles: value.current_responsibles.map((responsible) => ({
+      isActive: editInteraction.is_active ?? true,
+      responsibles: editInteraction.current_responsibles.map((responsible) => ({
         id: String(responsible.manager.id),
         name: responsible.manager.full_name,
       })),
@@ -190,8 +211,12 @@ function initialDraft(
   // КАМа-автора бэк назначает сам при создании — план не должен слать assign-responsible
   return {
     ...emptyDraft,
-    assignedResponsibleIds: value ? [value.id] : [],
-    responsibles: value ? [value] : [],
+    assignedResponsibleIds: responsible ? [responsible.id] : [],
+    counterparty: preselectedCounterparty
+      ? { id: preselectedCounterparty.id, name: preselectedCounterparty.name }
+      : null,
+    counterpartyKind: preselectedCounterparty?.kind ?? "university",
+    responsibles: responsible ? [responsible] : [],
   };
 }
 
@@ -383,14 +408,21 @@ export function NewInteractionDialog({
   editInteraction,
   onClose,
   onCreated,
+  onCreatedAction,
   onUpdated,
+  preselectedCounterparty,
 }: {
   csrfToken: string;
   currentUser: AuthenticatedUser;
   editInteraction?: Interaction;
   onClose: () => void;
   onCreated: (interactionId: string) => void;
+  onCreatedAction?: {
+    label: string;
+    onClick: (interactionId: string) => void;
+  };
   onUpdated?: () => void;
+  preselectedCounterparty?: PreselectedCounterparty;
 }) {
   const { locale } = useLocale();
   const text = copy[locale];
@@ -405,10 +437,13 @@ export function NewInteractionDialog({
   const isEditing = Boolean(editInteraction);
   const [draft, dispatch] = useReducer(
     draftReducer,
-    editInteraction ??
-      (isKam
+    {
+      editInteraction,
+      preselectedCounterparty,
+      responsible: isKam
         ? { id: String(currentUser.id), name: currentUser.displayName }
-        : null),
+        : null,
+    },
     initialDraft,
   );
   const isHead = currentUser.role === "head";
@@ -544,7 +579,15 @@ export function NewInteractionDialog({
         // Назначенный свободный КАМ вступил в команду — списки пользователей устарели
         void queryClient.invalidateQueries({ queryKey: usersRootKey });
       }
-      toast.success(text.created);
+      toast.success(text.created, {
+        action: onCreatedAction
+          ? {
+              label: onCreatedAction.label,
+              onClick: () =>
+                onCreatedAction.onClick(creationOutcome.interactionId!),
+            }
+          : undefined,
+      });
       onCreated(creationOutcome.interactionId);
     },
     onError: (mutationError) => {

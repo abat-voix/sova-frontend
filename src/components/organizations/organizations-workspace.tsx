@@ -14,6 +14,7 @@ import {
   Pencil,
   Plus,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -26,6 +27,7 @@ import { OrganizationContacts } from "@/components/organizations/organization-co
 import { OrganizationSheet } from "@/components/organizations/organization-sheet";
 import { UniversityForm } from "@/components/organizations/university-form";
 import { OrganizationsMap } from "@/components/organizations/organizations-map";
+import { NewInteractionDialog } from "@/components/interactions/new-interaction-dialog";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { SearchInput } from "@/components/ui/search-input";
@@ -36,6 +38,8 @@ import {
   getUniversity,
   getUniversityMapPoints,
 } from "@/lib/api/catalog/universities";
+import { can } from "@/lib/permissions";
+import { useAuth } from "@/providers/auth-provider";
 import type { RankFilter } from "@/lib/api/catalog/rank";
 import { can } from "@/lib/permissions";
 import { useAuth } from "@/providers/auth-provider";
@@ -133,6 +137,8 @@ const copy = {
     edit: "Изменить",
     created: "Вуз добавлен.",
     saved: "Изменения сохранены.",
+    createInteraction: "Создать взаимодействие",
+    openInteraction: "Открыть взаимодействие",
   },
   en: {
     title: "Organizations",
@@ -188,17 +194,27 @@ const copy = {
     edit: "Edit",
     created: "University added.",
     saved: "Changes saved.",
+    createInteraction: "Create interaction",
+    openInteraction: "Open interaction",
   },
 } as const;
 
 function OrganizationCard({
+  canCreateInteraction,
+  createInteractionLabel,
+  organization,
   isSelected,
   labels,
+  onCreateInteraction,
   onSelect,
   organization,
 }: {
+  canCreateInteraction: boolean;
+  createInteractionLabel: string;
+  organization: University;
   isSelected: boolean;
   labels: OrganizationDetailsLabels;
+  onCreateInteraction: () => void;
   onSelect: () => void;
   organization: University;
 }) {
@@ -239,6 +255,18 @@ function OrganizationCard({
               {labels.inn}: {organization.inn}
             </p>
           ) : null}
+          {canCreateInteraction ? (
+            <Button
+              className="mt-4"
+              onClick={onCreateInteraction}
+              size="s"
+              type="button"
+              variant="outline"
+            >
+              <Plus aria-hidden="true" className="size-3.5" />
+              {createInteractionLabel}
+            </Button>
+          ) : null}
         </div>
       </div>
     </button>
@@ -274,16 +302,22 @@ function RequestState({
 
 export function OrganizationsWorkspace() {
   const { locale } = useLocale();
+  const { csrfToken, user } = useAuth();
+  const router = useRouter();
   const text = copy[locale];
   const [view, setView] = useState<ViewMode>("list");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [interactions, setInteractions] = useState<InteractionsFilter>("with");
+  const [creatingFor, setCreatingFor] = useState<University | null>(null);
   const [interactions, setInteractions] = useState<InteractionsFilter>("all");
   const [activity, setActivity] = useState<ActivityFilter>("all");
   const isActive = activity === "all" ? null : activity === "active";
   const [rank, setRank] = useState<RankFilter>("all");
   const isCompactViewport = useMediaQuery(compactViewportQuery);
+  const canCreateInteraction =
+    user !== null && can(user, "interactions.create");
   const { user } = useAuth();
   const canCreate = user !== null && can(user, "catalog.create");
   const canUpdate = user !== null && can(user, "catalog.update");
@@ -349,6 +383,7 @@ export function OrganizationsWorkspace() {
     phone: text.phone,
     place: text.place,
     updatedAt: text.updatedAt,
+    createInteraction: text.createInteraction,
   };
   const clearSelection = useCallback(() => setSelectedId(null), []);
   const handleSearchChange = useCallback((value: string) => {
@@ -375,6 +410,38 @@ export function OrganizationsWorkspace() {
     setSelectedId(null);
   }, []);
 
+  const selectedContent = selectedUniversityQuery.isPending ? (
+    <p className="text-muted-foreground flex items-center gap-2 text-sm">
+      <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
+      {text.loadingDetails}
+    </p>
+  ) : selectedUniversityQuery.isError ? (
+    <RequestState
+      label={text.detailsError}
+      onRetry={() => void selectedUniversityQuery.refetch()}
+      retryLabel={text.retry}
+    />
+  ) : selectedUniversityQuery.data ? (
+    <>
+      <OrganizationDetails
+        headingId={isCompactViewport ? sheetHeadingId : panelHeadingId}
+        labels={detailLabels}
+        onCreateInteraction={
+          canCreateInteraction
+            ? () => setCreatingFor(selectedUniversityQuery.data!)
+            : undefined
+        }
+        organization={selectedUniversityQuery.data}
+      />
+      <OrganizationContacts
+        organization={{
+          id: selectedUniversityQuery.data.id,
+          type: "university",
+        }}
+        organizationName={selectedUniversityQuery.data.name}
+      />
+    </>
+  ) : null;
   const selectedUniversity = selectedUniversityQuery.data;
   const editButton =
     canUpdate && selectedUniversity ? (
@@ -431,6 +498,25 @@ export function OrganizationsWorkspace() {
 
   return (
     <div className="space-y-5">
+      {creatingFor && user ? (
+        <NewInteractionDialog
+          csrfToken={csrfToken}
+          currentUser={user}
+          key={creatingFor.id}
+          onClose={() => setCreatingFor(null)}
+          onCreated={() => setCreatingFor(null)}
+          onCreatedAction={{
+            label: text.openInteraction,
+            onClick: (interactionId) =>
+              router.push(`/interactions?interaction=${interactionId}`),
+          }}
+          preselectedCounterparty={{
+            id: creatingFor.id,
+            kind: "university",
+            name: creatingFor.name,
+          }}
+        />
+      ) : null}
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <h1 className="text-3xl font-medium tracking-[-0.025em] sm:text-4xl">
@@ -594,9 +680,12 @@ export function OrganizationsWorkspace() {
             <div className="grid gap-4 lg:grid-cols-2">
               {organizations.map((organization) => (
                 <OrganizationCard
+                  canCreateInteraction={canCreateInteraction}
+                  createInteractionLabel={text.createInteraction}
                   isSelected={organization.id === selectedId}
                   key={organization.id}
                   labels={detailLabels}
+                  onCreateInteraction={() => setCreatingFor(organization)}
                   onSelect={() => setSelectedId(organization.id)}
                   organization={organization}
                 />

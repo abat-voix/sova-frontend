@@ -14,6 +14,8 @@ import { LocaleProvider } from "@/providers/locale-provider";
 import { kamPermissions } from "@/test/fixtures/permissions";
 import type { University } from "@/types/university";
 
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+
 vi.mock("@/providers/auth-provider", () => ({
   useAuth: () => ({
     csrfToken: "csrf",

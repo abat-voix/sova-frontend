@@ -9,7 +9,10 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { NewInteractionDialog } from "@/components/interactions/new-interaction-dialog";
+import {
+  NewInteractionDialog,
+  type PreselectedCounterparty,
+} from "@/components/interactions/new-interaction-dialog";
 import { LocaleProvider } from "@/providers/locale-provider";
 import type { AuthenticatedUser } from "@/providers/auth-provider";
 import type { Interaction } from "@/types/workflow-board";
@@ -133,6 +136,7 @@ function stubFetch(
 function renderDialog(
   role: AuthenticatedUser["role"] = "head",
   editInteraction?: Interaction,
+  preselectedCounterparty?: PreselectedCounterparty,
 ) {
   const onCreated = vi.fn();
   const onUpdated = vi.fn();
@@ -150,6 +154,7 @@ function renderDialog(
           onClose={() => undefined}
           onCreated={onCreated}
           onUpdated={onUpdated}
+          preselectedCounterparty={preselectedCounterparty}
         />
       </LocaleProvider>
     </QueryClientProvider>,
@@ -216,6 +221,28 @@ describe("NewInteractionDialog", () => {
     expect(calls).toEqual([
       {
         body: { comment: "Пилот", is_active: true, university: "u-1" },
+        url: "/api/interactions/interactions/",
+      },
+    ]);
+  });
+
+  it("creates an interaction for the counterparty chosen before opening", async () => {
+    const calls = stubFetch();
+    const { onCreated } = renderDialog("head", undefined, {
+      id: "u-1",
+      kind: "university",
+      name: "Демо-университет",
+    });
+
+    expect(screen.getByText("Демо-университет")).toBeInTheDocument();
+    expect(submitButton()).toBeEnabled();
+
+    fireEvent.click(submitButton());
+
+    await waitFor(() => expect(onCreated).toHaveBeenCalledWith("new-1"));
+    expect(calls).toEqual([
+      {
+        body: { comment: "", is_active: true, university: "u-1" },
         url: "/api/interactions/interactions/",
       },
     ]);

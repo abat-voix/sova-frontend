@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { B2CClientForm } from "@/components/b2c-clients/b2c-client-form";
 
 import { RankChip } from "@/components/catalog/rank-chip";
+import { NewInteractionDialog } from "@/components/interactions/new-interaction-dialog";
 import { OrganizationContacts } from "@/components/organizations/organization-contacts";
 import {
   OrganizationInspector,
@@ -90,6 +91,8 @@ const copy = {
     edit: "Изменить",
     created: "Клиент добавлен.",
     saved: "Изменения сохранены.",
+    createInteraction: "Создать взаимодействие",
+    openInteraction: "Открыть взаимодействие",
   },
   en: {
     title: "B2C clients",
@@ -130,6 +133,8 @@ const copy = {
     details: "Client card",
     loadingDetails: "Loading the client card…",
     detailsError: "The client card could not be loaded.",
+    createInteraction: "Create interaction",
+    openInteraction: "Open interaction",
     create: "New client",
     edit: "Edit",
     created: "Client added.",
@@ -156,17 +161,81 @@ function ClientIcon({
 }
 
 function ClientCard({
+  canCreateInteraction,
   client,
+  createInteractionLabel,
   isSelected,
+  onCreateInteraction,
   onSelect,
   text,
 }: {
+  canCreateInteraction: boolean;
   client: B2CClient;
+  createInteractionLabel: string;
   isSelected: boolean;
+  onCreateInteraction: () => void;
   onSelect: () => void;
   text: Text;
 }) {
   return (
+    <article
+      className={`bg-card rounded-xl border p-5 text-left shadow-sm transition-colors hover:border-[var(--atmr-accent-primary)] ${isSelected ? "border-[var(--atmr-accent-primary)]" : ""}`}
+    >
+      <button
+        aria-pressed={isSelected}
+        className="focus-visible:ring-ring w-full text-left outline-none focus-visible:ring-2"
+        onClick={onSelect}
+        type="button"
+      >
+        <div className="flex items-start gap-4">
+          <span className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-[var(--atmr-background-accent-soft)] text-[var(--atmr-accent-primary)]">
+            <ClientIcon className="size-7" kind={client.kind} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <h2 className="leading-5 font-medium">{client.full_name}</h2>
+              <span className="flex flex-wrap gap-2">
+                <StatusChip tone="accent">
+                  {kindLabel(client.kind, text)}
+                </StatusChip>
+                <StatusChip tone={client.is_active ? "positive" : "neutral"}>
+                  {client.is_active ? text.active : text.inactive}
+                </StatusChip>
+              </span>
+            </div>
+            {client.email ? (
+              <p className="text-muted-foreground mt-3 flex items-center gap-2 text-sm">
+                <Mail aria-hidden="true" className="size-4 shrink-0" />
+                <span className="truncate">{client.email}</span>
+              </p>
+            ) : null}
+            {client.phone ? (
+              <p className="text-muted-foreground mt-2 flex items-center gap-2 text-sm">
+                <Phone aria-hidden="true" className="size-4 shrink-0" />
+                {client.phone}
+              </p>
+            ) : null}
+            {client.inn ? (
+              <p className="text-muted-foreground mt-2 text-xs">
+                {text.inn}: {client.inn}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      </button>
+      {canCreateInteraction ? (
+        <Button
+          className="mt-4"
+          onClick={onCreateInteraction}
+          size="s"
+          type="button"
+          variant="outline"
+        >
+          <Plus aria-hidden="true" className="size-3.5" />
+          {createInteractionLabel}
+        </Button>
+      ) : null}
+    </article>
     <button
       aria-pressed={isSelected}
       className={`bg-card focus-visible:ring-ring w-full rounded-xl border p-5 text-left shadow-sm transition-colors outline-none hover:border-[var(--atmr-accent-primary)] focus-visible:ring-2 ${isSelected ? "border-[var(--atmr-accent-primary)]" : ""}`}
@@ -305,6 +374,8 @@ function ClientDetails({
  */
 export function B2CClientsWorkspace() {
   const { locale } = useLocale();
+  const { csrfToken, user } = useAuth();
+  const router = useRouter();
   const text = copy[locale];
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -312,6 +383,9 @@ export function B2CClientsWorkspace() {
   const [activity, setActivity] = useState<ActivityFilter>("all");
   const [rank, setRank] = useState<RankFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [creatingFor, setCreatingFor] = useState<B2CClient | null>(null);
+  const canCreateInteraction =
+    user !== null && can(user, "interactions.create");
   const { user } = useAuth();
   const canCreate = user !== null && can(user, "catalog.create");
   const canUpdate = user !== null && can(user, "catalog.update");
@@ -396,6 +470,32 @@ export function B2CClientsWorkspace() {
 
   return (
     <div className="space-y-5">
+      {creatingFor && user ? (
+        <NewInteractionDialog
+          csrfToken={csrfToken}
+          currentUser={user}
+          key={creatingFor.id}
+          onClose={() => setCreatingFor(null)}
+          onCreated={() => setCreatingFor(null)}
+          onCreatedAction={{
+            label: text.openInteraction,
+            onClick: (interactionId) =>
+              router.push(`/interactions?interaction=${interactionId}`),
+          }}
+          preselectedCounterparty={{
+            id: creatingFor.id,
+            kind: "b2c_client",
+            name: creatingFor.full_name,
+          }}
+        />
+      ) : null}
+      <div>
+        <h1 className="text-3xl font-medium tracking-[-0.025em] sm:text-4xl">
+          {text.title}
+        </h1>
+        <p className="text-muted-foreground mt-2 max-w-2xl text-base leading-7">
+          {text.description}
+        </p>
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <h1 className="text-3xl font-medium tracking-[-0.025em] sm:text-4xl">
@@ -450,9 +550,12 @@ export function B2CClientsWorkspace() {
           <div className="grid gap-4 lg:grid-cols-2">
             {clients.map((client) => (
               <ClientCard
+                canCreateInteraction={canCreateInteraction}
                 client={client}
+                createInteractionLabel={text.createInteraction}
                 isSelected={client.id === selectedId}
                 key={client.id}
+                onCreateInteraction={() => setCreatingFor(client)}
                 onSelect={() => setSelectedId(client.id)}
                 text={text}
               />
