@@ -53,7 +53,8 @@ function validate(
 /**
  * Маппинг типа справочника: для каждого поля системы — колонка файла.
  *
- * Колонку можно выбрать из заголовков файла или вписать вручную; пустое поле —
+ * Колонку можно выбрать из заголовков файла или вписать вручную; заголовок,
+ * уже выбранный для другого поля, в подсказках не предлагается. Пустое поле —
  * «не задано», такие колонки файла при импорте пропускаются. Форма
  * инициализируется из `fields` один раз: после сохранения или смены типа
  * родитель пересоздаёт редактор через `key`.
@@ -80,6 +81,17 @@ export function CatalogImportMappingEditor({
   const errors = validate(fields, values);
   const headerKeys = new Set(headers.map(columnKey));
 
+  /** Заголовки файла, не занятые другими полями: у каждого поля свой список подсказок. */
+  function freeHeaders(targetField: string) {
+    const taken = new Set(
+      fields
+        .filter((field) => field.target_field !== targetField)
+        .map((field) => columnKey(values[field.target_field]))
+        .filter(Boolean),
+    );
+    return headers.filter((header) => !taken.has(columnKey(header)));
+  }
+
   function submit() {
     setShowErrors(true);
     if (Object.keys(errors).length > 0) return;
@@ -95,16 +107,9 @@ export function CatalogImportMappingEditor({
 
   return (
     <div className="space-y-3">
-      <datalist id={listId}>
-        {headers.map((header) => (
-          <option key={header} value={header}>
-            {header}
-          </option>
-        ))}
-      </datalist>
-
       {fields.map((field) => {
         const inputId = `${listId}-${field.target_field}`;
+        const optionsId = `${inputId}-options`;
         const value = values[field.target_field];
         const error =
           (showErrors ? errors[field.target_field] : undefined) ??
@@ -126,9 +131,16 @@ export function CatalogImportMappingEditor({
               ) : null}
             </label>
             <div className="space-y-1">
+              <datalist id={optionsId}>
+                {freeHeaders(field.target_field).map((header) => (
+                  <option key={header} value={header}>
+                    {header}
+                  </option>
+                ))}
+              </datalist>
               <Input
                 id={inputId}
-                list={listId}
+                list={optionsId}
                 onChange={(event) =>
                   setValues((current) => ({
                     ...current,

@@ -269,9 +269,9 @@ export function IntegrationMappingEditor({
     >
       <header className="flex items-start justify-between gap-4 border-b px-5 py-4">
         <div>
-          <h2 className="text-lg font-medium">
+          <h1 className="text-2xl font-medium tracking-[-0.02em]">
             {mapping ? "Редактирование mapping" : "Новый mapping"}
-          </h2>
+          </h1>
           <p className="text-muted-foreground mt-1 text-sm">
             Настройте преобразование и проверьте его на примере до сохранения.
           </p>
@@ -385,9 +385,17 @@ export function IntegrationMappingEditor({
               setPreview(null);
             }}
           />
-          <span className="text-muted-foreground block text-xs">
-            Пример используется только для подсказок и preview, он не
-            сохраняется. Если в корне массив, берётся первый непустой элемент.
+          <span className="text-muted-foreground block space-y-1 text-xs">
+            <span className="block">
+              Вставьте сюда полный JSON сообщения внешней системы: все его поля,
+              включая вложенные, появятся в списке «Поле внешней системы» в
+              правилах. Поля, которых нет в примере, выбрать не получится —
+              добавьте их в JSON. Пока JSON невалиден, список пуст.
+            </span>
+            <span className="block">
+              Пример не сохраняется и нужен только для подсказок и preview. Если
+              в корне массив, поля берутся из первого непустого элемента.
+            </span>
           </span>
         </label>
 

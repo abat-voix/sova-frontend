@@ -517,7 +517,7 @@ export function CrmShell(props: CrmShellProps) {
           ) : activeSection === "integrations" && !canManageIntegrations ? (
             <IntegrationAccessDenied />
           ) : activeSection === "integrations" ? (
-            <IntegrationsWorkspace />
+            (props.children ?? <IntegrationsWorkspace />)
           ) : activeSection === "workflowTemplates" && !canManageWorkflows ? (
             <WorkflowAccessDenied />
           ) : activeSection === "workflowTemplates" ? (

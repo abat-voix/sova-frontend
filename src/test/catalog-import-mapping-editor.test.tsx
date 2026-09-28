@@ -77,8 +77,8 @@ describe("CatalogImportMappingEditor", () => {
     renderEditor({ headers: ["ВЕНДОР", "Код"] });
 
     expect(
-      screen.getByRole("option", { name: "Код", hidden: true }),
-    ).toBeInTheDocument();
+      screen.getAllByRole("option", { name: "Код", hidden: true }),
+    ).not.toHaveLength(0);
     // «Вендор» есть в файле как «ВЕНДОР» — сравнение без регистра, предупреждения нет
     expect(screen.queryByText("Колонки нет в файле.")).not.toBeInTheDocument();
 
@@ -86,6 +86,27 @@ describe("CatalogImportMappingEditor", () => {
       target: { value: "Артикул" },
     });
     expect(screen.getByText("Колонки нет в файле.")).toBeInTheDocument();
+  });
+
+  it("does not suggest a header already chosen for another field", () => {
+    renderEditor({ headers: ["ВЕНДОР", "Код"] });
+
+    const options = (id: string) =>
+      Array.from(
+        document.getElementById(`${id}-options`)?.querySelectorAll("option") ??
+          [],
+      ).map((option) => option.value);
+    const listOf = (label: RegExp) => options(screen.getByLabelText(label).id);
+
+    // «Вендор» занят полем «Название» — сравнение без регистра
+    expect(listOf(/Внешний код/)).toEqual(["Код"]);
+    expect(listOf(/Название/)).toEqual(["ВЕНДОР", "Код"]);
+
+    fireEvent.change(screen.getByLabelText(/Внешний код/), {
+      target: { value: "Код" },
+    });
+    expect(listOf(/Название/)).toEqual(["ВЕНДОР"]);
+    expect(listOf(/Внешний код/)).toEqual(["Код"]);
   });
 
   it("reports dirty state and shows server errors next to the field", () => {
