@@ -222,7 +222,7 @@ function LicenseForm({
     queryFn: () => getContract(contract!.id),
     enabled: contract !== null,
   });
-  const interactionId = contractQuery.data?.interaction.id ?? null;
+  const interactionId = contractQuery.data?.interaction?.id ?? null;
 
   const mutation = useMutation({
     mutationFn: () => {
@@ -417,10 +417,7 @@ function LicenseDetails({ license, text }: { license: License; text: Text }) {
             [
               text.counterparty,
               contractQuery.data
-                ? interactionTitle(
-                    contractQuery.data.interaction,
-                    common.noValue,
-                  )
+                ? interactionTitle(contractQuery.data, common.noValue)
                 : null,
             ],
             [text.signedAt, formatDate(license.signed_at, locale)],

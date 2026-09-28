@@ -120,9 +120,9 @@ function latestProcessStatuses(
   return statuses;
 }
 
-/** Принимает и полное взаимодействие, и краткое: читаются только контрагенты. */
+/** Название контрагента: взаимодействия (полного или краткого) или договора — читаются только контрагенты. */
 export function interactionTitle(
-  interaction: InteractionShort,
+  interaction: Pick<InteractionShort, "organization" | "b2c_client">,
   fallback: string,
 ) {
   return (

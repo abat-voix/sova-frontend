@@ -1,4 +1,8 @@
-import type { InteractionShort } from "./workflow-board";
+import type {
+  B2CClientShort,
+  InteractionShort,
+  OrganizationShort,
+} from "./workflow-board";
 
 /**
  * Договор — по схемам `Contract`, `ContractShort`, `WriteContract`,
@@ -30,7 +34,12 @@ export type Contract = {
   corrected_at: string | null;
   /** Подписан (ГГГГ-ММ-ДД). */
   signed_at: string | null;
-  interaction: InteractionShort;
+  /** Взаимодействие; null у договора из реестра, ещё не привязанного к взаимодействию. */
+  interaction: InteractionShort | null;
+  /** Контрагент договора (есть и без взаимодействия); null у договора с B2C-клиентом. */
+  organization: OrganizationShort | null;
+  /** Контрагент договора (есть и без взаимодействия); null у договора с организацией. */
+  b2c_client: B2CClientShort | null;
   created_at: string;
   updated_at: string;
 };

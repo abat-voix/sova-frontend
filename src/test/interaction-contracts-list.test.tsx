@@ -25,6 +25,8 @@ function contract(
       organization: { id: "organization-1", name: "Академия" },
       b2c_client: null,
     },
+    organization: { id: "organization-1", name: "Академия" },
+    b2c_client: null,
     created_at: "2026-09-27T10:00:00Z",
     updated_at: "2026-09-27T10:00:00Z",
     ...overrides,

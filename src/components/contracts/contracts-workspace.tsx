@@ -191,7 +191,7 @@ function Counterparty({
   contract: Contract;
   fallback: string;
 }) {
-  const Icon = contract.interaction.organization ? Building2 : UserRound;
+  const Icon = contract.organization ? Building2 : UserRound;
 
   return (
     <span className="flex items-start gap-2">
@@ -199,9 +199,7 @@ function Counterparty({
         aria-hidden="true"
         className="text-muted-foreground mt-0.5 size-4 shrink-0"
       />
-      <span className="min-w-0">
-        {interactionTitle(contract.interaction, fallback)}
-      </span>
+      <span className="min-w-0">{interactionTitle(contract, fallback)}</span>
     </span>
   );
 }
@@ -278,7 +276,7 @@ function ContractForm({
           </h2>
           {contract ? (
             <p className="text-muted-foreground mt-1 text-sm">
-              {interactionTitle(contract.interaction, common.noValue)}
+              {interactionTitle(contract, common.noValue)}
             </p>
           ) : null}
         </div>

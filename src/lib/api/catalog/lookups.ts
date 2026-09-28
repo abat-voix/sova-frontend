@@ -155,8 +155,7 @@ export function searchContracts(search: string) {
       id: contract.id,
       name: [
         contract.contract_number || "б/н",
-        contract.interaction.organization?.name ??
-          contract.interaction.b2c_client?.full_name,
+        contract.organization?.name ?? contract.b2c_client?.full_name,
       ]
         .filter(Boolean)
         .join(" · "),
