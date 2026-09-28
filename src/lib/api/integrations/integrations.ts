@@ -6,6 +6,8 @@ import type {
   IntegrationMapping,
   IntegrationMappingPreview,
   IntegrationMappingPreviewDto,
+  IntegrationMappingProcessPayload,
+  IntegrationMappingProcessResult,
   IntegrationSystem,
   UpdateIntegrationMappingDto,
 } from "@/types/integration";
@@ -69,6 +71,18 @@ export function previewIntegrationMapping(
   return postJson<IntegrationMappingPreview>(
     apiEndpoints.integrations.mappings.preview,
     payload,
+    csrfToken,
+  );
+}
+
+export function processIntegrationMapping(
+  id: string,
+  payload: IntegrationMappingProcessPayload,
+  csrfToken: string,
+) {
+  return postJson<IntegrationMappingProcessResult>(
+    apiEndpoints.integrations.mappings.process(id),
+    { payload },
     csrfToken,
   );
 }

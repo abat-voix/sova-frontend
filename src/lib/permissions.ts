@@ -43,6 +43,9 @@ export type PolicyAction =
   | "users.manage"
   | "teams.manage"
   | "integrations.manage"
+  | "training.read"
+  | "training.update"
+  | "training.personal_data.read"
   | "notifications.use"
   | "messaging.use"
   | "realtime.connect";

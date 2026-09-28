@@ -161,6 +161,7 @@ export function InteractionsWorkspace({
   const canExecuteProcesses = user !== null && can(user, "processes.execute");
   const canReadDocuments =
     user !== null && can(user, "contracts.read") && can(user, "licenses.read");
+  const canReadTraining = user !== null && can(user, "training.read");
   // Ссылка из уведомления задаёт только начальный выбор: дальше пользователь
   // ходит по странице сам, и адрес за ним не следит.
   const searchParams = useSearchParams();
@@ -298,6 +299,7 @@ export function InteractionsWorkspace({
         {viewingInteraction ? (
           <InteractionCardDialog
             canSeeDocuments={canReadDocuments}
+            canSeeTraining={canReadTraining}
             interaction={viewingInteraction}
             key={viewingInteraction.id}
             onClose={() => setViewingInteraction(null)}

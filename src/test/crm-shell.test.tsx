@@ -188,6 +188,9 @@ describe("CrmShell", () => {
         "/contacts",
         "/catalog/it",
         "/catalog/vendors",
+        "/training/streams",
+        "/training/learners",
+        "/training/instructors",
       ]);
     });
 

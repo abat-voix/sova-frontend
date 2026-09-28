@@ -11,7 +11,7 @@ import {
   PanelLeftOpen,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
 import {
   crmNavigation,
@@ -40,6 +40,10 @@ import { MyTasksWorkspace } from "@/components/tasks/my-tasks-workspace";
 import { TeamSection } from "@/components/team/team-section";
 import { WorkflowTemplatesWorkspace } from "@/components/workflows/workflow-templates-workspace";
 import { UserRolesWorkspace } from "@/components/users/user-roles-workspace";
+import { LearnerImportWorkspace } from "@/components/training/learner-import-workspace";
+import { LearnersWorkspace } from "@/components/training/learners-workspace";
+import { TrainingInstructorsWorkspace } from "@/components/training/training-instructors-workspace";
+import { TrainingStreamsWorkspace } from "@/components/training/training-streams-workspace";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BuildVersion } from "@/components/build-version";
 import { Button } from "@/components/ui/button";
@@ -59,6 +63,8 @@ import {
 
 type CrmShellProps = {
   activeSection: CrmSection;
+  /** Страница сущности раздела (например, поток): вместо рабочего стола, с теми же навигацией и правами. */
+  children?: ReactNode;
   csrfToken: string;
   logoutUrl: string;
   user: AuthenticatedUser;
@@ -522,6 +528,8 @@ export function CrmShell(props: CrmShellProps) {
             <TeamSection csrfToken={csrfToken} user={user} />
           ) : !canOpenSection ? (
             <SectionAccessDenied />
+          ) : props.children ? (
+            props.children
           ) : activeSection === "catalogImport" ? (
             <CatalogImportWorkspace />
           ) : activeSection === "home" ? (
@@ -548,6 +556,14 @@ export function CrmShell(props: CrmShellProps) {
             <LicensesWorkspace />
           ) : activeSection === "vendors" ? (
             <VendorsWorkspace />
+          ) : activeSection === "trainingStreams" ? (
+            <TrainingStreamsWorkspace />
+          ) : activeSection === "learners" ? (
+            <LearnersWorkspace />
+          ) : activeSection === "trainingInstructors" ? (
+            <TrainingInstructorsWorkspace />
+          ) : activeSection === "learnerImport" ? (
+            <LearnerImportWorkspace />
           ) : (
             <SectionPlaceholder section={currentSection} />
           )}

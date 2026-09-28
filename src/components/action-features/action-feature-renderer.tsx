@@ -11,6 +11,7 @@ import { ContractOperationFeature } from "@/components/action-features/contract-
 import { ResponsibleFeature } from "@/components/action-features/responsible-feature";
 import { InteractionCompositionFeature } from "@/components/action-features/interaction-composition-feature";
 import { InteractionContractsList } from "@/components/action-features/interaction-contracts-list";
+import { TrainingCreateFeature } from "@/components/action-features/training-create-feature";
 import { useLocale } from "@/providers/locale-provider";
 import type {
   ActionFeatureCode,
@@ -114,6 +115,10 @@ export const actionFeatureDefinitions: Record<string, ActionFeatureDefinition> =
       code: "contract.mark_corrected",
       Component: ContractOperationFeature,
     },
+    "training.create": {
+      code: "training.create",
+      Component: TrainingCreateFeature,
+    },
   };
 
 const copy = {
@@ -203,10 +208,14 @@ export function ActionFeatureRenderer(props: Props) {
 }
 
 function executionTitle(execution: ActionFeatureExecution) {
-  const { full_name: fullName, contract_number: contractNumber } =
-    execution.target.data;
+  const {
+    full_name: fullName,
+    contract_number: contractNumber,
+    name,
+  } = execution.target.data;
   if (fullName) return String(fullName);
   if (contractNumber) return String(contractNumber);
+  if (name) return String(name);
   return execution.feature_code;
 }
 

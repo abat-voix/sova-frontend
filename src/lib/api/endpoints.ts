@@ -6,6 +6,7 @@ export const apiEndpoints = {
       list: "/api/integrations/v1/mappings/",
       detail: (id: string) => `/api/integrations/v1/mappings/${id}/`,
       preview: "/api/integrations/v1/mappings/preview/",
+      process: (id: string) => `/api/integrations/v1/mappings/${id}/process/`,
     },
   },
   catalog: {
@@ -56,6 +57,40 @@ export const apiEndpoints = {
     vendors: {
       detail: (id: string) => `/api/catalog/vendors/${id}/`,
       list: "/api/catalog/vendors/",
+    },
+  },
+  training: {
+    applicationLearners: {
+      detail: (id: string) => `/api/training/application-learners/${id}/`,
+      list: "/api/training/application-learners/",
+    },
+    applications: {
+      cancel: (id: string) => `/api/training/applications/${id}/cancel/`,
+      detail: (id: string) => `/api/training/applications/${id}/`,
+      list: "/api/training/applications/",
+    },
+    instructorQualifications: {
+      detail: (id: string) => `/api/training/instructor-qualifications/${id}/`,
+      list: "/api/training/instructor-qualifications/",
+    },
+    instructors: {
+      detail: (id: string) => `/api/training/instructors/${id}/`,
+      list: "/api/training/instructors/",
+    },
+    learners: {
+      detail: (id: string) => `/api/training/learners/${id}/`,
+      import: "/api/training/learners/import/",
+      list: "/api/training/learners/",
+      personalData: (id: string) =>
+        `/api/training/learners/${id}/personal-data/`,
+    },
+    streams: {
+      assignInstructor: (id: string) =>
+        `/api/training/streams/${id}/instructors/`,
+      detail: (id: string) => `/api/training/streams/${id}/`,
+      list: "/api/training/streams/",
+      unassignInstructor: (id: string, instructorId: string) =>
+        `/api/training/streams/${id}/instructors/${instructorId}/`,
     },
   },
   interactions: {

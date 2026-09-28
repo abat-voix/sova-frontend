@@ -122,4 +122,50 @@ describe("IntegrationMappingEditor", () => {
       "student@example.test",
     );
   });
+
+  it("builds the sample of an existing mapping from its rule paths", () => {
+    renderEditor({
+      mapping: {
+        id: "mapping-1",
+        name: "Оплаты",
+        system: "lms",
+        eventType: "training.payment.received",
+        direction: "incoming",
+        entity: "student",
+        isActive: true,
+        version: 1,
+        rules: [
+          {
+            sourcePath: "$.Фамилия",
+            targetField: "email",
+            required: true,
+            defaultValue: null,
+          },
+        ],
+        createdAt: "2026-09-28T10:00:00Z",
+        updatedAt: "2026-09-28T10:00:00Z",
+      },
+    });
+    expect(
+      JSON.parse(
+        (screen.getByLabelText("Пример payload") as HTMLTextAreaElement).value,
+      ),
+    ).toEqual({ Фамилия: "Фамилия" });
+    expect(
+      screen.getByRole("option", { name: "$.Фамилия" }),
+    ).toBeInTheDocument();
+  });
+
+  it("sends the first array item to preview", async () => {
+    const props = renderEditor();
+    fillHeader();
+    fireEvent.change(screen.getByLabelText("Пример payload"), {
+      target: { value: '[null, {"mail": "a@b.c"}]' },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Проверить" }));
+    await waitFor(() => expect(props.onPreview).toHaveBeenCalled());
+    expect(props.onPreview).toHaveBeenCalledWith(
+      expect.objectContaining({ payload: { mail: "a@b.c" } }),
+    );
+  });
 });

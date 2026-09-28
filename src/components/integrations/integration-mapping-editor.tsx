@@ -13,7 +13,11 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { flattenJsonPaths } from "@/lib/integrations/json-paths";
+import {
+  flattenJsonPaths,
+  sampleFromPaths,
+  samplePayloadItem,
+} from "@/lib/integrations/json-paths";
 import type {
   CreateIntegrationMappingDto,
   IntegrationEntityMetadata,
@@ -72,9 +76,23 @@ function initialForm(mapping: IntegrationMapping | null): FormState {
     entity: mapping?.entity ?? "",
     isActive: mapping?.isActive ?? false,
     rules: mapping?.rules.map((rule) => ({ ...rule })) ?? [],
-    samplePayload:
-      '{\n  "student": {\n    "id": "123",\n    "email": "student@example.test"\n  }\n}',
+    samplePayload: mappingSample(mapping) ?? defaultSamplePayload,
   };
+}
+
+const defaultSamplePayload =
+  '{\n  "student": {\n    "id": "123",\n    "email": "student@example.test"\n  }\n}';
+
+/** Пример из внешних путей правил mapping; null — у mapping нет путей, нужен пример по умолчанию. */
+function mappingSample(mapping: IntegrationMapping | null) {
+  const paths =
+    mapping?.rules
+      .map((rule) =>
+        mapping.direction === "incoming" ? rule.sourcePath : rule.targetField,
+      )
+      .filter(Boolean) ?? [];
+  const sample = sampleFromPaths(paths);
+  return Object.keys(sample).length ? JSON.stringify(sample, null, 2) : null;
 }
 
 function parseDefault(value: string): unknown | null {
@@ -208,7 +226,7 @@ export function IntegrationMappingEditor({
           entity: form.entity,
           direction: form.direction,
           rules: form.rules,
-          payload: validation.payload,
+          payload: samplePayloadItem(validation.payload) ?? validation.payload,
         }),
       );
     } catch (error) {
@@ -369,7 +387,7 @@ export function IntegrationMappingEditor({
           />
           <span className="text-muted-foreground block text-xs">
             Пример используется только для подсказок и preview, он не
-            сохраняется.
+            сохраняется. Если в корне массив, берётся первый непустой элемент.
           </span>
         </label>
 

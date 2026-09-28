@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { Heart, LogIn } from "lucide-react";
 import { motion, MotionConfig } from "motion/react";
+import type { ReactNode } from "react";
 
 import { CrmShell } from "@/components/crm/crm-shell";
 import type { CrmSection } from "@/components/crm/crm-navigation";
@@ -15,7 +16,14 @@ import { useLocale } from "@/providers/locale-provider";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
-export function SovaShell({ section = "home" }: { section?: CrmSection }) {
+export function SovaShell({
+  children,
+  section = "home",
+}: {
+  /** Страница сущности внутри раздела `section` (см. `CrmShell`). */
+  children?: ReactNode;
+  section?: CrmSection;
+}) {
   const auth = useAuth();
   const { t } = useLocale();
 
@@ -26,7 +34,9 @@ export function SovaShell({ section = "home" }: { section?: CrmSection }) {
         csrfToken={auth.csrfToken}
         logoutUrl={auth.logoutUrl}
         user={auth.user}
-      />
+      >
+        {children}
+      </CrmShell>
     );
   }
 

@@ -1,11 +1,12 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, Pencil, Plus, Power, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { Copy, FileUp, Pencil, Plus, Power, Trash2 } from "lucide-react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
 import { IntegrationMappingEditor } from "@/components/integrations/integration-mapping-editor";
+import { IntegrationMappingProcessDialog } from "@/components/integrations/integration-mapping-process-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
@@ -18,6 +19,7 @@ import {
   getIntegrationSystems,
   integrationMappingsQueryKey,
   previewIntegrationMapping,
+  processIntegrationMapping,
   updateIntegrationMapping,
 } from "@/lib/api/integrations/integrations";
 import { ApiError } from "@/lib/api/http";
@@ -52,6 +54,8 @@ export function IntegrationsWorkspace() {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [processing, setProcessing] = useState<IntegrationMapping | null>(null);
+  const closeProcessing = useCallback(() => setProcessing(null), []);
 
   const mappings = useQuery({
     queryKey: integrationMappingsQueryKey,
@@ -134,6 +138,10 @@ export function IntegrationsWorkspace() {
     onError: (error) => toast.error(readableError(error)),
   });
 
+  function entityLabel(code: string) {
+    return entities.data?.find((entity) => entity.code === code)?.label ?? code;
+  }
+
   const columns: DataTableColumn<IntegrationMapping>[] = [
     {
       name: "name",
@@ -165,9 +173,7 @@ export function IntegrationsWorkspace() {
     {
       name: "entity",
       title: "Сущность CRM",
-      render: (row) =>
-        entities.data?.find((entity) => entity.code === row.entity)?.label ??
-        row.entity,
+      render: (row) => entityLabel(row.entity),
     },
     { name: "version", title: "Версия", render: (row) => `v${row.version}` },
     {
@@ -211,6 +217,19 @@ export function IntegrationsWorkspace() {
           >
             <Pencil className="size-4" />
           </Button>
+          {row.direction === "incoming" ? (
+            <Button
+              aria-label={`Загрузить JSON в ${row.name}`}
+              colorScheme="neutral"
+              onClick={() => setProcessing(row)}
+              size="icon"
+              title="Загрузить JSON"
+              type="button"
+              variant="ghost"
+            >
+              <FileUp className="size-4" />
+            </Button>
+          ) : null}
           <Button
             aria-label={`Копировать ${row.name}`}
             colorScheme="neutral"
@@ -373,6 +392,25 @@ export function IntegrationsWorkspace() {
         rows={mappings.data ?? []}
         selectedRowId={selectedId}
       />
+
+      {processing ? (
+        <IntegrationMappingProcessDialog
+          entityLabel={entityLabel(processing.entity)}
+          mapping={processing}
+          onClose={closeProcessing}
+          onProcess={async (payload) => {
+            try {
+              return await processIntegrationMapping(
+                processing.id,
+                payload,
+                csrfToken,
+              );
+            } catch (error) {
+              throw new Error(readableError(error));
+            }
+          }}
+        />
+      ) : null}
     </div>
   );
 }

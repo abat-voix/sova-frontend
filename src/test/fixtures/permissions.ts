@@ -27,6 +27,8 @@ export const kamPermissions: PolicyAction[] = [
   "catalog.create",
   "catalog.update",
   "catalog.delete",
+  "training.read",
+  "training.update",
   "notifications.use",
   "messaging.use",
   "realtime.connect",
@@ -41,4 +43,5 @@ export const observerPermissions: PolicyAction[] = [
   "reports.read",
   "reports.export",
   "catalog.read",
+  "training.read",
 ];

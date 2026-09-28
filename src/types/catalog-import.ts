@@ -5,7 +5,9 @@ export type CatalogType =
   | "program"
   | "product"
   | "contact_person"
-  | "contract_registry";
+  | "contract_registry"
+  // Только маппинг колонок файла «Пользователи»; загрузка — в разделе «Обучение»
+  | "learner";
 
 /** Поле системы и колонка файла, из которой оно берётся (`null` — не задана). */
 export type CatalogImportMappingField = {
