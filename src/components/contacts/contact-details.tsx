@@ -20,7 +20,7 @@ import type { Locale } from "@/i18n/translations";
 import type {
   ContactAffiliation,
   ContactPerson,
-  OrganizationType,
+  ContactOwnerType,
 } from "@/types/contact-person";
 
 const copy = {
@@ -43,7 +43,11 @@ const copy = {
     noContacts: "Не указаны",
     createdAt: "Дата создания",
     updatedAt: "Дата обновления",
-    types: { b2c_client: "B2C-клиент", university: "Вуз", vendor: "Вендор" },
+    types: {
+      b2c_client: "B2C-клиент",
+      organization: "Организация",
+      vendor: "Вендор",
+    },
   },
   en: {
     active: "Active",
@@ -66,15 +70,15 @@ const copy = {
     updatedAt: "Updated",
     types: {
       b2c_client: "B2C client",
-      university: "University",
+      organization: "Organization",
       vendor: "Vendor",
     },
   },
 } as const;
 
-const typeIcons: Record<OrganizationType, typeof Building2> = {
+const typeIcons: Record<ContactOwnerType, typeof Building2> = {
   b2c_client: User,
-  university: Building2,
+  organization: Building2,
   vendor: Factory,
 };
 

@@ -25,7 +25,7 @@ import {
   searchB2CClients,
   searchDirections,
   searchPrograms,
-  searchUniversities,
+  searchOrganizations,
 } from "@/lib/api/catalog/lookups";
 import {
   createInstructor,
@@ -42,7 +42,7 @@ import type {
   TrainingInstructor,
 } from "@/types/training";
 
-type OrganizationKind = "university" | "b2c";
+type EmployerKind = "organization" | "b2c";
 
 const text = {
   back: "Все преподаватели",
@@ -55,10 +55,10 @@ const text = {
   lastName: "Фамилия",
   firstName: "Имя",
   middleName: "Отчество",
-  organization: "Организация",
-  organizationHint:
+  employer: "Место работы",
+  employerHint:
     "На поток назначаются только преподаватели организации-контрагента взаимодействия.",
-  university: "Вуз",
+  organization: "Организация",
   b2c: "B2C-клиент",
   organizationPlaceholder: "Выберите организацию",
   department: "Подразделение",
@@ -191,12 +191,12 @@ function InstructorForm({
   const [lastName, setLastName] = useState(instructor?.last_name ?? "");
   const [firstName, setFirstName] = useState(instructor?.first_name ?? "");
   const [middleName, setMiddleName] = useState(instructor?.middle_name ?? "");
-  const [kind, setKind] = useState<OrganizationKind>(
-    instructor?.b2c_client ? "b2c" : "university",
+  const [kind, setKind] = useState<EmployerKind>(
+    instructor?.b2c_client ? "b2c" : "organization",
   );
   const [organization, setOrganization] = useState<LookupOption | null>(
-    instructor?.university
-      ? { id: instructor.university.id, name: instructor.university.name }
+    instructor?.organization
+      ? { id: instructor.organization.id, name: instructor.organization.name }
       : instructor?.b2c_client
         ? {
             id: instructor.b2c_client.id,
@@ -251,7 +251,8 @@ function InstructorForm({
         programs: programs.map((item) => item.id),
         teaching_experience_years: experience ? Number(experience) : null,
         telegram: telegram.trim(),
-        university: kind === "university" ? (organization?.id ?? null) : null,
+        organization:
+          kind === "organization" ? (organization?.id ?? null) : null,
       };
       return instructor
         ? updateInstructor(instructor.id, payload, csrfToken)
@@ -321,9 +322,9 @@ function InstructorForm({
         </div>
       </FormSection>
 
-      <FormSection hint={text.organizationHint} title={text.organization}>
+      <FormSection hint={text.employerHint} title={text.employer}>
         <div className="flex gap-4 text-sm" role="radiogroup">
-          {(["university", "b2c"] as const).map((value) => (
+          {(["organization", "b2c"] as const).map((value) => (
             <label className="flex items-center gap-2" key={value}>
               <input
                 checked={kind === value}
@@ -334,19 +335,19 @@ function InstructorForm({
                 }}
                 type="radio"
               />
-              {value === "university" ? text.university : text.b2c}
+              {value === "organization" ? text.organization : text.b2c}
             </label>
           ))}
         </div>
         <div className="sm:max-w-md">
           <EntitySelect
             id="instructor-organization"
-            label={kind === "university" ? text.university : text.b2c}
+            label={kind === "organization" ? text.organization : text.b2c}
             onChange={setOrganization}
             placeholder={text.organizationPlaceholder}
             queryKey={["training", "instructor-organization", kind]}
             search={
-              kind === "university" ? searchUniversities : searchB2CClients
+              kind === "organization" ? searchOrganizations : searchB2CClients
             }
             value={organization}
           />

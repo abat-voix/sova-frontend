@@ -17,7 +17,7 @@ export const interactionsPageSize = 20;
 
 export type InteractionCounterpartyFilter = {
   id: string;
-  kind: "university" | "b2c_client";
+  kind: "organization" | "b2c_client";
 } | null;
 
 /** Максимум бэкенда (`max_page_size`); карточке взаимодействия хватает одной страницы. */
@@ -28,8 +28,8 @@ function interactionCounterpartyFilterParams(
 ) {
   if (!counterpartyFilter) return {};
 
-  return counterpartyFilter.kind === "university"
-    ? { university__ids: counterpartyFilter.id }
+  return counterpartyFilter.kind === "organization"
+    ? { organization__ids: counterpartyFilter.id }
     : { b2c_client__ids: counterpartyFilter.id };
 }
 

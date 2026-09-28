@@ -34,7 +34,7 @@ type Activity = "all" | "active" | "inactive";
 const text = {
   title: "Преподаватели",
   description:
-    "Преподаватели вузов и B2C-организаций, которые ведут потоки. Заводятся вручную; на поток назначаются только преподаватели организации-контрагента.",
+    "Преподаватели организаций и B2C-клиентов, которые ведут потоки. Заводятся вручную; на поток назначаются только преподаватели организации-контрагента.",
   create: "Новый преподаватель",
   searchLabel: "Поиск преподавателей",
   searchPlaceholder: "ФИО, email или ID в LMS",
@@ -115,7 +115,7 @@ export function TrainingInstructorsWorkspace() {
       name: "organization",
       render: (item) => (
         <span className="text-muted-foreground">
-          {item.university?.name ??
+          {item.organization?.name ??
             item.b2c_client?.full_name ??
             common.noValue}
         </span>

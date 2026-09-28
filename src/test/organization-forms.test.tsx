@@ -10,7 +10,7 @@ import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { B2CClientForm } from "@/components/b2c-clients/b2c-client-form";
-import { UniversityForm } from "@/components/organizations/university-form";
+import { OrganizationForm } from "@/components/organizations/organization-form";
 import { LocaleProvider } from "@/providers/locale-provider";
 import type { B2CClient } from "@/types/catalog";
 
@@ -20,15 +20,15 @@ vi.mock("@/providers/auth-provider", () => ({
 
 const client: B2CClient = {
   id: "b1",
-  full_name: "ООО «Ромашка»",
-  inn: "7700000000",
-  email: "info@romashka.ru",
+  full_name: "Иванов Иван Иванович",
+  inn: "770000000000",
+  email: "ivanov@example.ru",
   phone: "+7 900 000-00-02",
-  kind: "legal_entity",
   is_active: true,
   created_at: "2026-09-01T10:00:00+03:00",
   updated_at: "2026-09-02T10:00:00+03:00",
   rank: 2,
+  address: { country_code: "", region: "Тюменская область", city: "Тюмень" },
 };
 
 type Request = { body: unknown; method: string; url: string };
@@ -73,12 +73,16 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("UniversityForm", () => {
+describe("OrganizationForm", () => {
   it("marks the name as required and saves only with it filled", async () => {
     const requests = stubWrite({ id: "u1", name: "МГУ" });
     const onSaved = vi.fn();
     renderForm(
-      <UniversityForm onClose={vi.fn()} onSaved={onSaved} university={null} />,
+      <OrganizationForm
+        onClose={vi.fn()}
+        onSaved={onSaved}
+        organization={null}
+      />,
     );
 
     expect(screen.getByLabelText("Название *")).toBeRequired();
@@ -104,16 +108,79 @@ describe("UniversityForm", () => {
         inn: null,
         is_active: true,
         name: "МГУ",
+        organization_type: "education",
         phone: "",
+        legal_address: null,
+        actual_address: null,
+        actual_same_as_legal: false,
       },
       method: "POST",
-      url: "/api/catalog/universities/",
+      url: "/api/catalog/organizations/",
     });
+  });
+
+  it("sends the legal address with coordinates and skips the actual one when it is the same", async () => {
+    const requests = stubWrite({ id: "u1", name: "МГУ" });
+    const onSaved = vi.fn();
+    renderForm(
+      <OrganizationForm
+        onClose={vi.fn()}
+        onSaved={onSaved}
+        organization={null}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Название *"), {
+      target: { value: "МГУ" },
+    });
+    fireEvent.change(document.getElementById("organization-legal-city")!, {
+      target: { value: "Москва" },
+    });
+    fireEvent.change(
+      document.getElementById("organization-legal-coordinates")!,
+      { target: { value: "55,703934, 37,528669" } },
+    );
+    fireEvent.click(
+      screen.getByLabelText("Фактический адрес совпадает с юридическим"),
+    );
+    expect(document.getElementById("organization-actual-city")).toBeNull();
+    fireEvent.click(saveButton());
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    const body = requests[0].body as Record<string, unknown>;
+    expect(body.legal_address).toMatchObject({
+      city: "Москва",
+      lat: "55.703934",
+      lon: "37.528669",
+    });
+    expect(body.actual_same_as_legal).toBe(true);
+    expect(body).not.toHaveProperty("actual_address");
+  });
+
+  it("blocks saving while the coordinates cannot be parsed", () => {
+    stubWrite({ id: "u1", name: "МГУ" });
+    renderForm(
+      <OrganizationForm
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+        organization={null}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Название *"), {
+      target: { value: "МГУ" },
+    });
+    fireEvent.change(
+      document.getElementById("organization-legal-coordinates")!,
+      { target: { value: "север" } },
+    );
+
+    expect(saveButton()).toBeDisabled();
   });
 });
 
 describe("B2CClientForm", () => {
-  it("requires the name and the client type for a new client", () => {
+  it("requires the full name for a new client", () => {
     stubWrite(client);
     renderForm(
       <B2CClientForm client={null} onClose={vi.fn()} onSaved={vi.fn()} />,
@@ -121,13 +188,8 @@ describe("B2CClientForm", () => {
 
     expect(saveButton()).toBeDisabled();
 
-    fireEvent.change(screen.getByLabelText("ФИО / наименование *"), {
+    fireEvent.change(screen.getByLabelText("ФИО *"), {
       target: { value: "Иванов Иван" },
-    });
-    expect(saveButton()).toBeDisabled();
-
-    fireEvent.change(screen.getByLabelText("Тип клиента *"), {
-      target: { value: "individual" },
     });
     expect(saveButton()).toBeEnabled();
   });
@@ -139,24 +201,22 @@ describe("B2CClientForm", () => {
       <B2CClientForm client={client} onClose={vi.fn()} onSaved={onSaved} />,
     );
 
-    expect(screen.getByLabelText("ФИО / наименование *")).toHaveValue(
-      "ООО «Ромашка»",
-    );
+    expect(screen.getByLabelText("ФИО *")).toHaveValue("Иванов Иван Иванович");
     expect(saveButton()).toBeEnabled();
 
-    fireEvent.change(screen.getByLabelText("ФИО / наименование *"), {
+    fireEvent.change(screen.getByLabelText("ФИО *"), {
       target: { value: "" },
     });
     expect(saveButton()).toBeDisabled();
 
-    fireEvent.change(screen.getByLabelText("ФИО / наименование *"), {
-      target: { value: "ООО «Лютик»" },
+    fireEvent.change(screen.getByLabelText("ФИО *"), {
+      target: { value: "Петров Пётр Петрович" },
     });
     fireEvent.click(saveButton());
 
     await waitFor(() => expect(onSaved).toHaveBeenCalled());
     expect(requests[0]).toMatchObject({
-      body: { full_name: "ООО «Лютик»", kind: "legal_entity" },
+      body: { full_name: "Петров Пётр Петрович" },
       method: "PATCH",
       url: "/api/catalog/b2c-clients/b1/",
     });

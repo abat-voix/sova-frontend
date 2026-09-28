@@ -8,7 +8,7 @@ import {
   type LookupOption,
 } from "@/lib/api/catalog/lookups";
 import type { Locale } from "@/i18n/translations";
-import type { ContactChannel, OrganizationRef } from "@/types/contact-person";
+import type { ContactChannel, ContactOwnerRef } from "@/types/contact-person";
 
 const copy = {
   ru: {
@@ -48,7 +48,7 @@ export function AffiliationFields({
   idPrefix: string;
   locale: Locale;
   onChange: (values: AffiliationFieldValues) => void;
-  organization: OrganizationRef | null;
+  organization: ContactOwnerRef | null;
   values: AffiliationFieldValues;
 }) {
   const text = copy[locale];

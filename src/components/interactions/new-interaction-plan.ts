@@ -14,7 +14,7 @@
 import type { LookupOption } from "@/lib/api/catalog/lookups";
 import type { CreateInteractionPayload } from "@/types/workflow-board";
 
-export type CounterpartyKind = "university" | "b2c_client";
+export type CounterpartyKind = "organization" | "b2c_client";
 
 export type ProductNode = {
   /** id созданного `InteractionProduct`; `null` — ещё не отправлен. */
@@ -59,7 +59,7 @@ export type InteractionDraft = {
 export const emptyDraft: InteractionDraft = {
   comment: "",
   counterparty: null,
-  counterpartyKind: "university",
+  counterpartyKind: "organization",
   createdInteractionId: null,
   directions: [],
   isActive: true,
@@ -368,8 +368,8 @@ function interactionPayload(draft: InteractionDraft): CreateInteractionPayload {
   return {
     comment: draft.comment.trim(),
     is_active: draft.isActive,
-    ...(draft.counterpartyKind === "university"
-      ? { university: counterpartyId }
+    ...(draft.counterpartyKind === "organization"
+      ? { organization: counterpartyId }
       : { b2c_client: counterpartyId }),
   };
 }

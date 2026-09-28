@@ -29,7 +29,7 @@ export type UserShort = {
   full_name: string;
 };
 
-export type UniversityShort = {
+export type OrganizationShort = {
   id: string;
   name: string;
 };
@@ -49,7 +49,7 @@ export type ResponsibleShort = {
 export type InteractionShort = {
   id: string;
   number?: string;
-  university: UniversityShort | null;
+  organization: OrganizationShort | null;
   b2c_client: B2CClientShort | null;
 };
 
@@ -58,7 +58,7 @@ export type Interaction = {
   number?: string;
   comment?: string;
   is_active?: boolean;
-  university: UniversityShort | null;
+  organization: OrganizationShort | null;
   b2c_client: B2CClientShort | null;
   created_at: string;
   updated_at: string;
@@ -69,11 +69,11 @@ export type Interaction = {
   products_count: number;
 };
 
-/** `WriteInteraction`: контрагент ровно один — вуз либо B2C-клиент. */
+/** `WriteInteraction`: контрагент ровно один — организация либо B2C-клиент. */
 export type CreateInteractionPayload = {
   comment?: string;
   is_active?: boolean;
-  university?: string | null;
+  organization?: string | null;
   b2c_client?: string | null;
 };
 
@@ -146,7 +146,7 @@ export type WorkflowShort = {
   code: string;
 };
 
-/** Аудитория шаблона: вузы или физ/юрлица. Должна совпасть с контрагентом. */
+/** Аудитория шаблона: организации или физлица. Должна совпасть с контрагентом. */
 export type WorkflowAudience = "b2b" | "b2c";
 
 export type Workflow = {

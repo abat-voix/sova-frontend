@@ -21,12 +21,12 @@ import { Select } from "@/components/ui/select";
 import { createAffiliation } from "@/lib/api/catalog/contact-affiliations";
 import {
   searchB2CClients,
-  searchUniversities,
+  searchOrganizations,
   searchVendors,
   type LookupOption,
 } from "@/lib/api/catalog/lookups";
 import { useLocale } from "@/providers/locale-provider";
-import type { ContactPerson, OrganizationType } from "@/types/contact-person";
+import type { ContactPerson, ContactOwnerType } from "@/types/contact-person";
 
 const headingId = "add-contact-affiliation-title";
 
@@ -37,7 +37,11 @@ const copy = {
     organization: "Организация",
     organizationPlaceholder: "Выберите организацию",
     submit: "Добавить",
-    types: { b2c_client: "B2C-клиент", university: "Вуз", vendor: "Вендор" },
+    types: {
+      b2c_client: "B2C-клиент",
+      organization: "Организация",
+      vendor: "Вендор",
+    },
   },
   en: {
     title: "Add organization",
@@ -47,18 +51,18 @@ const copy = {
     submit: "Add",
     types: {
       b2c_client: "B2C client",
-      university: "University",
+      organization: "Organization",
       vendor: "Vendor",
     },
   },
 } as const;
 
 const searchByType: Record<
-  OrganizationType,
+  ContactOwnerType,
   (term: string) => Promise<LookupOption[]>
 > = {
   b2c_client: searchB2CClients,
-  university: searchUniversities,
+  organization: searchOrganizations,
   vendor: searchVendors,
 };
 
@@ -77,7 +81,7 @@ export function AddContactAffiliation({
   const { locale } = useLocale();
   const text = copy[locale];
   const common = registryCopy[locale];
-  const [type, setType] = useState<OrganizationType>("university");
+  const [type, setType] = useState<ContactOwnerType>("organization");
   const [organization, setOrganization] = useState<LookupOption | null>(null);
   const [values, setValues] = useState<AffiliationFieldValues>(
     emptyAffiliationValues,
@@ -129,13 +133,13 @@ export function AddContactAffiliation({
               className="mt-1"
               id="add-contact-affiliation-type"
               onChange={(event) => {
-                setType(event.target.value as OrganizationType);
+                setType(event.target.value as ContactOwnerType);
                 setOrganization(null);
                 setValues(emptyAffiliationValues);
               }}
               value={type}
             >
-              {(Object.keys(text.types) as OrganizationType[]).map((value) => (
+              {(Object.keys(text.types) as ContactOwnerType[]).map((value) => (
                 <option key={value} value={value}>
                   {text.types[value]}
                 </option>

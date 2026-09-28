@@ -174,8 +174,8 @@ describe("CrmShell", () => {
                 results: [
                   {
                     id: "interaction-1",
-                    university: {
-                      id: "university-1",
+                    organization: {
+                      id: "organization-1",
                       name: "Первый университет",
                     },
                     b2c_client: null,

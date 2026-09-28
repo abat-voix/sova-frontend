@@ -74,8 +74,8 @@ const featureOptions = [
 ] as const;
 
 const audienceOptions = [
-  { id: "b2b", name: "B2B — вузы" },
-  { id: "b2c", name: "B2C — физ/юрлица" },
+  { id: "b2b", name: "B2B — организации" },
+  { id: "b2c", name: "B2C — физлица" },
 ] as const;
 
 const stageTypeOptions = [

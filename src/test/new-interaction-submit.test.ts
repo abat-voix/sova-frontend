@@ -41,7 +41,7 @@ function stubFetch(fail: (url: string, body: never) => boolean = () => false) {
 
 const plan = (overrides: Partial<CreationPlan> = {}): CreationPlan => ({
   directions: [{ directionId: "dir-1", key: "d1" }],
-  interaction: { comment: "", is_active: true, university: "u-1" },
+  interaction: { comment: "", is_active: true, organization: "u-1" },
   interactionId: null,
   responsibleIds: [],
   programs: [

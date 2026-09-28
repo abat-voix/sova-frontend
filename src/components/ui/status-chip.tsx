@@ -7,6 +7,10 @@ const tones = {
     "bg-[var(--atmr-background-accent-soft)] text-[var(--atmr-accent-primary)]",
   neutral: "bg-secondary text-muted-foreground",
   positive: "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300",
+  // Вид организации: отдельный цвет, чтобы не сливался со статусами
+  info: "bg-sky-500/12 text-sky-700 dark:text-sky-300",
+  // Место в рейтинге: «золото», чтобы не путать с акцентными метками
+  rank: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
 } as const;
 
 /**

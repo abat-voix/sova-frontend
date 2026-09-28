@@ -58,7 +58,7 @@ function stubApi(role: "kam" | "head") {
             results: [
               {
                 id: "in-1",
-                university: { id: "u-1", name: "МГУ" },
+                organization: { id: "u-1", name: "МГУ" },
                 b2c_client: null,
                 created_at: "2026-09-01T09:00:00+03:00",
                 updated_at: "2026-09-01T09:00:00+03:00",

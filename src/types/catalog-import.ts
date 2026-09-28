@@ -1,5 +1,5 @@
 export type CatalogType =
-  | "university"
+  | "organization"
   | "vendor"
   | "direction"
   | "program"

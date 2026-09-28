@@ -13,7 +13,7 @@ import type { SystemRole } from "@/providers/auth-provider";
 import type { PaginatedResponse } from "@/types/api";
 import type { B2CClient, Direction, Product, Program } from "@/types/catalog";
 import type { Contract } from "@/types/contract";
-import type { University } from "@/types/university";
+import type { Organization } from "@/types/organization";
 import type { Vendor } from "@/types/vendor";
 import type {
   Interaction,
@@ -50,10 +50,10 @@ async function fetchOptions<T>(
   return page.results.map(toOption);
 }
 
-export function searchUniversities(search: string) {
-  return fetchOptions<University>(
-    `${apiEndpoints.catalog.universities.list}?${lookupQuery(search)}`,
-    (university) => ({ id: university.id, name: university.name }),
+export function searchOrganizations(search: string) {
+  return fetchOptions<Organization>(
+    `${apiEndpoints.catalog.organizations.list}?${lookupQuery(search)}`,
+    (organization) => ({ id: organization.id, name: organization.name }),
   );
 }
 
@@ -134,7 +134,7 @@ export function searchInteractions(search: string) {
     (interaction) => ({
       id: interaction.id,
       name:
-        interaction.university?.name ??
+        interaction.organization?.name ??
         interaction.b2c_client?.full_name ??
         "—",
     }),
@@ -155,7 +155,7 @@ export function searchContracts(search: string) {
       id: contract.id,
       name: [
         contract.contract_number || "б/н",
-        contract.interaction.university?.name ??
+        contract.interaction.organization?.name ??
           contract.interaction.b2c_client?.full_name,
       ]
         .filter(Boolean)

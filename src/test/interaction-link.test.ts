@@ -35,11 +35,11 @@ describe("parseInteractionLink", () => {
     });
   });
 
-  it("reads a university filter from a catalog link", () => {
+  it("reads an organization filter from a catalog link", () => {
     expect(
-      parseInteractionLink(new URLSearchParams("university__ids=u-1")),
+      parseInteractionLink(new URLSearchParams("organization__ids=u-1")),
     ).toEqual({
-      counterpartyFilter: { id: "u-1", kind: "university" },
+      counterpartyFilter: { id: "u-1", kind: "organization" },
       interactionId: null,
       processId: null,
       row: null,

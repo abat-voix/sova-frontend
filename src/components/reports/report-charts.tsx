@@ -25,7 +25,7 @@ import type {
 } from "@/types/report";
 
 /** Графики, которые рисуются пончиком вместо горизонтальных полос. */
-const donutChartIds = new Set(["by_university"]);
+const donutChartIds = new Set(["by_organization"]);
 /** Больше сегментов пончик не различает — хвост сворачивается в «Остальные». */
 const maxDonutSegments = 6;
 const donutColors = [

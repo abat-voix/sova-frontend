@@ -47,7 +47,7 @@ const stream: TrainingStream = {
   interaction_program: "ip1",
   interaction: "i1",
   interaction_number: "7-010126",
-  university: "u1",
+  organization: "u1",
   b2c_client: null,
   counterparty_name: "МГУ",
   program: { id: "p1", name: "DevOps-инженер" },

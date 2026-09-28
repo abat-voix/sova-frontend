@@ -1,27 +1,27 @@
+import type { B2CClientOpenAddress } from "@/types/address";
 import { VendorShort } from "@/types/vendor";
 
-/** Тип B2C-клиента: физлицо или юрлицо. */
-export type B2CClientKind = "individual" | "legal_entity";
-
+/** B2C-клиент — физическое лицо; компании и вузы — организации. */
 export type B2CClient = {
   id: string;
   full_name: string;
   inn: string | null;
   email: string;
   phone: string;
-  kind: B2CClientKind;
   is_active: boolean;
   created_at: string;
   updated_at: string;
   /** Место в рейтинге по числу зачисленных людей; `null` — места нет. */
   rank?: number | null;
+  /** Открытая часть адреса регистрации; улица и дом — только администратору. */
+  address: B2CClientOpenAddress | null;
 };
 
 /** Поля, которые принимает бэкенд при создании и изменении B2C-клиента. */
 export type WriteB2CClient = Pick<
   B2CClient,
-  "full_name" | "inn" | "email" | "phone" | "kind" | "is_active"
->;
+  "full_name" | "inn" | "email" | "phone" | "is_active"
+> & { address?: B2CClientOpenAddress | null };
 
 export type DirectionShort = {
   id: string;

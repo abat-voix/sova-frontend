@@ -43,7 +43,7 @@ describe("training instructor page", () => {
             id: "t1",
             full_name: "Петров Пётр",
             position: "Доцент кафедры",
-            university: { id: "u1", name: "МГУ" },
+            organization: { id: "u1", name: "МГУ" },
             b2c_client: null,
             department: "",
             email: "",

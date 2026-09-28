@@ -27,7 +27,7 @@ import { useLocale } from "@/providers/locale-provider";
 import type {
   ContactPerson,
   ContactPersonPayload,
-  OrganizationRef,
+  ContactOwnerRef,
 } from "@/types/contact-person";
 
 const headingId = "add-organization-contact-title";
@@ -78,7 +78,7 @@ export function AddOrganizationContact({
   csrfToken: string;
   onClose: () => void;
   onSaved: () => void;
-  organization: OrganizationRef;
+  organization: ContactOwnerRef;
   organizationName: string;
 }) {
   const { locale } = useLocale();

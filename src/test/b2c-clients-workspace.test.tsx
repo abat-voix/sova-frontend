@@ -34,11 +34,11 @@ const company: B2CClient = {
   inn: "7700000000",
   email: "info@romashka.ru",
   phone: "+7 900 000-00-02",
-  kind: "legal_entity",
   is_active: true,
   created_at: "2026-09-01T10:00:00+03:00",
   updated_at: "2026-09-02T10:00:00+03:00",
   rank: 2,
+  address: { country_code: "", region: "Тюменская область", city: "Тюмень" },
 };
 
 function stubCatalog() {
@@ -112,25 +112,6 @@ describe("B2CClientsWorkspace", () => {
             params.get("ordering") === "rank"
           );
         }),
-      ).toBe(true),
-    );
-  });
-
-  it("filters the list by the client type", async () => {
-    const urls = stubCatalog();
-    renderWorkspace();
-    await screen.findByText("ООО «Ромашка»");
-
-    fireEvent.click(screen.getByRole("button", { name: "Физлицо" }));
-
-    await waitFor(() =>
-      expect(
-        urls.some(
-          (url) =>
-            url.startsWith("/api/catalog/b2c-clients/?") &&
-            new URL(url, "http://localhost").searchParams.get("kind") ===
-              "individual",
-        ),
       ).toBe(true),
     );
   });

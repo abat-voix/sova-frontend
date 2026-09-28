@@ -10,8 +10,8 @@ import type { PaginatedResponse } from "@/types/api";
 import type {
   ContactChannel,
   OrganizationAffiliation,
-  OrganizationRef,
-  OrganizationType,
+  ContactOwnerRef,
+  ContactOwnerType,
 } from "@/types/contact-person";
 
 export const organizationAffiliationsPageSize = 20;
@@ -21,7 +21,7 @@ export const organizationAffiliationsPageSize = 20;
  * которое знает, какой эндпоинт, поле и фильтр у вуза, B2C-клиента и вендора.
  */
 const resources: Record<
-  OrganizationType,
+  ContactOwnerType,
   {
     endpoint: { detail: (id: string) => string; list: string };
     field: string;
@@ -33,10 +33,10 @@ const resources: Record<
     field: "b2c_client",
     filter: "b2c_client__ids",
   },
-  university: {
-    endpoint: apiEndpoints.catalog.universityContacts,
-    field: "university",
-    filter: "university__ids",
+  organization: {
+    endpoint: apiEndpoints.catalog.organizationContacts,
+    field: "organization",
+    filter: "organization__ids",
   },
   vendor: {
     endpoint: apiEndpoints.catalog.vendorContacts,
@@ -47,7 +47,7 @@ const resources: Record<
 
 /** Без аргумента — ключ всех списков связей: для инвалидации после записи. */
 export function organizationAffiliationsQueryKey(
-  organization?: OrganizationRef,
+  organization?: ContactOwnerRef,
 ) {
   if (!organization) return ["catalog", "contact-affiliations"] as const;
 
@@ -62,7 +62,7 @@ export function organizationAffiliationsQueryKey(
 export type OrganizationAffiliationsQuery = {
   /** Только активные люди — кандидаты для привязки к взаимодействию. */
   activeContactsOnly?: boolean;
-  organization: OrganizationRef;
+  organization: ContactOwnerRef;
   page: number;
   search?: string;
 };
@@ -108,7 +108,7 @@ export type AffiliationValues = {
   productIds?: string[];
 };
 
-function affiliationBody(type: OrganizationType, values: AffiliationValues) {
+function affiliationBody(type: ContactOwnerType, values: AffiliationValues) {
   return {
     position: values.position,
     preferred_channels: values.preferredChannels,
@@ -124,7 +124,7 @@ export function createAffiliation(
     contactId,
     organization,
     ...values
-  }: AffiliationValues & { contactId: string; organization: OrganizationRef },
+  }: AffiliationValues & { contactId: string; organization: ContactOwnerRef },
   csrfToken: string,
 ) {
   const resource = resources[organization.type];
@@ -141,7 +141,7 @@ export function createAffiliation(
 }
 
 export function updateAffiliation(
-  type: OrganizationType,
+  type: ContactOwnerType,
   id: string,
   values: AffiliationValues,
   csrfToken: string,
@@ -158,7 +158,7 @@ export function updateAffiliation(
  * отвязывает его от активных взаимодействий организации и уведомляет КАМов.
  */
 export function deleteAffiliation(
-  type: OrganizationType,
+  type: ContactOwnerType,
   id: string,
   csrfToken: string,
 ) {

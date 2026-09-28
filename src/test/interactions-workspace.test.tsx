@@ -75,7 +75,7 @@ const action: BoardAction = {
 
 const interaction = {
   id: "interaction-1",
-  university: { id: "university-1", name: "Первый университет" },
+  organization: { id: "organization-1", name: "Первый университет" },
   b2c_client: null,
   created_at: "2026-09-01T09:00:00+03:00",
   updated_at: "2026-09-01T09:00:00+03:00",
@@ -91,7 +91,7 @@ const instance = {
   started_at: "2026-09-01T09:00:00+03:00",
   completed_at: null,
   workflow: { id: "workflow-1", name: "Базовый процесс", code: "base" },
-  interaction: { id: interaction.id, university: null, b2c_client: null },
+  interaction: { id: interaction.id, organization: null, b2c_client: null },
   created_by: null,
 };
 
@@ -282,8 +282,8 @@ describe("InteractionsWorkspace", () => {
     expect(await screen.findByText("Первый университет")).toBeInTheDocument();
   });
 
-  it("passes the university from a catalog link to the list API", async () => {
-    searchParams = new URLSearchParams("university__ids=university-1");
+  it("passes the organization from a catalog link to the list API", async () => {
+    searchParams = new URLSearchParams("organization__ids=organization-1");
     const fetchMock = stubApi();
     renderWorkspace();
 
@@ -293,8 +293,8 @@ describe("InteractionsWorkspace", () => {
         .map(([input]) => new URL(String(input), "http://localhost"))
         .find((url) => url.pathname === "/api/interactions/interactions/");
 
-      expect(interactionsUrl?.searchParams.get("university__ids")).toBe(
-        "university-1",
+      expect(interactionsUrl?.searchParams.get("organization__ids")).toBe(
+        "organization-1",
       );
     });
   });

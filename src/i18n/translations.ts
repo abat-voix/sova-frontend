@@ -33,19 +33,19 @@ export const translations = {
     licensesDescription: "Реестр лицензий, подписание и сроки действия.",
     reports: "Отчёты",
     reportsDescription:
-      "Отчёты по взаимодействиям с вузами: предпросмотр, сводка и выгрузка.",
+      "Отчёты по взаимодействиям с организациями: предпросмотр, сводка и выгрузка.",
     interactions: "Взаимодействия",
     interactionsDescription:
-      "Взаимодействия с вузами и выполнение связанных workflow.",
+      "Взаимодействия с организациями и выполнение связанных workflow.",
     team: "Команда",
     teamDescription: "КАМы вашей команды и свободные КАМы.",
     notifications: "Уведомления",
     notificationsDescription:
       "Напоминания о сроках, назначения и системные сообщения.",
     organizations: "Организации",
-    organizationsDescription: "Университеты и партнёрские организации.",
+    organizationsDescription: "Вузы, компании и другие организации.",
     b2cClients: "B2C-клиенты",
-    b2cClientsDescription: "Физические и юридические лица вне вузовской сети.",
+    b2cClientsDescription: "Физические лица.",
     contacts: "Контакты",
     contactsDescription: "Контактные лица и история взаимодействия.",
     itCatalog: "ИТ-каталог",
@@ -68,7 +68,7 @@ export const translations = {
       "Обучающиеся из файла «Пользователи» и их участие в потоках.",
     trainingInstructors: "Преподаватели",
     trainingInstructorsDescription:
-      "Преподаватели вузов и B2C-организаций и их подготовка.",
+      "Преподаватели организаций и B2C-клиентов и их подготовка.",
     learnerImport: "Загрузка обучающихся",
     learnerImportDescription:
       "Загрузка файла «Пользователи» с потоком или без него.",
@@ -144,20 +144,20 @@ export const translations = {
     licensesDescription: "License register, signing, and validity periods.",
     reports: "Reports",
     reportsDescription:
-      "University interaction reports: preview, summary, and export.",
+      "Organization interaction reports: preview, summary, and export.",
     interactions: "Interactions",
     interactionsDescription:
-      "University interactions and their related workflows.",
+      "Organization interactions and their related workflows.",
     team: "Team",
     teamDescription: "Your team's KAMs and KAMs without a head.",
     notifications: "Notifications",
     notificationsDescription:
       "Deadline reminders, assignments, and system messages.",
     organizations: "Organizations",
-    organizationsDescription: "Universities and partner organizations.",
+    organizationsDescription: "Organizations and partner organizations.",
     b2cClients: "B2C clients",
     b2cClientsDescription:
-      "Individuals and companies outside the university network.",
+      "Individuals and companies outside the organization network.",
     contacts: "Contacts",
     contactsDescription: "Contact people and interaction history.",
     itCatalog: "IT catalog",
@@ -180,7 +180,7 @@ export const translations = {
       "Learners from the users file and their stream participation.",
     trainingInstructors: "Instructors",
     trainingInstructorsDescription:
-      "Instructors of universities and B2C organizations and their qualification.",
+      "Instructors of organizations and B2C organizations and their qualification.",
     learnerImport: "Learners upload",
     learnerImportDescription: "Upload the users file with or without a stream.",
     userRoles: "User roles",

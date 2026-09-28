@@ -19,11 +19,11 @@ import type {
 const meta: ReportMeta = {
   active_stage_status: "current",
   available_columns: [
-    { key: "university", title: "Вуз" },
+    { key: "organization", title: "Организация" },
     { key: "responsible", title: "Ответственный" },
   ],
   columns: [
-    { key: "university", title: "Вуз" },
+    { key: "organization", title: "Организация" },
     { key: "responsible", title: "Ответственный" },
   ],
   filters: {},
@@ -45,7 +45,7 @@ const summary: ReportSummaryResponse = {
   by_active_stage: [],
   by_process_status: [],
   by_responsible: [],
-  by_university: [],
+  by_organization: [],
   interactions_count: 0,
   meta,
   products_count: 0,
@@ -119,7 +119,7 @@ describe("ReportsWorkspace", () => {
     expect(
       screen.getByRole("heading", {
         level: 1,
-        name: "Отчёты по взаимодействиям с вузами",
+        name: "Отчёты по взаимодействиям с организациями",
       }),
     ).toBeInTheDocument();
 
@@ -128,6 +128,6 @@ describe("ReportsWorkspace", () => {
         screen.getByText("Нет данных по выбранным фильтрам."),
       ).toBeInTheDocument(),
     );
-    expect(screen.getAllByText("Вуз").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Организация").length).toBeGreaterThan(0);
   });
 });

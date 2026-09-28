@@ -7,7 +7,7 @@ import { useLocale } from "@/providers/locale-provider";
 import type { PaginatedResponse } from "@/types/api";
 import type {
   OrganizationAffiliation,
-  OrganizationRef,
+  ContactOwnerRef,
 } from "@/types/contact-person";
 import type { InteractionShort } from "@/types/workflow-board";
 
@@ -52,8 +52,8 @@ export function ContactPicker({
 }) {
   const { locale } = useLocale();
   const text = copy[locale];
-  const organization: OrganizationRef = interaction.university
-    ? { id: interaction.university.id, type: "university" }
+  const organization: ContactOwnerRef = interaction.organization
+    ? { id: interaction.organization.id, type: "organization" }
     : { id: interaction.b2c_client?.id ?? "", type: "b2c_client" };
 
   // Кандидаты — связи контрагента взаимодействия с активными людьми: привязать

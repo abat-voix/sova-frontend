@@ -35,7 +35,7 @@ beforeEach(() => {
   auth.permissions = kamPermissions;
 });
 
-const universityContact: ContactPerson = {
+const organizationContact: ContactPerson = {
   id: "c1",
   full_name: "Анна Иванова",
   email: "anna@example.com",
@@ -45,7 +45,7 @@ const universityContact: ContactPerson = {
   affiliations: [
     {
       id: "a1",
-      type: "university",
+      type: "organization",
       organization: { id: "u1", name: "Тюменский университет" },
       position: "Проректор",
       preferred_channels: ["email"],
@@ -95,7 +95,7 @@ function stubCatalog() {
 
       if (method === "DELETE") return new Response(null, { status: 204 });
       if (url.pathname === "/api/catalog/contact-persons/c1/") {
-        return json({ ...universityContact, ...(body as object) });
+        return json({ ...organizationContact, ...(body as object) });
       }
       if (url.pathname === "/api/catalog/contact-persons/c2/") {
         return json({ ...inactiveContact, ...(body as object) });
@@ -122,7 +122,7 @@ function stubCatalog() {
           201,
         );
       }
-      if (url.pathname === "/api/catalog/universities/") {
+      if (url.pathname === "/api/catalog/organizations/") {
         return json({
           count: 1,
           next: null,
@@ -131,7 +131,7 @@ function stubCatalog() {
         });
       }
       if (
-        url.pathname === "/api/catalog/university-contacts/" &&
+        url.pathname === "/api/catalog/organization-contacts/" &&
         method === "POST"
       ) {
         return json({ id: "a9" }, 201);
@@ -141,7 +141,7 @@ function stubCatalog() {
         count: 2,
         next: null,
         previous: null,
-        results: [universityContact, inactiveContact],
+        results: [organizationContact, inactiveContact],
       });
     },
   );
@@ -370,7 +370,7 @@ describe("ContactsWorkspace", () => {
 
     await waitFor(() =>
       expect(
-        writes(calls, "DELETE", "/api/catalog/university-contacts/a1/"),
+        writes(calls, "DELETE", "/api/catalog/organization-contacts/a1/"),
       ).toHaveLength(1),
     );
   });
@@ -395,16 +395,16 @@ describe("ContactsWorkspace", () => {
 
     await waitFor(() =>
       expect(
-        writes(calls, "POST", "/api/catalog/university-contacts/"),
+        writes(calls, "POST", "/api/catalog/organization-contacts/"),
       ).toHaveLength(1),
     );
     expect(
-      writes(calls, "POST", "/api/catalog/university-contacts/")[0].body,
+      writes(calls, "POST", "/api/catalog/organization-contacts/")[0].body,
     ).toEqual({
       contact: "c1",
       position: "Доцент",
       preferred_channels: [],
-      university: "u2",
+      organization: "u2",
     });
   });
 

@@ -15,7 +15,7 @@ import { TablePagination } from "@/components/ui/table-pagination";
 import {
   searchDirections,
   searchManagers,
-  searchUniversities,
+  searchOrganizations,
   type LookupOption,
 } from "@/lib/api/catalog/lookups";
 import { getReportPreview, getReportSummary } from "@/lib/api/reports/reports";
@@ -58,7 +58,10 @@ const orderingOptions: {
 }[] = [
   { label: { ru: "Сначала новые", en: "Newest first" }, value: "-created_at" },
   { label: { ru: "Сначала старые", en: "Oldest first" }, value: "created_at" },
-  { label: { ru: "По вузу", en: "By university" }, value: "university" },
+  {
+    label: { ru: "По организации", en: "By organization" },
+    value: "organization",
+  },
   {
     label: { ru: "По ответственному", en: "By manager" },
     value: "responsible",
@@ -67,7 +70,7 @@ const orderingOptions: {
 
 const copy = {
   ru: {
-    title: "Отчёты по взаимодействиям с вузами",
+    title: "Отчёты по взаимодействиям с организациями",
     description: "Предпросмотр, сводка и выгрузка в XLSX / XLS / PDF / JSON.",
     filters: "Фильтры",
     collapseFilters: "Свернуть фильтры",
@@ -76,7 +79,7 @@ const copy = {
     dateTo: "По дату",
     periodOrder: "Дата начала должна быть не позже даты окончания.",
     periodTooLong: `Период не может быть длиннее ${maxPeriodDays} дней.`,
-    universities: "Вузы",
+    organizations: "Организации",
     directions: "Направления",
     programs: "Программы",
     products: "Продукты",
@@ -89,7 +92,7 @@ const copy = {
     programsCount: "Программы",
     productsCount: "Продукты",
     byResponsible: "По ответственным",
-    byUniversity: "По вузам",
+    byOrganization: "По организациям",
     byProcessStatus: "По статусу процесса",
     byActiveStage: "По актуальному этапу",
     distributionEmpty: "Нет данных",
@@ -110,7 +113,7 @@ const copy = {
     generatedAt: (date: string) => `сформировано ${date}`,
   },
   en: {
-    title: "University interaction reports",
+    title: "Organization interaction reports",
     description: "Preview, summary, and export to XLSX / XLS / PDF / JSON.",
     filters: "Filters",
     collapseFilters: "Collapse filters",
@@ -119,7 +122,7 @@ const copy = {
     dateTo: "To date",
     periodOrder: "The start date must not be later than the end date.",
     periodTooLong: `The period cannot be longer than ${maxPeriodDays} days.`,
-    universities: "Universities",
+    organizations: "Organizations",
     directions: "Directions",
     programs: "Programs",
     products: "Products",
@@ -132,7 +135,7 @@ const copy = {
     programsCount: "Programs",
     productsCount: "Products",
     byResponsible: "By manager",
-    byUniversity: "By university",
+    byOrganization: "By organization",
     byProcessStatus: "By process status",
     byActiveStage: "By current stage",
     distributionEmpty: "No data",
@@ -217,8 +220,8 @@ export function ReportsWorkspace() {
     const value = Number(searchParams.get("page"));
     return Number.isFinite(value) && value > 0 ? value : 1;
   });
-  const [universities, setUniversities] = useState(() =>
-    optionsFromIds(filters.universities),
+  const [organizations, setOrganizations] = useState(() =>
+    optionsFromIds(filters.organizations),
   );
   const [directions, setDirections] = useState(() =>
     optionsFromIds(filters.directions),
@@ -430,19 +433,19 @@ export function ReportsWorkspace() {
             </div>
 
             <MultiEntitySelect
-              id="report-universities"
-              label={text.universities}
+              id="report-organizations"
+              label={text.organizations}
               onChange={(options) => {
-                setUniversities(options);
+                setOrganizations(options);
                 updateFilters({
                   ...filters,
-                  universities: options.map((o) => o.id),
+                  organizations: options.map((o) => o.id),
                 });
               }}
-              placeholder={text.universities}
-              queryKey={["reports", "lookup", "universities"]}
-              search={searchUniversities}
-              value={universities}
+              placeholder={text.organizations}
+              queryKey={["reports", "lookup", "organizations"]}
+              search={searchOrganizations}
+              value={organizations}
             />
             <MultiEntitySelect
               id="report-directions"

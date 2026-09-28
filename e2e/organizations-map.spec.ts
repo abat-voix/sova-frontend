@@ -23,7 +23,7 @@ async function mockAuthenticatedUser(page: Page) {
   });
 }
 
-const universities = [
+const organizations = [
   {
     id: "bmstu",
     name: "МГТУ им. Н. Э. Баумана",
@@ -82,25 +82,25 @@ const universities = [
   },
 ];
 
-async function mockUniversitiesApi(page: Page) {
-  await page.route("**/api/catalog/universities/**", async (route) => {
+async function mockOrganizationsApi(page: Page) {
+  await page.route("**/api/catalog/organizations/**", async (route) => {
     const url = new URL(route.request().url());
 
     if (url.pathname.endsWith("/map/")) {
       const search = url.searchParams.get("search")?.toLocaleLowerCase("ru");
-      const filteredUniversities = search
-        ? universities.filter((university) =>
+      const filteredOrganizations = search
+        ? organizations.filter((organization) =>
             [
-              university.name,
-              university.inn,
-              university.external_code,
-              university.email,
+              organization.name,
+              organization.inn,
+              organization.external_code,
+              organization.email,
             ].some((value) => value?.toLocaleLowerCase("ru").includes(search)),
           )
-        : universities;
+        : organizations;
       await route.fulfill({
         contentType: "application/json",
-        json: filteredUniversities.map(({ id, lat, lon }) => ({
+        json: filteredOrganizations.map(({ id, lat, lon }) => ({
           id,
           lat,
           lon,
@@ -109,11 +109,11 @@ async function mockUniversitiesApi(page: Page) {
       return;
     }
 
-    const id = url.pathname.match(/\/universities\/([^/]+)\/$/)?.[1];
+    const id = url.pathname.match(/\/organizations\/([^/]+)\/$/)?.[1];
     if (id) {
       await route.fulfill({
         contentType: "application/json",
-        json: universities.find((university) => university.id === id),
+        json: organizations.find((organization) => organization.id === id),
       });
       return;
     }
@@ -121,10 +121,10 @@ async function mockUniversitiesApi(page: Page) {
     await route.fulfill({
       contentType: "application/json",
       json: {
-        count: universities.length,
+        count: organizations.length,
         next: null,
         previous: null,
-        results: universities,
+        results: organizations,
       },
     });
   });
@@ -185,11 +185,11 @@ async function clickMapCenter(page: Page) {
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 }
 
-test("switches organizations from the list to the university map", async ({
+test("switches organizations from the list to the organization map", async ({
   page,
 }) => {
   await mockAuthenticatedUser(page);
-  await mockUniversitiesApi(page);
+  await mockOrganizationsApi(page);
   await stubMapTiles(page);
 
   await page.goto("/organizations");
@@ -206,7 +206,7 @@ test("switches organizations from the list to the university map", async ({
   const filteredMapRequest = page.waitForRequest((request) => {
     const url = new URL(request.url());
     return (
-      url.pathname.endsWith("/api/catalog/universities/map/") &&
+      url.pathname.endsWith("/api/catalog/organizations/map/") &&
       url.searchParams.get("search") === "ИТМО"
     );
   });
@@ -234,7 +234,7 @@ test.describe("mobile", () => {
 
   test("keeps the navigation drawer above the map", async ({ page }) => {
     await mockAuthenticatedUser(page);
-    await mockUniversitiesApi(page);
+    await mockOrganizationsApi(page);
     await stubMapTiles(page);
     await openMapView(page);
 
@@ -258,7 +258,7 @@ test.describe("mobile", () => {
 
   test("opens the selected organization in a sheet", async ({ page }) => {
     await mockAuthenticatedUser(page);
-    await mockUniversitiesApi(page);
+    await mockOrganizationsApi(page);
     await stubMapTiles(page);
     await openMapView(page);
 
@@ -269,7 +269,7 @@ test.describe("mobile", () => {
     const filteredMapRequest = page.waitForRequest((request) => {
       const url = new URL(request.url());
       return (
-        url.pathname.endsWith("/api/catalog/universities/map/") &&
+        url.pathname.endsWith("/api/catalog/organizations/map/") &&
         url.searchParams.get("search") === "ИТМО"
       );
     });

@@ -61,7 +61,7 @@ const copy = {
     allFilter: "Все статусы",
     retry: "Повторить",
     searchLabel: "Поиск взаимодействий",
-    searchPlaceholder: "Вуз, клиент или ответственный",
+    searchPlaceholder: "Организация, клиент или ответственный",
     unassigned: "не назначен",
     unnamed: "Без названия",
     view: "Карточка взаимодействия",
@@ -90,7 +90,7 @@ const copy = {
     allFilter: "All statuses",
     retry: "Retry",
     searchLabel: "Search interactions",
-    searchPlaceholder: "University, client, or responsible",
+    searchPlaceholder: "Organization, client, or responsible",
     unassigned: "unassigned",
     unnamed: "Untitled",
     view: "Interaction card",
@@ -126,7 +126,7 @@ export function interactionTitle(
   fallback: string,
 ) {
   return (
-    interaction.university?.name ??
+    interaction.organization?.name ??
     interaction.b2c_client?.full_name ??
     fallback
   );

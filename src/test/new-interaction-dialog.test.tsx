@@ -29,7 +29,9 @@ const page = (results: { id: string; name: string }[]) => ({
 
 /** Каталог: вуз, одно направление, одна программа, два продукта. */
 const catalog: Record<string, unknown> = {
-  "/api/catalog/universities/": page([{ id: "u-1", name: "Демо-университет" }]),
+  "/api/catalog/organizations/": page([
+    { id: "u-1", name: "Демо-университет" },
+  ]),
   "/api/catalog/b2c-clients/": {
     count: 1,
     next: null,
@@ -188,7 +190,7 @@ function interactionWith(
     is_active: true,
     products_count: 0,
     programs_count: 0,
-    university: { id: "u-1", name: "Демо-университет" },
+    organization: { id: "u-1", name: "Демо-университет" },
     updated_at: "2026-01-10T10:00:00Z",
   } as Interaction;
 }
@@ -220,7 +222,7 @@ describe("NewInteractionDialog", () => {
     await waitFor(() => expect(onCreated).toHaveBeenCalledWith("new-1"));
     expect(calls).toEqual([
       {
-        body: { comment: "Пилот", is_active: true, university: "u-1" },
+        body: { comment: "Пилот", is_active: true, organization: "u-1" },
         url: "/api/interactions/interactions/",
       },
     ]);
@@ -230,7 +232,7 @@ describe("NewInteractionDialog", () => {
     const calls = stubFetch();
     const { onCreated } = renderDialog("head", undefined, {
       id: "u-1",
-      kind: "university",
+      kind: "organization",
       name: "Демо-университет",
     });
 
@@ -242,7 +244,7 @@ describe("NewInteractionDialog", () => {
     await waitFor(() => expect(onCreated).toHaveBeenCalledWith("new-1"));
     expect(calls).toEqual([
       {
-        body: { comment: "", is_active: true, university: "u-1" },
+        body: { comment: "", is_active: true, organization: "u-1" },
         url: "/api/interactions/interactions/",
       },
     ]);
@@ -309,7 +311,7 @@ describe("NewInteractionDialog", () => {
       is_active: true,
       products_count: 0,
       programs_count: 0,
-      university: { id: "u-1", name: "Демо-университет" },
+      organization: { id: "u-1", name: "Демо-университет" },
       updated_at: "2026-01-10T10:00:00Z",
     });
 

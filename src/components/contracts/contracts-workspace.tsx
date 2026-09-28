@@ -191,7 +191,7 @@ function Counterparty({
   contract: Contract;
   fallback: string;
 }) {
-  const Icon = contract.interaction.university ? Building2 : UserRound;
+  const Icon = contract.interaction.organization ? Building2 : UserRound;
 
   return (
     <span className="flex items-start gap-2">

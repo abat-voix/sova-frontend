@@ -52,7 +52,7 @@ describe("contact affiliations API", () => {
             telegram: "",
             is_active: true,
           },
-          university: { id: "u1", name: "МГУ" },
+          organization: { id: "u1", name: "МГУ" },
           position: "Проректор",
           preferred_channels: ["email"],
           created_at: "2026-09-01T10:00:00+03:00",
@@ -63,14 +63,14 @@ describe("contact affiliations API", () => {
 
     const page = await getOrganizationAffiliations({
       activeContactsOnly: true,
-      organization: { id: "u1", type: "university" },
+      organization: { id: "u1", type: "organization" },
       page: 2,
       search: "  Анна ",
     });
 
     const { url } = call(fetchMock);
-    expect(url.pathname).toBe("/api/catalog/university-contacts/");
-    expect(url.searchParams.get("university__ids")).toBe("u1");
+    expect(url.pathname).toBe("/api/catalog/organization-contacts/");
+    expect(url.searchParams.get("organization__ids")).toBe("u1");
     expect(url.searchParams.get("contact__is_active")).toBe("true");
     expect(url.searchParams.get("page")).toBe("2");
     expect(url.searchParams.get("search")).toBe("Анна");
@@ -167,10 +167,10 @@ describe("contact affiliations API", () => {
 
     vi.unstubAllGlobals();
     const deleteMock = stubResponse(null, 204);
-    await deleteAffiliation("university", "a2", "csrf");
+    await deleteAffiliation("organization", "a2", "csrf");
     expect(call(deleteMock).method).toBe("DELETE");
     expect(call(deleteMock).url.pathname).toBe(
-      "/api/catalog/university-contacts/a2/",
+      "/api/catalog/organization-contacts/a2/",
     );
   });
 });

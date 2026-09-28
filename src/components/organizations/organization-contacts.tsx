@@ -40,7 +40,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
 import type {
   OrganizationAffiliation,
-  OrganizationRef,
+  ContactOwnerRef,
 } from "@/types/contact-person";
 
 const copy = {
@@ -99,7 +99,7 @@ export function OrganizationContacts({
   organization,
   organizationName,
 }: {
-  organization: OrganizationRef;
+  organization: ContactOwnerRef;
   organizationName: string;
 }) {
   const { locale } = useLocale();

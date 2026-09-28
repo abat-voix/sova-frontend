@@ -4,15 +4,24 @@ import {
   rankParams,
   type RankFilter,
 } from "@/lib/api/catalog/rank";
-import { buildQuery, getJson, patchJson, postJson } from "@/lib/api/http";
+import {
+  buildQuery,
+  getJson,
+  patchJson,
+  postJson,
+  putJson,
+} from "@/lib/api/http";
+import type {
+  B2CClientRegistrationAddress,
+  WriteB2CClientRegistrationAddress,
+} from "@/types/address";
 import type { PaginatedResponse } from "@/types/api";
-import type { B2CClient, B2CClientKind, WriteB2CClient } from "@/types/catalog";
+import type { B2CClient, WriteB2CClient } from "@/types/catalog";
 
 export const b2cClientsPageSize = 20;
 
 export type B2CClientsQuery = {
   isActive: boolean | null;
-  kind: B2CClientKind | null;
   page: number;
   rank: RankFilter;
   search: string;
@@ -24,7 +33,6 @@ export function b2cClientsQueryKey(params: Omit<B2CClientsQuery, "page">) {
 
 export function getB2CClients({
   isActive,
-  kind,
   page,
   rank,
   search,
@@ -32,7 +40,6 @@ export function getB2CClients({
   const query = buildQuery({
     ...rankParams(rank),
     is_active: isActive === null ? undefined : String(isActive),
-    kind: kind ?? undefined,
     ordering: rankOrdering(rank, "full_name"),
     page,
     page_size: b2cClientsPageSize,
@@ -63,6 +70,26 @@ export function updateB2CClient(
 ) {
   return patchJson<B2CClient>(
     apiEndpoints.catalog.b2cClients.detail(id),
+    payload,
+    csrfToken,
+  );
+}
+
+/** Адрес регистрации целиком — только администратору; просмотр пишется в журнал. */
+export function getB2CClientRegistrationAddress(id: string) {
+  return getJson<B2CClientRegistrationAddress>(
+    apiEndpoints.catalog.b2cClients.registrationAddress(id),
+  );
+}
+
+/** Изменение улицы, дома, квартиры и индекса; пишется в журнал. */
+export function updateB2CClientRegistrationAddress(
+  id: string,
+  payload: WriteB2CClientRegistrationAddress,
+  csrfToken: string,
+) {
+  return putJson<B2CClientRegistrationAddress>(
+    apiEndpoints.catalog.b2cClients.registrationAddress(id),
     payload,
     csrfToken,
   );

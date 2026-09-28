@@ -50,7 +50,7 @@ function stubApi() {
     vi.fn<typeof fetch>(async (input, init) => {
       const url = String(input);
       urls.push(url);
-      if (url.startsWith("/api/catalog/universities/"))
+      if (url.startsWith("/api/catalog/organizations/"))
         return json(page([{ id: "u1", name: "МГУ" }]));
       if (url.startsWith("/api/catalog/directions/"))
         return json(page([{ id: "d1", name: "DevOps" }]));
@@ -103,7 +103,7 @@ describe("training instructor form page", () => {
     });
     const submit = screen.getByRole("button", { name: "Сохранить" });
     expect(submit).toBeDisabled();
-    await pick("Вуз", /МГУ/);
+    await pick("Организация", /МГУ/);
 
     expect(screen.getAllByText("Ничего не выбрано.")).toHaveLength(2);
     await pick("Направления", /DevOps/);
@@ -134,7 +134,7 @@ describe("training instructor form page", () => {
       first_name: "Пётр",
       last_name: "Петров",
       programs: ["p1"],
-      university: "u1",
+      organization: "u1",
     });
     await waitFor(() =>
       expect(navigation.push).toHaveBeenCalledWith("/training/instructors/t1"),

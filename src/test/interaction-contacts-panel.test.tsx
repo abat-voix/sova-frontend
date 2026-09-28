@@ -14,7 +14,7 @@ import type { InteractionContact } from "@/types/interaction-contact";
 
 const interaction = {
   id: "interaction-1",
-  university: { id: "university-1", name: "Академия" },
+  organization: { id: "organization-1", name: "Академия" },
   b2c_client: null,
 };
 
@@ -74,9 +74,9 @@ describe("InteractionContactsPanel", () => {
         links = [];
         return new Response(null, { status: 204 });
       }
-      if (url.startsWith("/api/catalog/university-contacts/")) {
+      if (url.startsWith("/api/catalog/organization-contacts/")) {
         const query = new URL(url, "http://localhost").searchParams;
-        expect(query.get("university__ids")).toBe("university-1");
+        expect(query.get("organization__ids")).toBe("organization-1");
         expect(query.get("contact__is_active")).toBe("true");
         const page = Number(query.get("page"));
         const contact = contacts[page - 1];

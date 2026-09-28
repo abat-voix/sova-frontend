@@ -10,7 +10,7 @@ const interaction: Interaction = {
   id: "interaction-1",
   comment: "Пилот на осенний семестр",
   is_active: true,
-  university: { id: "university-1", name: "Академия" },
+  organization: { id: "organization-1", name: "Академия" },
   b2c_client: null,
   created_at: "2026-01-10T10:00:00Z",
   updated_at: "2026-02-01T10:00:00Z",
@@ -225,7 +225,7 @@ describe("InteractionCardDialog", () => {
               signed_at: "2026-01-05",
               interaction: {
                 id: interaction.id,
-                university: interaction.university,
+                organization: interaction.organization,
                 b2c_client: null,
               },
               created_at: "2026-01-01T10:00:00Z",

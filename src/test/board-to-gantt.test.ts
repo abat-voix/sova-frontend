@@ -57,11 +57,11 @@ function makeBoard(overrides: Partial<WorkflowBoard> = {}): WorkflowBoard {
     completed_at: null,
     context_groups: [],
     id: "board-1",
-    interaction: { b2c_client: null, id: "interaction-1", university: null },
+    interaction: { b2c_client: null, id: "interaction-1", organization: null },
     interaction_stages: [],
     started_at: "2026-09-07T09:00:00Z",
     status: "running",
-    workflow: { code: "university", id: "wf-1", name: "Работа с вузом" },
+    workflow: { code: "organization", id: "wf-1", name: "Работа с вузом" },
     ...overrides,
   };
 }

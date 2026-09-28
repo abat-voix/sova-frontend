@@ -19,10 +19,10 @@ export type InteractionLinkTarget = {
 export function parseInteractionLink(
   params: Pick<URLSearchParams, "get"> | null,
 ): InteractionLinkTarget {
-  const universityId = params?.get("university__ids") || null;
+  const organizationId = params?.get("organization__ids") || null;
   const b2cClientId = params?.get("b2c_client__ids") || null;
-  const counterpartyFilter = universityId
-    ? { id: universityId, kind: "university" as const }
+  const counterpartyFilter = organizationId
+    ? { id: organizationId, kind: "organization" as const }
     : b2cClientId
       ? { id: b2cClientId, kind: "b2c_client" as const }
       : null;

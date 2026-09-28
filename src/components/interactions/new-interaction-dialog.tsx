@@ -31,7 +31,7 @@ import {
   searchManagers,
   searchProducts,
   searchPrograms,
-  searchUniversities,
+  searchOrganizations,
 } from "@/lib/api/catalog/lookups";
 import { ApiError } from "@/lib/api/http";
 import { listUsers, usersQueryKey, usersRootKey } from "@/lib/api/users/team";
@@ -71,7 +71,7 @@ const copy = {
     failed: "Не удалось создать взаимодействие.",
     fillRows: "Заполните добавленные строки.",
     kindB2C: "B2C-клиент",
-    kindUniversity: "Вуз",
+    kindOrganization: "Организация",
     partial:
       "Взаимодействие создано, но часть позиций не добавлена. Нажмите «Повторить» — отправится только недостающее.",
     product: "Продукт",
@@ -96,7 +96,7 @@ const copy = {
     save: "Сохранить",
     submitting: "Создаём…",
     title: "Новое взаимодействие",
-    universityPlaceholder: "Выберите вуз",
+    organizationPlaceholder: "Выберите организацию",
   },
   en: {
     active: "Active",
@@ -119,7 +119,7 @@ const copy = {
     failed: "The interaction could not be created.",
     fillRows: "Fill in the rows you added.",
     kindB2C: "B2C client",
-    kindUniversity: "University",
+    kindOrganization: "Organization",
     partial:
       "The interaction was created, but some entries were not added. Press “Retry” — only the missing ones are sent.",
     product: "Product",
@@ -145,7 +145,7 @@ const copy = {
     save: "Save",
     submitting: "Creating…",
     title: "New interaction",
-    universityPlaceholder: "Pick a university",
+    organizationPlaceholder: "Pick a organization",
   },
 } as const;
 
@@ -183,10 +183,10 @@ function initialDraft({
   if (editInteraction) {
     return {
       comment: editInteraction.comment ?? "",
-      counterparty: editInteraction.university
+      counterparty: editInteraction.organization
         ? {
-            id: editInteraction.university.id,
-            name: editInteraction.university.name,
+            id: editInteraction.organization.id,
+            name: editInteraction.organization.name,
           }
         : editInteraction.b2c_client
           ? {
@@ -196,7 +196,7 @@ function initialDraft({
           : null,
       counterpartyKind: editInteraction.b2c_client
         ? "b2c_client"
-        : "university",
+        : "organization",
       createdInteractionId: null,
       directions: [],
       isActive: editInteraction.is_active ?? true,
@@ -215,7 +215,7 @@ function initialDraft({
     counterparty: preselectedCounterparty
       ? { id: preselectedCounterparty.id, name: preselectedCounterparty.name }
       : null,
-    counterpartyKind: preselectedCounterparty?.kind ?? "university",
+    counterpartyKind: preselectedCounterparty?.kind ?? "organization",
     responsibles: responsible ? [responsible] : [],
   };
 }
@@ -631,7 +631,7 @@ export function NewInteractionDialog({
               {text.counterparty}
             </legend>
             <div className="flex gap-4 text-sm">
-              {(["university", "b2c_client"] as const).map((kind) => (
+              {(["organization", "b2c_client"] as const).map((kind) => (
                 <label className="flex items-center gap-2" key={kind}>
                   <input
                     checked={draft.counterpartyKind === kind}
@@ -642,7 +642,9 @@ export function NewInteractionDialog({
                     }
                     type="radio"
                   />
-                  {kind === "university" ? text.kindUniversity : text.kindB2C}
+                  {kind === "organization"
+                    ? text.kindOrganization
+                    : text.kindB2C}
                 </label>
               ))}
             </div>
@@ -654,14 +656,14 @@ export function NewInteractionDialog({
                 dispatch({ option, type: "set-counterparty" })
               }
               placeholder={
-                draft.counterpartyKind === "university"
-                  ? text.universityPlaceholder
+                draft.counterpartyKind === "organization"
+                  ? text.organizationPlaceholder
                   : text.clientPlaceholder
               }
               queryKey={["catalog", "counterparty", draft.counterpartyKind]}
               search={
-                draft.counterpartyKind === "university"
-                  ? searchUniversities
+                draft.counterpartyKind === "organization"
+                  ? searchOrganizations
                   : searchB2CClients
               }
               value={draft.counterparty}
