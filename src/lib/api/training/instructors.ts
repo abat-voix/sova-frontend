@@ -82,18 +82,20 @@ export function deleteInstructor(id: string, csrfToken: string) {
   return deleteJson(apiEndpoints.training.instructors.detail(id), csrfToken);
 }
 
-/** Активные преподаватели организации-контрагента — для назначения на поток. */
-export async function searchCounterpartyInstructors(
-  counterparty: { organization: string | null; b2cClient: string | null },
+/**
+ * Кого можно назначить на поток: активные преподаватели организации-контрагента,
+ * которые ведут программу потока и ещё не назначены. Для завершённого или
+ * отменённого потока список пуст.
+ */
+export async function searchAssignableInstructors(
+  streamId: string,
   search: string,
 ): Promise<LookupOption[]> {
   const query = buildQuery({
-    b2c_client__ids: counterparty.b2cClient ?? undefined,
-    is_active: "true",
+    assignable_to_stream: streamId,
     page: 1,
     page_size: 20,
     search: search.trim(),
-    organization__ids: counterparty.organization ?? undefined,
   });
   const page = await getJson<PaginatedResponse<TrainingInstructor>>(
     `${apiEndpoints.training.instructors.list}?${query}`,

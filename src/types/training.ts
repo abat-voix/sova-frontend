@@ -236,9 +236,14 @@ export type LearnerImportResult = {
 
 /** Черновик формы `training.create`: программы, договор и преподаватели контрагента. */
 export type CreateTrainingStreamFeatureInitial = {
-  programs: { id: string; name: string; direction: string }[];
+  /** `instructors` — кого можно назначить на поток по этой программе. */
+  programs: {
+    id: string;
+    name: string;
+    direction: string;
+    instructors: TrainingInstructorShort[];
+  }[];
   has_signed_contract: boolean;
-  instructors: TrainingInstructorShort[];
   stream: { name: string; starts_at: string | null; ends_at: string | null };
 };
 

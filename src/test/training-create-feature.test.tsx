@@ -70,7 +70,6 @@ describe("training.create feature", () => {
     stubApi({
       programs: [],
       has_signed_contract: false,
-      instructors: [],
       stream: {},
     });
     renderFeature();
@@ -82,9 +81,15 @@ describe("training.create feature", () => {
 
   it("creates a stream for the only program and links to it", async () => {
     const executed = stubApi({
-      programs: [{ id: "ip1", name: "DevOps-инженер", direction: "DevOps" }],
+      programs: [
+        {
+          id: "ip1",
+          name: "DevOps-инженер",
+          direction: "DevOps",
+          instructors: [],
+        },
+      ],
       has_signed_contract: true,
-      instructors: [],
       stream: { name: "", starts_at: null, ends_at: null },
     });
     renderFeature();
@@ -109,5 +114,40 @@ describe("training.create feature", () => {
     expect(
       await screen.findByRole("link", { name: "Открыть в разделе «Обучение»" }),
     ).toHaveAttribute("href", "/training/streams/s9");
+  });
+
+  it("offers only instructors of the selected program", async () => {
+    stubApi({
+      programs: [
+        {
+          id: "ip1",
+          name: "DevOps-инженер",
+          direction: "DevOps",
+          instructors: [{ id: "i1", full_name: "Петров Пётр", position: "" }],
+        },
+        {
+          id: "ip2",
+          name: "Аналитик данных",
+          direction: "Data",
+          instructors: [],
+        },
+      ],
+      has_signed_contract: true,
+      stream: { name: "", starts_at: null, ends_at: null },
+    });
+    renderFeature();
+
+    const program = await screen.findByLabelText(/Программа/);
+    expect(screen.queryByLabelText(/Преподаватели/)).not.toBeInTheDocument();
+
+    fireEvent.change(program, { target: { value: "ip1" } });
+    expect(
+      screen.getByText(/преподаватели, которые ведут выбранную программу/),
+    ).toBeInTheDocument();
+
+    fireEvent.change(program, { target: { value: "ip2" } });
+    expect(
+      screen.getByText(/Нет преподавателей для этой программы/),
+    ).toBeInTheDocument();
   });
 });

@@ -45,6 +45,10 @@ const copy = {
     endsAt: "Окончание",
     instructors: "Преподаватели",
     instructorsPlaceholder: "Преподаватели организации-контрагента",
+    instructorsHint:
+      "В списке — преподаватели, которые ведут выбранную программу.",
+    noInstructors:
+      "Нет преподавателей для этой программы. Укажите программу в карточке преподавателя, чтобы его можно было назначить.",
     submit: "Создать поток",
     saving: "Создаём…",
     success: "Поток создан.",
@@ -66,6 +70,10 @@ const copy = {
     endsAt: "End",
     instructors: "Instructors",
     instructorsPlaceholder: "Instructors of the counterparty",
+    instructorsHint:
+      "Only instructors who teach the selected program are listed.",
+    noInstructors:
+      "No instructors for this program. Add the program to an instructor's profile to assign them.",
     submit: "Create stream",
     saving: "Creating…",
     success: "Stream created.",
@@ -114,12 +122,15 @@ export function TrainingCreateFeature({
   // Единственная программа (например, на этапе программы) выбирается сама
   const selectedProgram =
     program || (initial?.programs.length === 1 ? initial.programs[0].id : "");
+  // Назначить можно только преподавателей, которые ведут выбранную программу
   const instructorOptions: LookupOption[] =
-    initial?.instructors.map((item) => ({
-      id: item.id,
-      name: item.full_name,
-      hint: item.position,
-    })) ?? [];
+    initial?.programs
+      .find((item) => item.id === selectedProgram)
+      ?.instructors.map((item) => ({
+        id: item.id,
+        name: item.full_name,
+        hint: item.position,
+      })) ?? [];
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -181,7 +192,10 @@ export function TrainingCreateFeature({
             <select
               className={fieldInputClass}
               id={`${actionInstanceId}-training-program`}
-              onChange={(event) => setProgram(event.target.value)}
+              onChange={(event) => {
+                setProgram(event.target.value);
+                setInstructors([]);
+              }}
               required
               value={selectedProgram}
             >
@@ -233,21 +247,37 @@ export function TrainingCreateFeature({
               />
             </Field>
           </div>
-          {instructorOptions.length > 0 ? (
-            <MultiEntitySelect
-              id={`${actionInstanceId}-training-instructors`}
-              label={text.instructors}
-              onChange={setInstructors}
-              placeholder={text.instructorsPlaceholder}
-              queryKey={["processes", "training-create", actionInstanceId]}
-              search={async (term) =>
-                instructorOptions.filter((option) =>
-                  option.name.toLowerCase().includes(term.trim().toLowerCase()),
-                )
-              }
-              value={instructors}
-            />
-          ) : null}
+          {!selectedProgram ? null : instructorOptions.length > 0 ? (
+            <div>
+              <MultiEntitySelect
+                id={`${actionInstanceId}-training-instructors`}
+                label={text.instructors}
+                onChange={setInstructors}
+                placeholder={text.instructorsPlaceholder}
+                queryKey={[
+                  "processes",
+                  "training-create",
+                  actionInstanceId,
+                  selectedProgram,
+                ]}
+                search={async (term) =>
+                  instructorOptions.filter((option) =>
+                    option.name
+                      .toLowerCase()
+                      .includes(term.trim().toLowerCase()),
+                  )
+                }
+                value={instructors}
+              />
+              <p className="text-muted-foreground mt-1 text-xs">
+                {text.instructorsHint}
+              </p>
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-sm">
+              {text.noInstructors}
+            </p>
+          )}
           {mutation.isError ? (
             <p className="text-sm text-[var(--atmr-brand-orange)]">
               {apiErrorMessage(mutation.error, text.unknownError)}

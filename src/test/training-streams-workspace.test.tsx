@@ -104,7 +104,8 @@ function json(body: unknown, status = 200) {
   });
 }
 
-function stubApi() {
+function stubApi(streamOverrides: Partial<TrainingStream> = {}) {
+  const current = { ...stream, ...streamOverrides };
   const requests: { url: string; method: string; body: unknown }[] = [];
   vi.stubGlobal(
     "fetch",
@@ -116,13 +117,13 @@ function stubApi() {
         method,
         url,
       });
-      if (url.startsWith("/api/training/streams/s1/")) return json(stream);
+      if (url.startsWith("/api/training/streams/s1/")) return json(current);
       if (url.startsWith("/api/training/streams/?"))
         return json({
           count: 1,
           next: null,
           previous: null,
-          results: [stream],
+          results: [current],
         });
       if (url.startsWith("/api/training/applications/?"))
         return json({
@@ -259,5 +260,43 @@ describe("training streams workspace", () => {
     expect(
       screen.queryByText("Загрузить пользователей в этот поток"),
     ).toBeNull();
+  });
+
+  it("searches only instructors assignable to the stream", async () => {
+    auth.permissions = kamPermissions;
+    const requests = stubApi();
+    renderStream();
+
+    expect(
+      await screen.findByText(
+        "В списке — преподаватели, которые ведут программу потока.",
+      ),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("combobox", { name: "Преподаватели" }));
+
+    await waitFor(() =>
+      expect(
+        requests.some((request) =>
+          request.url.startsWith(
+            "/api/training/instructors/?assignable_to_stream=s1",
+          ),
+        ),
+      ).toBe(true),
+    );
+  });
+
+  it("freezes instructors of a completed stream", async () => {
+    auth.permissions = kamPermissions;
+    stubApi({
+      instructors: [{ id: "t1", full_name: "Петров Пётр", position: "" }],
+      status: "completed",
+    });
+    renderStream();
+
+    expect(
+      await screen.findByText(/состав преподавателей не меняется/),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Назначить" })).toBeNull();
+    expect(screen.queryByLabelText("Снять: Петров Пётр")).toBeNull();
   });
 });

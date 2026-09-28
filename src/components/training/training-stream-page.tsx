@@ -24,7 +24,7 @@ import { Modal } from "@/components/ui/modal";
 import { StatusChip } from "@/components/ui/status-chip";
 import type { LookupOption } from "@/lib/api/catalog/lookups";
 import {
-  searchCounterpartyInstructors,
+  searchAssignableInstructors,
   trainingInstructorHref,
 } from "@/lib/api/training/instructors";
 import {
@@ -55,6 +55,9 @@ const copy = {
     noInstructors: "Преподаватели не назначены.",
     assign: "Назначить",
     instructorPlaceholder: "Преподаватель организации-контрагента",
+    instructorHint: "В списке — преподаватели, которые ведут программу потока.",
+    instructorsFrozen:
+      "Поток завершён или отменён — состав преподавателей не меняется.",
     unassign: "Снять",
     upload: "Загрузить пользователей в этот поток",
     editTitle: "Изменить поток",
@@ -79,6 +82,9 @@ const copy = {
     noInstructors: "No instructors assigned.",
     assign: "Assign",
     instructorPlaceholder: "Instructor of the counterparty",
+    instructorHint: "Only instructors who teach the stream program are listed.",
+    instructorsFrozen:
+      "The stream is completed or cancelled — instructors can't be changed.",
     unassign: "Remove",
     upload: "Upload users to this stream",
     editTitle: "Edit stream",
@@ -244,6 +250,10 @@ function StreamInstructors({
   const text = copy[locale];
   const common = registryCopy[locale];
   const [instructor, setInstructor] = useState<LookupOption | null>(null);
+  // Состав преподавателей закрытого потока бэкенд не меняет (`stream_closed`)
+  const isClosed =
+    stream.status === "completed" || stream.status === "cancelled";
+  const canChange = canUpdate && !isClosed;
   const onError = (error: unknown) =>
     toast.error(apiErrorMessage(error, common.unknownError));
   const assignMutation = useMutation({
@@ -295,7 +305,7 @@ function StreamInstructors({
                   </span>
                 ) : null}
               </span>
-              {canUpdate ? (
+              {canChange ? (
                 <Button
                   aria-label={`${text.unassign}: ${item.full_name}`}
                   colorScheme="neutral"
@@ -312,7 +322,12 @@ function StreamInstructors({
           ))}
         </ul>
       )}
-      {canUpdate ? (
+      {canUpdate && isClosed ? (
+        <p className="text-muted-foreground text-sm">
+          {text.instructorsFrozen}
+        </p>
+      ) : null}
+      {canChange ? (
         <div className="space-y-2">
           <EntitySelect
             excludeIds={stream.instructors.map((item) => item.id)}
@@ -321,17 +336,10 @@ function StreamInstructors({
             onChange={setInstructor}
             placeholder={text.instructorPlaceholder}
             queryKey={["training", "instructors", "lookup", stream.id]}
-            search={(term) =>
-              searchCounterpartyInstructors(
-                {
-                  b2cClient: stream.b2c_client,
-                  organization: stream.organization,
-                },
-                term,
-              )
-            }
+            search={(term) => searchAssignableInstructors(stream.id, term)}
             value={instructor}
           />
+          <p className="text-muted-foreground text-xs">{text.instructorHint}</p>
           <Button
             disabled={!instructor || assignMutation.isPending}
             onClick={() => instructor && assignMutation.mutate(instructor.id)}
