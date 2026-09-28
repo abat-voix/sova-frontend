@@ -43,7 +43,7 @@ describe("buildCreationPlan", () => {
     expect(plan.interaction).toEqual({
       comment: "Пилот",
       is_active: true,
-      university: "u-1",
+      organization: "u-1",
     });
     expect(plan.interactionId).toBeNull();
     expect(plan.directions).toEqual([{ directionId: "dir-1", key: "d1" }]);
@@ -92,7 +92,7 @@ describe("buildCreationPlan", () => {
     expect(buildCreationPlan(filledDraft()).responsibleIds).toEqual([]);
   });
 
-  it("sends b2c_client instead of university for a B2C counterparty", () => {
+  it("sends b2c_client instead of organization for a B2C counterparty", () => {
     const draft = reduce(
       emptyDraft,
       { kind: "b2c_client", type: "set-counterparty-kind" },

@@ -46,7 +46,7 @@ describe("contact persons API", () => {
     expect(url.searchParams.has("is_active")).toBe(false);
     expect(url.searchParams.has("ordering")).toBe(false);
     expect(url.searchParams.has("search")).toBe(false);
-    expect(url.searchParams.has("university__ids")).toBe(false);
+    expect(url.searchParams.has("organization__ids")).toBe(false);
     expect(url.searchParams.has("b2c_client__ids")).toBe(false);
   });
 
@@ -59,13 +59,13 @@ describe("contact persons API", () => {
       ordering: "-created_at",
       page: 3,
       search: "  Иванов  ",
-      universityId: "uni-1",
+      organizationId: "uni-1",
     });
 
     const url = requestedUrl(fetchMock);
     expect(url.searchParams.get("is_active")).toBe("false");
     expect(url.searchParams.get("b2c_client__ids")).toBe("b2c-1");
-    expect(url.searchParams.get("university__ids")).toBe("uni-1");
+    expect(url.searchParams.get("organization__ids")).toBe("uni-1");
     expect(url.searchParams.get("ordering")).toBe("-created_at");
     expect(url.searchParams.get("page")).toBe("3");
     expect(url.searchParams.get("search")).toBe("Иванов");

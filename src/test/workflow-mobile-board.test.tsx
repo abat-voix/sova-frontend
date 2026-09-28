@@ -12,7 +12,7 @@ const board: WorkflowBoard = {
   started_at: "2026-09-01T09:00:00+03:00",
   completed_at: null,
   workflow: { id: "workflow-1", name: "Процесс", code: "process" },
-  interaction: { id: "interaction-1", university: null, b2c_client: null },
+  interaction: { id: "interaction-1", organization: null, b2c_client: null },
   interaction_stages: [
     {
       id: "stage-1",

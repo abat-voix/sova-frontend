@@ -7,7 +7,7 @@
  */
 
 import type { DirectionShort, ProgramShort } from "@/types/catalog";
-import type { B2CClientShort, UniversityShort } from "@/types/workflow-board";
+import type { B2CClientShort, OrganizationShort } from "@/types/workflow-board";
 
 export type TrainingStreamStatus =
   "draft" | "enrollment_open" | "in_progress" | "completed" | "cancelled";
@@ -27,7 +27,7 @@ export type TrainingStream = {
   interaction_program: string;
   interaction: string;
   interaction_number: string;
-  university: string | null;
+  organization: string | null;
   b2c_client: string | null;
   counterparty_name: string;
   program: ProgramShort;
@@ -157,7 +157,7 @@ export type TrainingInstructor = {
   email: string;
   phone: string;
   telegram: string;
-  university: UniversityShort | null;
+  organization: OrganizationShort | null;
   b2c_client: B2CClientShort | null;
   department: string;
   position: string;
@@ -181,7 +181,7 @@ export type WriteTrainingInstructor = {
   email?: string;
   phone?: string;
   telegram?: string;
-  university?: string | null;
+  organization?: string | null;
   b2c_client?: string | null;
   department?: string;
   position?: string;

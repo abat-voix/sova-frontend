@@ -6,7 +6,6 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import {
-  Briefcase,
   LoaderCircle,
   Mail,
   Pencil,
@@ -21,6 +20,7 @@ import { toast } from "sonner";
 import { B2CClientForm } from "@/components/b2c-clients/b2c-client-form";
 
 import { RankChip } from "@/components/catalog/rank-chip";
+import { B2CRegistrationAddress } from "@/components/b2c-clients/b2c-registration-address";
 import { NewInteractionDialog } from "@/components/interactions/new-interaction-dialog";
 import { OrganizationContacts } from "@/components/organizations/organization-contacts";
 import {
@@ -41,23 +41,21 @@ import { formatDate } from "@/lib/format-date";
 import { can } from "@/lib/permissions";
 import { useAuth } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
-import type { B2CClient, B2CClientKind } from "@/types/catalog";
+import type { B2CClient } from "@/types/catalog";
 
 const drawerHeadingId = "b2c-client-drawer-title";
 
-type KindFilter = "all" | B2CClientKind;
 type ActivityFilter = "all" | "active" | "inactive";
 
 const copy = {
   ru: {
     title: "B2C-клиенты",
     description:
-      "Физические и юридические лица вне вузовской сети, с которыми ведётся работа.",
+      "Физические лица, с которыми ведётся работа. Компании и вузы — в разделе «Организации».",
     clientsCount: "клиентов",
     searchLabel: "Поиск B2C-клиентов",
-    searchPlaceholder: "ФИО или наименование, ИНН, email, телефон",
+    searchPlaceholder: "ФИО, ИНН, email, телефон",
     clearSearch: "Очистить поиск",
-    kindFilter: "Тип клиента",
     activityFilter: "Активность",
     rankFilter: "Рейтинг",
     rankTop: "Топ-10",
@@ -65,16 +63,15 @@ const copy = {
     unranked: "Без места",
     placeLabel: (rank: number) => `${rank} место`,
     all: "Все",
-    individual: "Физлицо",
-    legalEntity: "Юрлицо",
     active: "Активен",
     inactive: "Неактивен",
     activePlural: "Активные",
     inactivePlural: "Неактивные",
+    region: "Регион",
+    city: "Город",
     inn: "ИНН",
     email: "Email",
     phone: "Телефон",
-    kind: "Тип",
     createdAt: "Добавлен",
     updatedAt: "Обновлён",
     noValue: "Не указано",
@@ -98,12 +95,11 @@ const copy = {
   en: {
     title: "B2C clients",
     description:
-      "Individuals and companies outside the university network that the team works with.",
+      "Individuals the team works with. Companies and universities are in Organizations.",
     clientsCount: "clients",
     searchLabel: "Search B2C clients",
     searchPlaceholder: "Name, tax ID, email, or phone",
     clearSearch: "Clear search",
-    kindFilter: "Client type",
     activityFilter: "Activity",
     rankFilter: "Ranking",
     rankTop: "Top 10",
@@ -111,16 +107,15 @@ const copy = {
     unranked: "Unranked",
     placeLabel: (rank: number) => `#${rank}`,
     all: "All",
-    individual: "Individual",
-    legalEntity: "Company",
     active: "Active",
     inactive: "Inactive",
     activePlural: "Active",
     inactivePlural: "Inactive",
+    region: "Region",
+    city: "City",
     inn: "Tax ID",
     email: "Email",
     phone: "Phone",
-    kind: "Type",
     createdAt: "Added",
     updatedAt: "Updated",
     noValue: "Not provided",
@@ -145,20 +140,8 @@ const copy = {
 
 type Text = (typeof copy)[keyof typeof copy];
 
-function kindLabel(kind: B2CClientKind, text: Text) {
-  return kind === "individual" ? text.individual : text.legalEntity;
-}
-
-function ClientIcon({
-  kind,
-  className,
-}: {
-  kind: B2CClientKind;
-  className: string;
-}) {
-  const Icon = kind === "individual" ? UserRound : Briefcase;
-
-  return <Icon aria-hidden="true" className={className} />;
+function ClientIcon({ className }: { className: string }) {
+  return <UserRound aria-hidden="true" className={className} />;
 }
 
 function ClientCard({
@@ -190,15 +173,12 @@ function ClientCard({
       >
         <div className="flex items-start gap-4">
           <span className="flex size-14 shrink-0 items-center justify-center rounded-xl bg-[var(--atmr-background-accent-soft)] text-[var(--atmr-accent-primary)]">
-            <ClientIcon className="size-7" kind={client.kind} />
+            <ClientIcon className="size-7" />
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="leading-5 font-medium">{client.full_name}</h2>
             <span className="mt-2 flex flex-wrap gap-2">
               <RankChip label={text.placeLabel} rank={client.rank} />
-              <StatusChip tone="accent">
-                {kindLabel(client.kind, text)}
-              </StatusChip>
               <StatusChip tone={client.is_active ? "positive" : "neutral"}>
                 {client.is_active ? text.active : text.inactive}
               </StatusChip>
@@ -276,7 +256,8 @@ function ClientDetails({
   text: Text;
 }) {
   const rows: OrganizationInspectorRow[] = [
-    [text.kind, kindLabel(client.kind, text)],
+    [text.region, client.address?.region],
+    [text.city, client.address?.city],
     [text.inn, client.inn],
     [
       text.email,
@@ -313,11 +294,12 @@ function ClientDetails({
           </>
         }
         headingId={drawerHeadingId}
-        icon={<ClientIcon className="size-6" kind={client.kind} />}
+        icon={<ClientIcon className="size-6" />}
         noValueLabel={text.noValue}
         rows={rows}
         title={client.full_name}
       />
+      <B2CRegistrationAddress clientId={client.id} />
       <OrganizationContacts
         organization={{ id: client.id, type: "b2c_client" }}
         organizationName={client.full_name}
@@ -338,7 +320,6 @@ export function B2CClientsWorkspace() {
   const text = copy[locale];
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [kind, setKind] = useState<KindFilter>("all");
   const [activity, setActivity] = useState<ActivityFilter>("all");
   const [rank, setRank] = useState<RankFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -362,7 +343,6 @@ export function B2CClientsWorkspace() {
 
   const params = {
     isActive: activity === "all" ? null : activity === "active",
-    kind: kind === "all" ? null : kind,
     rank,
     search: debouncedSearch,
   };
@@ -390,17 +370,6 @@ export function B2CClientsWorkspace() {
   });
 
   const filters: TableFilter[] = [
-    {
-      label: text.kindFilter,
-      name: "kind",
-      onChange: (value) => setKind(value as KindFilter),
-      options: [
-        { label: text.all, value: "all" },
-        { label: text.individual, value: "individual" },
-        { label: text.legalEntity, value: "legal_entity" },
-      ],
-      value: kind,
-    },
     {
       label: text.activityFilter,
       name: "activity",

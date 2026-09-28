@@ -15,7 +15,7 @@ import {
   kamPermissions,
   observerPermissions,
 } from "@/test/fixtures/permissions";
-import type { OrganizationRef } from "@/types/contact-person";
+import type { ContactOwnerRef } from "@/types/contact-person";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 const auth = vi.hoisted(() => ({ permissions: [] as string[] }));
@@ -110,7 +110,7 @@ function stubCatalog(
   return calls;
 }
 
-function renderContacts(organization: OrganizationRef, name = "Академия") {
+function renderContacts(organization: ContactOwnerRef, name = "Академия") {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -153,7 +153,7 @@ describe("OrganizationContacts", () => {
   });
 
   it("removes a person from the organization after confirmation", async () => {
-    const calls = stubCatalog("/api/catalog/university-contacts/", [
+    const calls = stubCatalog("/api/catalog/organization-contacts/", [
       {
         contact: person("c1", "Анна Смирнова"),
         id: "a1",
@@ -161,7 +161,7 @@ describe("OrganizationContacts", () => {
         preferred_channels: [],
       },
     ]);
-    renderContacts({ id: "u1", type: "university" });
+    renderContacts({ id: "u1", type: "organization" });
 
     fireEvent.click(
       await screen.findByRole("button", { name: "Удалить из организации" }),
@@ -176,15 +176,15 @@ describe("OrganizationContacts", () => {
       expect(calls.some((call) => call.method === "DELETE")).toBe(true),
     );
     const removal = calls.find((call) => call.method === "DELETE")!;
-    expect(removal.url.pathname).toBe("/api/catalog/university-contacts/a1/");
+    expect(removal.url.pathname).toBe("/api/catalog/organization-contacts/a1/");
     expect(
       await screen.findByText("Контактные лица не указаны"),
     ).toBeInTheDocument();
   });
 
   it("creates a new person and links them to the organization", async () => {
-    const calls = stubCatalog("/api/catalog/university-contacts/", []);
-    renderContacts({ id: "u1", type: "university" });
+    const calls = stubCatalog("/api/catalog/organization-contacts/", []);
+    renderContacts({ id: "u1", type: "organization" });
 
     fireEvent.click(
       await screen.findByRole("button", { name: "Добавить контакт" }),
@@ -207,7 +207,7 @@ describe("OrganizationContacts", () => {
         calls.some(
           (call) =>
             call.method === "POST" &&
-            call.url.pathname === "/api/catalog/university-contacts/",
+            call.url.pathname === "/api/catalog/organization-contacts/",
         ),
       ).toBe(true),
     );
@@ -223,13 +223,13 @@ describe("OrganizationContacts", () => {
     const linked = calls.find(
       (call) =>
         call.method === "POST" &&
-        call.url.pathname === "/api/catalog/university-contacts/",
+        call.url.pathname === "/api/catalog/organization-contacts/",
     )!;
     expect(linked.body).toEqual({
       contact: "new-person",
       position: "Декан",
       preferred_channels: ["phone"],
-      university: "u1",
+      organization: "u1",
     });
   });
 
@@ -243,18 +243,18 @@ describe("OrganizationContacts", () => {
           position: "Проректор",
           preferred_channels: [],
           products: [],
-          type: "university",
+          type: "organization",
         },
       ],
       created_at: "2026-09-01T00:00:00Z",
       updated_at: "2026-09-01T00:00:00Z",
     };
     const calls = stubCatalog(
-      "/api/catalog/university-contacts/",
+      "/api/catalog/organization-contacts/",
       [],
       [duplicate],
     );
-    renderContacts({ id: "u1", type: "university" });
+    renderContacts({ id: "u1", type: "organization" });
 
     fireEvent.click(
       await screen.findByRole("button", { name: "Добавить контакт" }),
@@ -275,7 +275,7 @@ describe("OrganizationContacts", () => {
         calls.some(
           (call) =>
             call.method === "POST" &&
-            call.url.pathname === "/api/catalog/university-contacts/",
+            call.url.pathname === "/api/catalog/organization-contacts/",
         ),
       ).toBe(true),
     );
@@ -287,12 +287,12 @@ describe("OrganizationContacts", () => {
       ),
     ).toBe(false);
     const linked = calls.find((call) => call.method === "POST")!;
-    expect(linked.body).toMatchObject({ contact: "c7", university: "u1" });
+    expect(linked.body).toMatchObject({ contact: "c7", organization: "u1" });
   });
 
   it("shows an observer the organization's people without editing actions", async () => {
     auth.permissions = observerPermissions;
-    stubCatalog("/api/catalog/university-contacts/", [
+    stubCatalog("/api/catalog/organization-contacts/", [
       {
         contact: person("c1", "Анна Смирнова"),
         id: "a1",
@@ -300,7 +300,7 @@ describe("OrganizationContacts", () => {
         preferred_channels: [],
       },
     ]);
-    renderContacts({ id: "u1", type: "university" });
+    renderContacts({ id: "u1", type: "organization" });
 
     expect(await screen.findByText("Анна Смирнова")).toBeInTheDocument();
     for (const name of [

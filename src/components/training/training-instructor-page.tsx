@@ -384,7 +384,7 @@ export function TrainingInstructorPage({
           <p className="text-muted-foreground mt-1 text-sm">
             {[
               instructor.position,
-              instructor.university?.name ?? instructor.b2c_client?.full_name,
+              instructor.organization?.name ?? instructor.b2c_client?.full_name,
             ]
               .filter(Boolean)
               .join(" · ")}
@@ -421,7 +421,8 @@ export function TrainingInstructorPage({
             rows={[
               [
                 text.organization,
-                instructor.university?.name ?? instructor.b2c_client?.full_name,
+                instructor.organization?.name ??
+                  instructor.b2c_client?.full_name,
               ],
               [text.department, instructor.department],
               [text.position, instructor.position],

@@ -27,7 +27,7 @@ const contract: Contract = {
   signed_at: "2026-09-10",
   interaction: {
     id: "i1",
-    university: { id: "u1", name: "Тюменский университет" },
+    organization: { id: "u1", name: "Тюменский университет" },
     b2c_client: null,
   },
   created_at: "2026-08-30T10:00:00+03:00",

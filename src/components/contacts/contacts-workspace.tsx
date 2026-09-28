@@ -55,7 +55,7 @@ import {
 } from "@/lib/api/catalog/contact-persons";
 import {
   searchB2CClients,
-  searchUniversities,
+  searchOrganizations,
   searchVendors,
   type LookupOption,
 } from "@/lib/api/catalog/lookups";
@@ -67,7 +67,7 @@ import type {
   ContactActivityFilter,
   ContactAffiliation,
   ContactPerson,
-  OrganizationType,
+  ContactOwnerType,
 } from "@/types/contact-person";
 
 const drawerHeadingId = "contact-drawer-title";
@@ -76,7 +76,7 @@ const copy = {
   ru: {
     title: "Контакты",
     description:
-      "Контактные лица вузов, B2C-клиентов и вендоров: организации, должности и способы связаться.",
+      "Контактные лица организаций, B2C-клиентов и вендоров: организации, должности и способы связаться.",
     create: "Новый контакт",
     created: "Контакт создан.",
     saved: "Изменения сохранены.",
@@ -87,8 +87,8 @@ const copy = {
     activityAll: "Все",
     activityActive: "Активные",
     activityInactive: "Неактивные",
-    universityFilter: "Вуз",
-    universityPlaceholder: "Любой вуз",
+    organizationFilter: "Организация",
+    organizationPlaceholder: "Любая организация",
     b2cFilter: "B2C-клиент",
     b2cPlaceholder: "Любой клиент",
     vendorFilter: "Вендор",
@@ -132,7 +132,7 @@ const copy = {
   en: {
     title: "Contacts",
     description:
-      "Contact people of universities, B2C clients, and vendors: organizations, roles, and ways to reach them.",
+      "Contact people of organizations, B2C clients, and vendors: organizations, roles, and ways to reach them.",
     create: "New contact",
     created: "Contact created.",
     saved: "Changes saved.",
@@ -143,8 +143,8 @@ const copy = {
     activityAll: "All",
     activityActive: "Active",
     activityInactive: "Inactive",
-    universityFilter: "University",
-    universityPlaceholder: "Any university",
+    organizationFilter: "Organization",
+    organizationPlaceholder: "Any organization",
     b2cFilter: "B2C client",
     b2cPlaceholder: "Any client",
     vendorFilter: "Vendor",
@@ -187,9 +187,9 @@ const copy = {
   },
 } as const;
 
-const typeIcons: Record<OrganizationType, typeof Building2> = {
+const typeIcons: Record<ContactOwnerType, typeof Building2> = {
   b2c_client: User,
-  university: Building2,
+  organization: Building2,
   vendor: Factory,
 };
 
@@ -212,7 +212,7 @@ export function ContactsWorkspace() {
   const queryClient = useQueryClient();
   const table = useTableQueryState({ direction: "asc", field: "full_name" });
   const [activity, setActivity] = useState<ContactActivityFilter>("all");
-  const [university, setUniversity] = useState<LookupOption | null>(null);
+  const [organization, setOrganization] = useState<LookupOption | null>(null);
   const [b2cClient, setB2cClient] = useState<LookupOption | null>(null);
   const [vendor, setVendor] = useState<LookupOption | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -240,7 +240,7 @@ export function ContactsWorkspace() {
     ordering: table.ordering,
     page: table.page,
     search: table.debouncedSearch,
-    universityId: university?.id ?? null,
+    organizationId: organization?.id ?? null,
     vendorId: vendor?.id ?? null,
   };
   const contactsQuery = useQuery({
@@ -468,13 +468,13 @@ export function ContactsWorkspace() {
       >
         <div className="w-56">
           <EntitySelect
-            id="contacts-university-filter"
-            label={text.universityFilter}
-            onChange={table.withPageReset(setUniversity)}
-            placeholder={text.universityPlaceholder}
-            queryKey={["catalog", "universities", "lookup"]}
-            search={searchUniversities}
-            value={university}
+            id="contacts-organization-filter"
+            label={text.organizationFilter}
+            onChange={table.withPageReset(setOrganization)}
+            placeholder={text.organizationPlaceholder}
+            queryKey={["catalog", "organizations", "lookup"]}
+            search={searchOrganizations}
+            value={organization}
           />
         </div>
         <div className="w-56">

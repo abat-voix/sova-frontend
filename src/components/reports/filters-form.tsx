@@ -38,10 +38,10 @@ export function FiltersForm({
       />
 
       <CatalogMultiSelect
-        kind="universities"
-        label="Вузы"
-        onChange={(universities) => patch({ universities })}
-        selected={filters.universities}
+        kind="organizations"
+        label="Организации"
+        onChange={(organizations) => patch({ organizations })}
+        selected={filters.organizations}
       />
       <CatalogMultiSelect
         kind="directions"

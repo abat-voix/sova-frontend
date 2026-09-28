@@ -56,7 +56,7 @@ function renderFeature(featureCode: ActionFeatureCode) {
           featureCode={featureCode}
           interaction={{
             id: "interaction-1",
-            university: { id: "university-1", name: "Академия" },
+            organization: { id: "organization-1", name: "Академия" },
             b2c_client: null,
           }}
           workflowInstanceId="workflow-1"

@@ -17,7 +17,7 @@ import {
 } from "@/lib/api/catalog/b2c-clients";
 import { useAuth } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
-import type { B2CClient, B2CClientKind } from "@/types/catalog";
+import type { B2CClient } from "@/types/catalog";
 
 const formHeadingId = "b2c-client-form-title";
 
@@ -25,11 +25,9 @@ const copy = {
   ru: {
     createTitle: "Новый B2C-клиент",
     editTitle: "Изменить B2C-клиента",
-    fullName: "ФИО / наименование",
-    kind: "Тип клиента",
-    kindPlaceholder: "Выберите тип",
-    individual: "Физлицо",
-    legalEntity: "Юрлицо",
+    fullName: "ФИО",
+    region: "Регион",
+    city: "Город",
     inn: "ИНН",
     email: "Email",
     phone: "Телефон",
@@ -39,11 +37,9 @@ const copy = {
   en: {
     createTitle: "New B2C client",
     editTitle: "Edit B2C client",
-    fullName: "Full name / company name",
-    kind: "Client type",
-    kindPlaceholder: "Select a type",
-    individual: "Individual",
-    legalEntity: "Company",
+    fullName: "Full name",
+    region: "Region",
+    city: "City",
     inn: "Tax ID",
     email: "Email",
     phone: "Phone",
@@ -67,12 +63,13 @@ export function B2CClientForm({
   const text = copy[locale];
   const common = registryCopy[locale];
   const [fullName, setFullName] = useState(client?.full_name ?? "");
-  // Тип не угадываем: у нового клиента его выбирают явно
-  const [kind, setKind] = useState<B2CClientKind | "">(client?.kind ?? "");
   const [inn, setInn] = useState(client?.inn ?? "");
   const [email, setEmail] = useState(client?.email ?? "");
   const [phone, setPhone] = useState(client?.phone ?? "");
   const [isActive, setIsActive] = useState(client?.is_active ?? true);
+  // Открытая часть адреса; улица и дом — отдельно, только администратору
+  const [region, setRegion] = useState(client?.address?.region ?? "");
+  const [city, setCity] = useState(client?.address?.city ?? "");
 
   const mutation = useMutation({
     mutationFn: () => {
@@ -81,8 +78,12 @@ export function B2CClientForm({
         full_name: fullName.trim(),
         inn: inn.trim() || null,
         is_active: isActive,
-        kind: kind as B2CClientKind,
         phone: phone.trim(),
+        address: {
+          country_code: client?.address?.country_code ?? "",
+          region: region.trim(),
+          city: city.trim(),
+        },
       };
 
       return client
@@ -92,8 +93,7 @@ export function B2CClientForm({
     onSuccess: onSaved,
   });
 
-  const canSubmit =
-    fullName.trim() !== "" && kind !== "" && !mutation.isPending;
+  const canSubmit = fullName.trim() !== "" && !mutation.isPending;
 
   const input = (
     id: string,
@@ -142,23 +142,6 @@ export function B2CClientForm({
             required: true,
           })}
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field htmlFor="b2c-client-kind" label={text.kind} required>
-              <select
-                className={fieldInputClass}
-                id="b2c-client-kind"
-                onChange={(event) =>
-                  setKind(event.target.value as B2CClientKind | "")
-                }
-                required
-                value={kind}
-              >
-                <option disabled value="">
-                  {text.kindPlaceholder}
-                </option>
-                <option value="individual">{text.individual}</option>
-                <option value="legal_entity">{text.legalEntity}</option>
-              </select>
-            </Field>
             {input("b2c-client-inn", text.inn, inn, setInn)}
             {input("b2c-client-email", text.email, email, setEmail, {
               type: "email",
@@ -166,6 +149,8 @@ export function B2CClientForm({
             {input("b2c-client-phone", text.phone, phone, setPhone, {
               type: "tel",
             })}
+            {input("b2c-client-region", text.region, region, setRegion)}
+            {input("b2c-client-city", text.city, city, setCity)}
           </div>
           <label className="flex items-center gap-2 text-sm">
             <input

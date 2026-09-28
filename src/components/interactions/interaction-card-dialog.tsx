@@ -94,7 +94,7 @@ const copy = {
     files: "файлов",
     inactive: "Неактивно",
     kindB2C: "B2C-клиент",
-    kindUniversity: "Вуз",
+    kindOrganization: "Организация",
     licenses: "Лицензии",
     licensesEmpty: "Лицензий пока нет.",
     loading: "Загружаем…",
@@ -143,7 +143,7 @@ const copy = {
     files: "files",
     inactive: "Inactive",
     kindB2C: "B2C client",
-    kindUniversity: "University",
+    kindOrganization: "Organization",
     licenses: "Licenses",
     licensesEmpty: "No licenses yet.",
     loading: "Loading…",
@@ -687,7 +687,7 @@ export function InteractionCardDialog({
             </StatusChip>
           </div>
           <p className="text-muted-foreground mt-1 text-xs">
-            {isB2C ? text.kindB2C : text.kindUniversity}
+            {isB2C ? text.kindB2C : text.kindOrganization}
           </p>
         </div>
 

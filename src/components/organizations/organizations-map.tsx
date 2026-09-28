@@ -17,10 +17,10 @@ import Map, {
 
 import styles from "@/components/organizations/organizations-map.module.css";
 import { useLocale } from "@/providers/locale-provider";
-import type { UniversityMapPoint } from "@/types/university";
+import type { OrganizationMapPoint } from "@/types/organization";
 
 type OrganizationsMapProps = {
-  organizations: UniversityMapPoint[];
+  organizations: OrganizationMapPoint[];
   onSelect: (organizationId: string | null) => void;
   selectedId: string | null;
 };
@@ -37,10 +37,10 @@ type PointsGeoJson = {
 };
 
 const defaultTileUrl = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
-const pointsSourceId = "universities";
-const clustersLayerId = "university-clusters";
-const clusterCountLayerId = "university-cluster-count";
-const pointsLayerId = "university-points";
+const pointsSourceId = "organizations";
+const clustersLayerId = "organization-clusters";
+const clusterCountLayerId = "organization-cluster-count";
+const pointsLayerId = "organization-points";
 
 const initialViewState = {
   latitude: 61,
@@ -285,7 +285,7 @@ export function OrganizationsMap({
   return (
     <section
       aria-busy={!isReady}
-      aria-label={locale === "ru" ? "Карта вузов" : "University map"}
+      aria-label={locale === "ru" ? "Карта организаций" : "Organization map"}
       className={`${styles.root} relative border shadow-sm`}
       data-points-count={points.features.length}
     >

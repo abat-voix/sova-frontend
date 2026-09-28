@@ -323,7 +323,10 @@ function StreamInstructors({
             queryKey={["training", "instructors", "lookup", stream.id]}
             search={(term) =>
               searchCounterpartyInstructors(
-                { b2cClient: stream.b2c_client, university: stream.university },
+                {
+                  b2cClient: stream.b2c_client,
+                  organization: stream.organization,
+                },
                 term,
               )
             }

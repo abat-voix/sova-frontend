@@ -9,12 +9,12 @@ import type {
 } from "@/types/catalog-import";
 
 export const catalogTypeOptions: { value: CatalogType; label: string }[] = [
-  { value: "university", label: "Вузы" },
+  { value: "organization", label: "Организации" },
   { value: "vendor", label: "Вендоры" },
   { value: "direction", label: "Направления" },
   { value: "program", label: "Программы" },
   { value: "product", label: "Продукты" },
-  { value: "contact_person", label: "Ответственные от вуза" },
+  { value: "contact_person", label: "Ответственные от организации" },
   { value: "contract_registry", label: "Реестр договоров" },
 ];
 

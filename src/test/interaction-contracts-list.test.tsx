@@ -22,7 +22,7 @@ function contract(
     files_count: 0,
     interaction: {
       id: "interaction-1",
-      university: { id: "university-1", name: "Академия" },
+      organization: { id: "organization-1", name: "Академия" },
       b2c_client: null,
     },
     created_at: "2026-09-27T10:00:00Z",

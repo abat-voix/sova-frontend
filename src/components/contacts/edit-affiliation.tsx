@@ -18,7 +18,7 @@ import { updateAffiliation } from "@/lib/api/catalog/contact-affiliations";
 import { useLocale } from "@/providers/locale-provider";
 import type {
   ContactChannel,
-  OrganizationRef,
+  ContactOwnerRef,
   ProductShort,
 } from "@/types/contact-person";
 
@@ -49,7 +49,7 @@ export function EditAffiliation({
   csrfToken: string;
   onClose: () => void;
   onSaved: () => void;
-  organization: OrganizationRef;
+  organization: ContactOwnerRef;
   organizationName: string;
 }) {
   const { locale } = useLocale();

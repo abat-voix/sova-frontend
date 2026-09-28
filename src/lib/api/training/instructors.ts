@@ -84,7 +84,7 @@ export function deleteInstructor(id: string, csrfToken: string) {
 
 /** Активные преподаватели организации-контрагента — для назначения на поток. */
 export async function searchCounterpartyInstructors(
-  counterparty: { university: string | null; b2cClient: string | null },
+  counterparty: { organization: string | null; b2cClient: string | null },
   search: string,
 ): Promise<LookupOption[]> {
   const query = buildQuery({
@@ -93,7 +93,7 @@ export async function searchCounterpartyInstructors(
     page: 1,
     page_size: 20,
     search: search.trim(),
-    university__ids: counterparty.university ?? undefined,
+    organization__ids: counterparty.organization ?? undefined,
   });
   const page = await getJson<PaginatedResponse<TrainingInstructor>>(
     `${apiEndpoints.training.instructors.list}?${query}`,

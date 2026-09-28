@@ -27,7 +27,7 @@ export const contactPersonsQueryKey = (params?: ContactPersonsQuery) => {
       ordering: params.ordering ?? null,
       page: params.page,
       search: params.search ?? "",
-      universityId: params.universityId ?? null,
+      organizationId: params.organizationId ?? null,
       vendorId: params.vendorId ?? null,
     },
   ] as const;
@@ -48,8 +48,8 @@ export type ContactPersonsQuery = {
   ordering?: string | null;
   page: number;
   search?: string;
-  /** Один вуз из списка `university__ids`. */
-  universityId?: string | null;
+  /** Одна организация из списка `organization__ids`. */
+  organizationId?: string | null;
   /** Один вендор из списка `vendor__ids`. */
   vendorId?: string | null;
 };
@@ -60,7 +60,7 @@ export function getContactPersons({
   ordering,
   page,
   search = "",
-  universityId,
+  organizationId,
   vendorId,
 }: ContactPersonsQuery) {
   const query = buildQuery({
@@ -70,7 +70,7 @@ export function getContactPersons({
     page,
     page_size: contactPersonsPageSize,
     search: search.trim(),
-    university__ids: universityId ?? undefined,
+    organization__ids: organizationId ?? undefined,
     vendor__ids: vendorId ?? undefined,
   });
 

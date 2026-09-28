@@ -10,7 +10,7 @@ export const MAX_PENDING_EXPORTS = 5;
 export const ORDERING_OPTIONS: { value: ReportOrdering; label: string }[] = [
   { value: "-created_at", label: "Сначала новые" },
   { value: "created_at", label: "Сначала старые" },
-  { value: "university", label: "По вузу" },
+  { value: "organization", label: "По организации" },
   { value: "responsible", label: "По ответственному" },
 ];
 

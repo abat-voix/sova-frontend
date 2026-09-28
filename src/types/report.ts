@@ -1,10 +1,10 @@
 export type ReportFormat = "xlsx" | "xls" | "pdf" | "json";
 
 export type ReportOrdering =
-  "-created_at" | "created_at" | "university" | "responsible";
+  "-created_at" | "created_at" | "organization" | "responsible";
 
 export type ReportColumn =
-  | "university"
+  | "organization"
   | "direction"
   | "program"
   | "product"
@@ -21,7 +21,7 @@ export type ReportColumn =
 export type ReportFilters = {
   date_from: string | null;
   date_to: string | null;
-  universities: string[];
+  organizations: string[];
   directions: string[];
   programs: string[];
   products: string[];
@@ -33,7 +33,7 @@ export type ReportFilters = {
 export const emptyReportFilters: ReportFilters = {
   date_from: null,
   date_to: null,
-  universities: [],
+  organizations: [],
   directions: [],
   programs: [],
   products: [],
@@ -87,11 +87,11 @@ export type ReportRow = {
   interaction_direction_id: string | null;
   interaction_program_id: string | null;
   interaction_product_id: string | null;
-  university_id: string | null;
+  organization_id: string | null;
   program_id: string | null;
   /** Действующие КАМы взаимодействия по алфавиту. */
   responsible_ids: number[];
-  university?: string;
+  organization?: string;
   direction?: string;
   program?: string;
   product?: string;
@@ -129,7 +129,7 @@ export type ReportSummaryResponse = {
   programs_count: number;
   products_count: number;
   by_responsible: ReportDistributionEntry[];
-  by_university: ReportDistributionEntry[];
+  by_organization: ReportDistributionEntry[];
   by_process_status: ReportDistributionEntry[];
   by_active_stage: ReportDistributionEntry[];
   metrics: ReportMetric[];

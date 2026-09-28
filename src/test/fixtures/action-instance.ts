@@ -21,7 +21,7 @@ export const actionInstanceFixture = {
   workflow_instance: "wf-1",
   interaction: {
     id: "in-1",
-    university: { id: "u-1", name: "МГУ" },
+    organization: { id: "u-1", name: "МГУ" },
     b2c_client: null,
   },
   action: { id: "def-1", name: "Подписать договор" },

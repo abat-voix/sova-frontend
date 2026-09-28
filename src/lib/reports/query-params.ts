@@ -8,7 +8,7 @@ import {
 const ORDERINGS: ReportOrdering[] = [
   "-created_at",
   "created_at",
-  "university",
+  "organization",
   "responsible",
 ];
 
@@ -35,7 +35,7 @@ export function filtersFromSearchParams(
   return {
     date_from: params.get("date_from") || null,
     date_to: params.get("date_to") || null,
-    universities: parseList(params.get("universities")),
+    organizations: parseList(params.get("organizations")),
     directions: parseList(params.get("directions")),
     programs: parseList(params.get("programs")),
     products: parseList(params.get("products")),
@@ -54,8 +54,8 @@ export function filtersToSearchParams(
 
   if (filters.date_from) params.set("date_from", filters.date_from);
   if (filters.date_to) params.set("date_to", filters.date_to);
-  if (filters.universities.length)
-    params.set("universities", filters.universities.join(","));
+  if (filters.organizations.length)
+    params.set("organizations", filters.organizations.join(","));
   if (filters.directions.length)
     params.set("directions", filters.directions.join(","));
   if (filters.programs.length)

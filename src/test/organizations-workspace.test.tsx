@@ -12,7 +12,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { OrganizationsWorkspace } from "@/components/organizations/organizations-workspace";
 import { LocaleProvider } from "@/providers/locale-provider";
 import { kamPermissions } from "@/test/fixtures/permissions";
-import type { University } from "@/types/university";
+import type { Organization } from "@/types/organization";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
@@ -34,13 +34,13 @@ vi.mock("@/components/organizations/organizations-map", () => ({
   }: {
     onSelect: (organizationId: string) => void;
   }) => (
-    <button onClick={() => onSelect("university-1")} type="button">
+    <button onClick={() => onSelect("organization-1")} type="button">
       Выбрать университет на карте
     </button>
   ),
 }));
 
-const university = (id: string, name: string): University => ({
+const organization = (id: string, name: string): Organization => ({
   id,
   name,
   inn: null,
@@ -51,9 +51,20 @@ const university = (id: string, name: string): University => ({
   is_active: true,
   created_at: "2026-09-20T17:18:08.681266+03:00",
   updated_at: "2026-09-20T17:18:08.681272+03:00",
-  lat: null,
-  lon: null,
-  city: "Тюмень",
+  organization_type: "education",
+  legal_address: null,
+  actual_address: {
+    country_code: "RU",
+    region: "",
+    city: "Тюмень",
+    street: "",
+    house: "",
+    office: "",
+    postal_code: "",
+    lat: null,
+    lon: null,
+  },
+  actual_same_as_legal: false,
 });
 
 afterEach(() => {
@@ -62,27 +73,29 @@ afterEach(() => {
 });
 
 describe("OrganizationsWorkspace", () => {
-  it("loads and shows contact people for the university selected on the map", async () => {
-    const selectedUniversity = university(
-      "university-1",
+  it("loads and shows contact people for the organization selected on the map", async () => {
+    const selectedOrganization = organization(
+      "organization-1",
       "Тюменский университет",
     );
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = new URL(String(input), "http://localhost");
       let body: unknown;
 
-      if (url.pathname === "/api/catalog/universities/map/") {
+      if (url.pathname === "/api/catalog/organizations/map/") {
         body = [
           {
-            id: selectedUniversity.id,
+            id: selectedOrganization.id,
             lat: "57.15",
             lon: "65.53",
             has_interactions: false,
           },
         ];
-      } else if (url.pathname === "/api/catalog/universities/university-1/") {
-        body = selectedUniversity;
-      } else if (url.pathname === "/api/catalog/university-contacts/") {
+      } else if (
+        url.pathname === "/api/catalog/organizations/organization-1/"
+      ) {
+        body = selectedOrganization;
+      } else if (url.pathname === "/api/catalog/organization-contacts/") {
         body = {
           count: 1,
           next: null,
@@ -144,31 +157,31 @@ describe("OrganizationsWorkspace", () => {
     await waitFor(() => {
       const contactUrl = fetchMock.mock.calls
         .map(([input]) => new URL(String(input), "http://localhost"))
-        .find((url) => url.pathname === "/api/catalog/university-contacts/");
+        .find((url) => url.pathname === "/api/catalog/organization-contacts/");
 
-      expect(contactUrl?.searchParams.get("university__ids")).toBe(
-        "university-1",
+      expect(contactUrl?.searchParams.get("organization__ids")).toBe(
+        "organization-1",
       );
     });
   });
 
-  it("opens the university card in a drawer from the list", async () => {
-    const selectedUniversity = {
-      ...university("university-1", "Тюменский университет"),
+  it("opens the organization card in a drawer from the list", async () => {
+    const selectedOrganization = {
+      ...organization("organization-1", "Тюменский университет"),
       rank: 3,
     };
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = new URL(String(input), "http://localhost");
       const body =
-        url.pathname === "/api/catalog/universities/"
+        url.pathname === "/api/catalog/organizations/"
           ? {
               count: 1,
               next: null,
               previous: null,
-              results: [selectedUniversity],
+              results: [selectedOrganization],
             }
-          : url.pathname === "/api/catalog/universities/university-1/"
-            ? selectedUniversity
+          : url.pathname === "/api/catalog/organizations/organization-1/"
+            ? selectedOrganization
             : { count: 0, next: null, previous: null, results: [] };
 
       return new Response(JSON.stringify(body), {
@@ -189,7 +202,12 @@ describe("OrganizationsWorkspace", () => {
       </QueryClientProvider>,
     );
     fireEvent.click(screen.getByRole("button", { name: "Список" }));
-    fireEvent.click(await screen.findByText("Тюменский университет"));
+    const card = (await screen.findByText("Тюменский университет")).closest(
+      "button",
+    )!;
+    // Тип организации — чип сразу после места
+    expect(within(card).getByText("Вуз")).toBeInTheDocument();
+    fireEvent.click(card);
 
     const drawer = await screen.findByRole("dialog");
     expect(
@@ -203,8 +221,8 @@ describe("OrganizationsWorkspace", () => {
         fetchMock.mock.calls.some(
           ([input]) =>
             new URL(String(input), "http://localhost").searchParams.get(
-              "university__ids",
-            ) === "university-1",
+              "organization__ids",
+            ) === "organization-1",
         ),
       ).toBe(true),
     );
@@ -219,16 +237,16 @@ describe("OrganizationsWorkspace", () => {
         ? {
             count: 3,
             next: null,
-            previous: "/api/catalog/universities/?page=1&page_size=20",
-            results: [university("3", "Третий университет")],
+            previous: "/api/catalog/organizations/?page=1&page_size=20",
+            results: [organization("3", "Третий университет")],
           }
         : {
             count: 3,
-            next: "/api/catalog/universities/?page=2&page_size=20",
+            next: "/api/catalog/organizations/?page=2&page_size=20",
             previous: null,
             results: [
-              university("1", "Первый университет"),
-              university("2", "Второй университет"),
+              organization("1", "Первый университет"),
+              organization("2", "Второй университет"),
             ],
           };
 
@@ -259,18 +277,18 @@ describe("OrganizationsWorkspace", () => {
     expect(await screen.findByText("Третий университет")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Подгрузить" })).toBeNull();
     expect(fetchMock).toHaveBeenLastCalledWith(
-      "/api/catalog/universities/?page=2&page_size=20",
+      "/api/catalog/organizations/?page=2&page_size=20",
       expect.objectContaining({ credentials: "include" }),
     );
   });
 
-  it("sends the debounced search value to the universities endpoint", async () => {
+  it("sends the debounced search value to the organizations endpoint", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = new URL(String(input), "http://localhost");
       const search = url.searchParams.get("search");
       const results = search
-        ? [university("1", "Тюменский университет")]
-        : [university("2", "Первый университет")];
+        ? [organization("1", "Тюменский университет")]
+        : [organization("2", "Первый университет")];
 
       return new Response(
         JSON.stringify({
@@ -298,7 +316,7 @@ describe("OrganizationsWorkspace", () => {
 
     expect(await screen.findByText("Первый университет")).toBeInTheDocument();
     fireEvent.change(
-      screen.getByRole("searchbox", { name: "Поиск университетов" }),
+      screen.getByRole("searchbox", { name: "Поиск организаций" }),
       {
         target: { value: "  Тюмень  " },
       },
@@ -309,13 +327,13 @@ describe("OrganizationsWorkspace", () => {
     ).toBeInTheDocument();
     await waitFor(() =>
       expect(fetchMock).toHaveBeenLastCalledWith(
-        "/api/catalog/universities/?page=1&page_size=20&search=%D0%A2%D1%8E%D0%BC%D0%B5%D0%BD%D1%8C",
+        "/api/catalog/organizations/?page=1&page_size=20&search=%D0%A2%D1%8E%D0%BC%D0%B5%D0%BD%D1%8C",
         expect.objectContaining({ credentials: "include" }),
       ),
     );
   });
 
-  it("shows all universities by default and filters by interactions and activity", async () => {
+  it("shows all organizations by default and filters by interactions and activity", async () => {
     const fetchMock = vi.fn(
       async () =>
         new Response(
@@ -323,7 +341,7 @@ describe("OrganizationsWorkspace", () => {
             count: 1,
             next: null,
             previous: null,
-            results: [university("1", "Первый университет")],
+            results: [organization("1", "Первый университет")],
           }),
           { headers: { "content-type": "application/json" }, status: 200 },
         ),
@@ -344,7 +362,7 @@ describe("OrganizationsWorkspace", () => {
 
     expect(await screen.findByText("Первый университет")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/catalog/universities/?page=1&page_size=20",
+      "/api/catalog/organizations/?page=1&page_size=20",
       expect.objectContaining({ credentials: "include" }),
     );
 
@@ -357,7 +375,7 @@ describe("OrganizationsWorkspace", () => {
 
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
-        "/api/catalog/universities/?has_interactions=true&page=1&page_size=20",
+        "/api/catalog/organizations/?has_interactions=true&page=1&page_size=20",
         expect.objectContaining({ credentials: "include" }),
       ),
     );
@@ -371,16 +389,31 @@ describe("OrganizationsWorkspace", () => {
 
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
-        "/api/catalog/universities/?has_interactions=true&is_active=false&page=1&page_size=20",
+        "/api/catalog/organizations/?has_interactions=true&is_active=false&page=1&page_size=20",
         expect.objectContaining({ credentials: "include" }),
       ),
     );
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Тип" }), {
+      target: { value: "company" },
+    });
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/catalog/organizations/?has_interactions=true&is_active=false&organization_type=company&page=1&page_size=20",
+        expect.objectContaining({ credentials: "include" }),
+      ),
+    );
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Тип" }), {
+      target: { value: "" },
+    });
 
     fireEvent.click(screen.getByRole("button", { name: "Топ-10" }));
 
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
-        "/api/catalog/universities/?has_rank=true&rank_max=10&has_interactions=true&is_active=false&ordering=rank&page=1&page_size=20",
+        "/api/catalog/organizations/?has_rank=true&rank_max=10&has_interactions=true&is_active=false&ordering=rank&page=1&page_size=20",
         expect.objectContaining({ credentials: "include" }),
       ),
     );

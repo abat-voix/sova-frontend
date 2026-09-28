@@ -1,14 +1,17 @@
 import { Building2 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { RankChip } from "@/components/catalog/rank-chip";
+import { Button } from "@/components/ui/button";
 import { OrganizationInspector } from "@/components/organizations/organization-inspector";
 import { StatusChip } from "@/components/ui/status-chip";
+import { formatAddress, organizationCity } from "@/lib/address";
 import { formatDate } from "@/lib/format-date";
-import type { University } from "@/types/university";
+import { organizationTypeLabels } from "@/lib/organization-type";
+import type { Organization } from "@/types/organization";
 
 export type OrganizationDetailsLabels = {
   active: string;
+  actualAddress: string;
   city: string;
   createdAt: string;
   email: string;
@@ -16,10 +19,13 @@ export type OrganizationDetailsLabels = {
   hasInteractions: string;
   inactive: string;
   inn: string;
+  legalAddress: string;
   noInteractions: string;
   noValue: string;
   phone: string;
   place: (rank: number) => string;
+  sameAsLegal: string;
+  type: string;
   updatedAt: string;
   createInteraction: string;
 };
@@ -31,15 +37,15 @@ export type OrganizationDetailsLabels = {
 export function OrganizationDetails({
   headingId,
   labels,
-  onCreateInteraction,
   locale,
+  onCreateInteraction,
   organization,
 }: {
   headingId: string;
   labels: OrganizationDetailsLabels;
-  onCreateInteraction?: () => void;
   locale: "ru" | "en";
-  organization: University;
+  onCreateInteraction?: () => void;
+  organization: Organization;
 }) {
   return (
     <>
@@ -63,7 +69,18 @@ export function OrganizationDetails({
         icon={<Building2 aria-hidden="true" className="size-6" />}
         noValueLabel={labels.noValue}
         rows={[
-          [labels.city, organization.city],
+          [
+            labels.type,
+            organizationTypeLabels[locale][organization.organization_type],
+          ],
+          [labels.city, organizationCity(organization)],
+          [labels.legalAddress, formatAddress(organization.legal_address)],
+          [
+            labels.actualAddress,
+            organization.actual_same_as_legal
+              ? labels.sameAsLegal
+              : formatAddress(organization.actual_address),
+          ],
           [labels.inn, organization.inn],
           [
             labels.email,

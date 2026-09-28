@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { getUniversityMapPoints } from "@/lib/api/catalog/universities";
+import { getOrganizationMapPoints } from "@/lib/api/catalog/organizations";
 
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("universities API", () => {
+describe("organizations API", () => {
   it("passes the normalized search value to the map endpoint", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response("[]", {
@@ -16,10 +16,10 @@ describe("universities API", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    await getUniversityMapPoints("  Московский  ");
+    await getOrganizationMapPoints("  Московский  ");
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/catalog/universities/map/?search=%D0%9C%D0%BE%D1%81%D0%BA%D0%BE%D0%B2%D1%81%D0%BA%D0%B8%D0%B9",
+      "/api/catalog/organizations/map/?search=%D0%9C%D0%BE%D1%81%D0%BA%D0%BE%D0%B2%D1%81%D0%BA%D0%B8%D0%B9",
       expect.objectContaining({ credentials: "include" }),
     );
   });

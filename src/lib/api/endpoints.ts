@@ -19,6 +19,8 @@ export const apiEndpoints = {
     b2cClients: {
       detail: (id: string) => `/api/catalog/b2c-clients/${id}/`,
       list: "/api/catalog/b2c-clients/",
+      registrationAddress: (id: string) =>
+        `/api/catalog/b2c-clients/${id}/registration-address/`,
     },
     b2cClientContacts: {
       detail: (id: string) => `/api/catalog/b2c-client-contacts/${id}/`,
@@ -41,14 +43,14 @@ export const apiEndpoints = {
       detail: (id: string) => `/api/catalog/programs/${id}/`,
       list: "/api/catalog/programs/",
     },
-    universityContacts: {
-      detail: (id: string) => `/api/catalog/university-contacts/${id}/`,
-      list: "/api/catalog/university-contacts/",
+    organizationContacts: {
+      detail: (id: string) => `/api/catalog/organization-contacts/${id}/`,
+      list: "/api/catalog/organization-contacts/",
     },
-    universities: {
-      detail: (id: string) => `/api/catalog/universities/${id}/`,
-      list: "/api/catalog/universities/",
-      map: "/api/catalog/universities/map/",
+    organizations: {
+      detail: (id: string) => `/api/catalog/organizations/${id}/`,
+      list: "/api/catalog/organizations/",
+      map: "/api/catalog/organizations/map/",
     },
     vendorContacts: {
       detail: (id: string) => `/api/catalog/vendor-contacts/${id}/`,

@@ -1,10 +1,10 @@
 export type ReportFormat = "xlsx" | "xls" | "pdf" | "json";
 
 export type ReportOrdering =
-  "-created_at" | "created_at" | "university" | "responsible";
+  "-created_at" | "created_at" | "organization" | "responsible";
 
 export type ReportColumn =
-  | "university"
+  | "organization"
   | "direction"
   | "program"
   | "product"
@@ -21,7 +21,7 @@ export type ReportColumn =
 export interface ReportFilters {
   date_from: string | null;
   date_to: string | null;
-  universities: string[];
+  organizations: string[];
   directions: string[];
   programs: string[];
   products: string[];
@@ -33,7 +33,7 @@ export interface ReportFilters {
 export const EMPTY_REPORT_FILTERS: ReportFilters = {
   date_from: null,
   date_to: null,
-  universities: [],
+  organizations: [],
   directions: [],
   programs: [],
   products: [],
@@ -81,11 +81,11 @@ export interface ReportRow {
   interaction_direction_id: string | null;
   interaction_program_id: string | null;
   interaction_product_id: string | null;
-  university_id: string | null;
+  organization_id: string | null;
   program_id: string | null;
   /** Действующие КАМы взаимодействия по алфавиту. */
   responsible_ids: number[];
-  university?: string;
+  organization?: string;
   direction?: string;
   program?: string;
   product?: string;
@@ -123,7 +123,7 @@ export interface ReportSummaryResponse {
   programs_count: number;
   products_count: number;
   by_responsible: DistributionEntry[];
-  by_university: DistributionEntry[];
+  by_organization: DistributionEntry[];
   by_process_status: DistributionEntry[];
   by_active_stage: DistributionEntry[];
   meta: ReportMeta;

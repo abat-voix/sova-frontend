@@ -16,7 +16,7 @@ export function RankChip({
   if (rank === null || rank === undefined) return null;
 
   return (
-    <StatusChip className="gap-1" tone="accent">
+    <StatusChip className="gap-1" tone="rank">
       <Trophy aria-hidden="true" className="size-3.5" />
       {label(rank)}
     </StatusChip>

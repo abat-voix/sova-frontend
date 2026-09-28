@@ -65,7 +65,7 @@ export function ReportsPage() {
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-foreground text-2xl font-semibold">
-            Отчёты по взаимодействиям с вузами
+            Отчёты по взаимодействиям с организациями
           </h1>
           <p className="text-muted-foreground text-sm">
             Предпросмотр, сводка и выгрузка в XLSX / XLS / PDF / JSON
@@ -98,8 +98,8 @@ export function ReportsPage() {
               title="По ответственным"
             />
             <DistributionBars
-              entries={summaryQuery.data.by_university}
-              title="По вузам"
+              entries={summaryQuery.data.by_organization}
+              title="По организациям"
             />
             <DistributionBars
               entries={summaryQuery.data.by_process_status}

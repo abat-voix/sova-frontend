@@ -36,7 +36,7 @@ describe("ReportsPage", () => {
     expect(
       screen.getByRole("heading", {
         level: 1,
-        name: "Отчёты по взаимодействиям с вузами",
+        name: "Отчёты по взаимодействиям с организациями",
       }),
     ).toBeInTheDocument();
     expect(screen.getByText("Скачать")).toBeInTheDocument();

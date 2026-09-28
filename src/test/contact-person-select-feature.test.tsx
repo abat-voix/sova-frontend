@@ -59,9 +59,9 @@ describe("contact person select options", () => {
           status: 200,
         });
       }
-      if (url.startsWith("/api/catalog/university-contacts/")) {
+      if (url.startsWith("/api/catalog/organization-contacts/")) {
         const query = new URL(url, "http://localhost").searchParams;
-        expect(query.get("university__ids")).toBe("university-1");
+        expect(query.get("organization__ids")).toBe("organization-1");
         expect(query.get("contact__is_active")).toBe("true");
         return new Response(
           JSON.stringify({
@@ -98,7 +98,7 @@ describe("contact person select options", () => {
             featureCode="contact_person.link"
             interaction={{
               id: "interaction-1",
-              university: { id: "university-1", name: "Академия" },
+              organization: { id: "organization-1", name: "Академия" },
               b2c_client: null,
             }}
             workflowInstanceId="workflow-1"
@@ -139,7 +139,7 @@ describe("contact person select options", () => {
           { headers: { "content-type": "application/json" }, status: 200 },
         );
       }
-      if (url.startsWith("/api/catalog/university-contacts/")) {
+      if (url.startsWith("/api/catalog/organization-contacts/")) {
         return new Response(
           JSON.stringify({
             count: 1,
@@ -165,7 +165,7 @@ describe("contact person select options", () => {
             featureCode="contact_person.link"
             interaction={{
               id: "interaction-1",
-              university: { id: "university-1", name: "Академия" },
+              organization: { id: "organization-1", name: "Академия" },
               b2c_client: null,
             }}
             workflowInstanceId="workflow-1"

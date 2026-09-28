@@ -1,7 +1,7 @@
 import { API_BASE_PATH } from "@/lib/env";
 
 export type CatalogKind =
-  "universities" | "directions" | "programs" | "products" | "responsibles";
+  "organizations" | "directions" | "programs" | "products" | "responsibles";
 
 export interface CatalogOption {
   id: string;
