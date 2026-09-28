@@ -390,37 +390,9 @@ export function CrmShell(props: CrmShellProps) {
       }}
     >
       <aside
-        className="bg-card relative z-40 hidden min-h-svh border-r lg:sticky lg:top-0 lg:flex lg:h-svh lg:flex-col"
+        className="bg-card relative z-40 hidden min-h-svh border-r lg:sticky lg:top-0 lg:flex lg:h-svh lg:flex-col lg:self-start lg:overflow-hidden"
         id="desktop-sidebar-navigation"
       >
-        <Button
-          aria-controls="desktop-sidebar-navigation"
-          aria-expanded={!isDesktopSidebarCollapsed}
-          aria-label={
-            isDesktopSidebarCollapsed
-              ? t("expandSidebar")
-              : t("collapseSidebar")
-          }
-          className="bg-card absolute top-6 right-0 z-10 translate-x-1/2 rounded-full shadow-sm"
-          colorScheme="neutral"
-          onClick={() =>
-            setIsDesktopSidebarCollapsed(!isDesktopSidebarCollapsed)
-          }
-          size="icon"
-          title={
-            isDesktopSidebarCollapsed
-              ? t("expandSidebar")
-              : t("collapseSidebar")
-          }
-          type="button"
-          variant="outline"
-        >
-          {isDesktopSidebarCollapsed ? (
-            <PanelLeftOpen aria-hidden="true" className="size-4" />
-          ) : (
-            <PanelLeftClose aria-hidden="true" className="size-4" />
-          )}
-        </Button>
         <Sidebar {...props} collapsed={isDesktopSidebarCollapsed} />
       </aside>
 
@@ -464,6 +436,34 @@ export function CrmShell(props: CrmShellProps) {
             variant="outline"
           >
             <Menu aria-hidden="true" className="size-5" />
+          </Button>
+          <Button
+            aria-controls="desktop-sidebar-navigation"
+            aria-expanded={!isDesktopSidebarCollapsed}
+            aria-label={
+              isDesktopSidebarCollapsed
+                ? t("expandSidebar")
+                : t("collapseSidebar")
+            }
+            className="mr-3 hidden lg:inline-flex"
+            colorScheme="neutral"
+            onClick={() =>
+              setIsDesktopSidebarCollapsed(!isDesktopSidebarCollapsed)
+            }
+            size="icon"
+            title={
+              isDesktopSidebarCollapsed
+                ? t("expandSidebar")
+                : t("collapseSidebar")
+            }
+            type="button"
+            variant="ghost"
+          >
+            {isDesktopSidebarCollapsed ? (
+              <PanelLeftOpen aria-hidden="true" className="size-4" />
+            ) : (
+              <PanelLeftClose aria-hidden="true" className="size-4" />
+            )}
           </Button>
           <div className="min-w-0 flex-1">
             <p className="text-muted-foreground truncate text-xs font-medium">

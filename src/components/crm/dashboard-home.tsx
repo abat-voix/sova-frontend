@@ -172,7 +172,7 @@ function InteractionsWidget({ text }: { text: CopyText }) {
         interactions.map((interaction) => (
           <Link
             className="hover:bg-secondary flex items-center gap-2.5 rounded-lg border border-transparent p-2 transition-colors"
-            href="/interactions"
+            href={`/interactions?interaction=${interaction.id}`}
             key={interaction.id}
           >
             <Building2

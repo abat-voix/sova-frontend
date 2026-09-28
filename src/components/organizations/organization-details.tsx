@@ -1,6 +1,7 @@
 import { Building2 } from "lucide-react";
 
 import { RankChip } from "@/components/catalog/rank-chip";
+import { InteractionLinkBadge } from "@/components/interactions/interaction-link-badge";
 import { Button } from "@/components/ui/button";
 import { OrganizationInspector } from "@/components/organizations/organization-inspector";
 import { StatusChip } from "@/components/ui/status-chip";
@@ -39,12 +40,14 @@ export function OrganizationDetails({
   labels,
   locale,
   onCreateInteraction,
+  onOpenInteractions,
   organization,
 }: {
   headingId: string;
   labels: OrganizationDetailsLabels;
   locale: "ru" | "en";
   onCreateInteraction?: () => void;
+  onOpenInteractions?: () => void;
   organization: Organization;
 }) {
   return (
@@ -55,13 +58,20 @@ export function OrganizationDetails({
             <StatusChip tone={organization.is_active ? "positive" : "neutral"}>
               {organization.is_active ? labels.active : labels.inactive}
             </StatusChip>
-            <StatusChip
-              tone={organization.has_interactions ? "accent" : "neutral"}
-            >
-              {organization.has_interactions
-                ? labels.hasInteractions
-                : labels.noInteractions}
-            </StatusChip>
+            {organization.has_interactions && onOpenInteractions ? (
+              <InteractionLinkBadge
+                label={labels.hasInteractions}
+                onClick={onOpenInteractions}
+              />
+            ) : (
+              <StatusChip
+                tone={organization.has_interactions ? "accent" : "neutral"}
+              >
+                {organization.has_interactions
+                  ? labels.hasInteractions
+                  : labels.noInteractions}
+              </StatusChip>
+            )}
             <RankChip label={labels.place} rank={organization.rank} />
           </>
         }

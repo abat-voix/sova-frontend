@@ -271,6 +271,7 @@ afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
   window.localStorage.clear();
+  searchParams = new URLSearchParams();
 });
 
 describe("InteractionsWorkspace", () => {
@@ -279,6 +280,23 @@ describe("InteractionsWorkspace", () => {
     renderWorkspace({ withDashboardCache: true });
 
     expect(await screen.findByText("Первый университет")).toBeInTheDocument();
+  });
+
+  it("passes the organization from a catalog link to the list API", async () => {
+    searchParams = new URLSearchParams("organization__ids=organization-1");
+    const fetchMock = stubApi();
+    renderWorkspace();
+
+    expect(await screen.findByText("Первый университет")).toBeInTheDocument();
+    await waitFor(() => {
+      const interactionsUrl = fetchMock.mock.calls
+        .map(([input]) => new URL(String(input), "http://localhost"))
+        .find((url) => url.pathname === "/api/interactions/interactions/");
+
+      expect(interactionsUrl?.searchParams.get("organization__ids")).toBe(
+        "organization-1",
+      );
+    });
   });
 
   it("marks completed interactions and filters them by process status", async () => {

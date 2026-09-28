@@ -28,6 +28,7 @@ import { OrganizationSheet } from "@/components/organizations/organization-sheet
 import { OrganizationForm } from "@/components/organizations/organization-form";
 import { OrganizationsMap } from "@/components/organizations/organizations-map";
 import { NewInteractionDialog } from "@/components/interactions/new-interaction-dialog";
+import { InteractionLinkBadge } from "@/components/interactions/interaction-link-badge";
 import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { SearchInput } from "@/components/ui/search-input";
@@ -231,6 +232,7 @@ function OrganizationCard({
   labels,
   locale,
   onCreateInteraction,
+  onOpenInteractions,
   onSelect,
 }: {
   canCreateInteraction: boolean;
@@ -240,6 +242,7 @@ function OrganizationCard({
   labels: OrganizationDetailsLabels;
   locale: "ru" | "en";
   onCreateInteraction: () => void;
+  onOpenInteractions: () => void;
   onSelect: () => void;
 }) {
   return (
@@ -258,24 +261,6 @@ function OrganizationCard({
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="leading-5 font-medium">{organization.name}</h2>
-            <span className="mt-2 flex flex-wrap gap-2">
-              <RankChip label={labels.place} rank={organization.rank} />
-              <StatusChip tone="info">
-                {organizationTypeLabels[locale][organization.organization_type]}
-              </StatusChip>
-              <StatusChip
-                tone={organization.has_interactions ? "accent" : "neutral"}
-              >
-                {organization.has_interactions
-                  ? labels.hasInteractions
-                  : labels.noInteractions}
-              </StatusChip>
-              <StatusChip
-                tone={organization.is_active ? "positive" : "neutral"}
-              >
-                {organization.is_active ? labels.active : labels.inactive}
-              </StatusChip>
-            </span>
             {organizationCity(organization) ? (
               <p className="text-muted-foreground mt-3 flex items-center gap-2 text-sm">
                 <MapPin aria-hidden="true" className="size-4 shrink-0" />
@@ -290,6 +275,23 @@ function OrganizationCard({
           </div>
         </div>
       </button>
+      <span className="mt-2 flex flex-wrap gap-2">
+        <RankChip label={labels.place} rank={organization.rank} />
+        <StatusChip tone="info">
+          {organizationTypeLabels[locale][organization.organization_type]}
+        </StatusChip>
+        {organization.has_interactions ? (
+          <InteractionLinkBadge
+            label={labels.hasInteractions}
+            onClick={onOpenInteractions}
+          />
+        ) : (
+          <StatusChip tone="neutral">{labels.noInteractions}</StatusChip>
+        )}
+        <StatusChip tone={organization.is_active ? "positive" : "neutral"}>
+          {organization.is_active ? labels.active : labels.inactive}
+        </StatusChip>
+      </span>
       {canCreateInteraction ? (
         <Button
           className="mt-4"
@@ -518,6 +520,14 @@ export function OrganizationsWorkspace() {
           onCreateInteraction={
             canCreateInteraction
               ? () => setCreatingFor(selectedOrganizationQuery.data!)
+              : undefined
+          }
+          onOpenInteractions={
+            selectedOrganizationQuery.data.has_interactions
+              ? () =>
+                  router.push(
+                    `/interactions?organization__ids=${selectedOrganizationQuery.data!.id}`,
+                  )
               : undefined
           }
           organization={selectedOrganizationQuery.data}
@@ -750,6 +760,11 @@ export function OrganizationsWorkspace() {
                   labels={detailLabels}
                   locale={locale}
                   onCreateInteraction={() => setCreatingFor(organization)}
+                  onOpenInteractions={() =>
+                    router.push(
+                      `/interactions?organization__ids=${organization.id}`,
+                    )
+                  }
                   onSelect={() => setSelectedId(organization.id)}
                   organization={organization}
                 />

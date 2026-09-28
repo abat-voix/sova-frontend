@@ -202,12 +202,12 @@ describe("OrganizationsWorkspace", () => {
       </QueryClientProvider>,
     );
     fireEvent.click(screen.getByRole("button", { name: "Список" }));
-    const card = (await screen.findByText("Тюменский университет")).closest(
-      "button",
-    )!;
-    // Тип организации — чип сразу после места
-    expect(within(card).getByText("Вуз")).toBeInTheDocument();
-    fireEvent.click(card);
+    const name = await screen.findByText("Тюменский университет");
+    // Тип организации — чип сразу после места, под кнопкой карточки
+    expect(
+      within(name.closest("article")!).getByText("Вуз"),
+    ).toBeInTheDocument();
+    fireEvent.click(name.closest("button")!);
 
     const drawer = await screen.findByRole("dialog");
     expect(

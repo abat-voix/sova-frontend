@@ -402,6 +402,7 @@ export function InteractionsWorkspace({
             id="interactions-list"
           >
             <InteractionList
+              counterpartyFilter={linked.counterpartyFilter}
               onResolve={setSelectedInteraction}
               onCreateChat={canChat ? setCreatingChatForInteraction : undefined}
               onEdit={canUpdate ? setEditingInteraction : undefined}

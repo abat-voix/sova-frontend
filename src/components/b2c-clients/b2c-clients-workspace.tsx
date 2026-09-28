@@ -22,6 +22,7 @@ import { B2CClientForm } from "@/components/b2c-clients/b2c-client-form";
 import { RankChip } from "@/components/catalog/rank-chip";
 import { B2CRegistrationAddress } from "@/components/b2c-clients/b2c-registration-address";
 import { NewInteractionDialog } from "@/components/interactions/new-interaction-dialog";
+import { InteractionLinkBadge } from "@/components/interactions/interaction-link-badge";
 import { OrganizationContacts } from "@/components/organizations/organization-contacts";
 import {
   OrganizationInspector,
@@ -36,6 +37,7 @@ import {
   getB2CClient,
   getB2CClients,
 } from "@/lib/api/catalog/b2c-clients";
+import { getInteractions } from "@/lib/api/interactions/interactions";
 import type { RankFilter } from "@/lib/api/catalog/rank";
 import { formatDate } from "@/lib/format-date";
 import { can } from "@/lib/permissions";
@@ -85,6 +87,7 @@ const copy = {
     details: "Карточка клиента",
     loadingDetails: "Загружаем карточку клиента…",
     detailsError: "Не удалось загрузить карточку клиента.",
+    hasInteractions: "Есть взаимодействия",
     create: "Новый клиент",
     edit: "Изменить",
     created: "Клиент добавлен.",
@@ -129,6 +132,7 @@ const copy = {
     details: "Client card",
     loadingDetails: "Loading the client card…",
     detailsError: "The client card could not be loaded.",
+    hasInteractions: "Has interactions",
     createInteraction: "Create interaction",
     openInteraction: "Open interaction",
     create: "New client",
@@ -148,16 +152,20 @@ function ClientCard({
   canCreateInteraction,
   client,
   createInteractionLabel,
+  hasInteractions,
   isSelected,
   onCreateInteraction,
+  onOpenInteractions,
   onSelect,
   text,
 }: {
   canCreateInteraction: boolean;
   client: B2CClient;
   createInteractionLabel: string;
+  hasInteractions: boolean;
   isSelected: boolean;
   onCreateInteraction: () => void;
+  onOpenInteractions: () => void;
   onSelect: () => void;
   text: Text;
 }) {
@@ -177,12 +185,6 @@ function ClientCard({
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="leading-5 font-medium">{client.full_name}</h2>
-            <span className="mt-2 flex flex-wrap gap-2">
-              <RankChip label={text.placeLabel} rank={client.rank} />
-              <StatusChip tone={client.is_active ? "positive" : "neutral"}>
-                {client.is_active ? text.active : text.inactive}
-              </StatusChip>
-            </span>
             {client.email ? (
               <p className="text-muted-foreground mt-3 flex items-center gap-2 text-sm">
                 <Mail aria-hidden="true" className="size-4 shrink-0" />
@@ -203,6 +205,18 @@ function ClientCard({
           </div>
         </div>
       </button>
+      <span className="mt-2 flex flex-wrap gap-2">
+        <RankChip label={text.placeLabel} rank={client.rank} />
+        {hasInteractions ? (
+          <InteractionLinkBadge
+            label={text.hasInteractions}
+            onClick={onOpenInteractions}
+          />
+        ) : null}
+        <StatusChip tone={client.is_active ? "positive" : "neutral"}>
+          {client.is_active ? text.active : text.inactive}
+        </StatusChip>
+      </span>
       {canCreateInteraction ? (
         <Button
           className="mt-4"
@@ -326,6 +340,7 @@ export function B2CClientsWorkspace() {
   const [creatingFor, setCreatingFor] = useState<B2CClient | null>(null);
   const canCreateInteraction =
     user !== null && can(user, "interactions.create");
+  const canReadInteractions = user !== null && can(user, "interactions.read");
   const canCreate = user !== null && can(user, "catalog.create");
   const canUpdate = user !== null && can(user, "catalog.update");
   const queryClient = useQueryClient();
@@ -360,6 +375,30 @@ export function B2CClientsWorkspace() {
     [clientsQuery.data],
   );
   const total = clientsQuery.data?.pages[0]?.count;
+  const visibleClientIds = useMemo(
+    () => clients.map((client) => client.id),
+    [clients],
+  );
+  const clientInteractionsQuery = useQuery({
+    queryKey: ["interactions", "b2c-client-presence", visibleClientIds],
+    queryFn: () =>
+      getInteractions(
+        1,
+        "",
+        { id: visibleClientIds.join(","), kind: "b2c_client" },
+        200,
+      ),
+    enabled: canReadInteractions && visibleClientIds.length > 0,
+  });
+  const clientsWithInteractions = useMemo(
+    () =>
+      new Set(
+        (clientInteractionsQuery.data?.results ?? []).flatMap((interaction) =>
+          interaction.b2c_client ? [interaction.b2c_client.id] : [],
+        ),
+      ),
+    [clientInteractionsQuery.data],
+  );
   const selectedRow = clients.find((client) => client.id === selectedId);
 
   const clientQuery = useQuery({
@@ -473,9 +512,13 @@ export function B2CClientsWorkspace() {
                 canCreateInteraction={canCreateInteraction}
                 client={client}
                 createInteractionLabel={text.createInteraction}
+                hasInteractions={clientsWithInteractions.has(client.id)}
                 isSelected={client.id === selectedId}
                 key={client.id}
                 onCreateInteraction={() => setCreatingFor(client)}
+                onOpenInteractions={() =>
+                  router.push(`/interactions?b2c_client__ids=${client.id}`)
+                }
                 onSelect={() => setSelectedId(client.id)}
                 text={text}
               />
