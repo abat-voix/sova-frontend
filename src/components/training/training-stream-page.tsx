@@ -362,7 +362,7 @@ export function TrainingStreamPage({ streamId }: { streamId: string }) {
   const { locale } = useLocale();
   const { csrfToken, user } = useAuth();
   const canUpdate = user !== null && can(user, "training.update");
-  const canImport = user !== null && can(user, "catalog.import");
+  const canImport = user !== null && can(user, "training.import");
   const text = copy[locale];
   const common = registryCopy[locale];
   const queryClient = useQueryClient();

@@ -10,7 +10,12 @@ import { RegistryHeader } from "@/components/registry/registry-shared";
 import { BackLink } from "@/components/training/back-link";
 import { EntitySelect } from "@/components/ui/entity-select";
 import type { LookupOption } from "@/lib/api/catalog/lookups";
-import { uploadLearners } from "@/lib/api/training/learners";
+import {
+  getLearnerImportMapping,
+  readLearnerImportHeaders,
+  saveLearnerImportMapping,
+  uploadLearners,
+} from "@/lib/api/training/learners";
 import {
   getTrainingStream,
   searchTrainingStreams,
@@ -23,6 +28,12 @@ import type { LearnerImportResult } from "@/types/training";
 
 type ImportMode = "stream" | "none";
 
+const learnerImportApi = {
+  readHeaders: readLearnerImportHeaders,
+  getMapping: getLearnerImportMapping,
+  saveMapping: saveLearnerImportMapping,
+};
+
 /**
  * Загрузка файла «Пользователи»: с потоком — обучающиеся сразу становятся
  * участниками новой заявки на него, без потока — только карточки обучающихся.
@@ -30,7 +41,7 @@ type ImportMode = "stream" | "none";
  * режима (и потока в режиме «В поток»).
  *
  * Файл, маппинг колонок (тип «Обучающиеся») и загрузка — общие с импортом
- * справочников (`FileImportFlow`).
+ * справочников (`FileImportFlow`), но эндпоинты свои — под `training.import`.
  */
 export function LearnerImportWorkspace() {
   const { csrfToken, user } = useAuth();
@@ -60,7 +71,7 @@ export function LearnerImportWorkspace() {
     mode === "none" || (mode === "stream" && stream !== null);
 
   // Страница живёт в разделе «Обучающиеся» (training.read), а загрузка требует своего права
-  if (user === null || !can(user, "catalog.import"))
+  if (user === null || !can(user, "training.import"))
     return (
       <div className="space-y-4">
         <BackLink href="/training/learners" label="Все обучающиеся" />
@@ -134,6 +145,7 @@ export function LearnerImportWorkspace() {
 
       {isFirstStepDone ? (
         <FileImportFlow<LearnerImportResult>
+          api={learnerImportApi}
           catalogType="learner"
           firstStep={2}
           renderResultExtra={(result) =>

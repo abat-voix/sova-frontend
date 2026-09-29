@@ -19,6 +19,7 @@ import { ApiError } from "@/lib/api/http";
 import { useAuth } from "@/providers/auth-provider";
 import type {
   CatalogImportFailure,
+  CatalogImportMappingField,
   CatalogImportRowMessage,
   CatalogType,
 } from "@/types/catalog-import";
@@ -49,8 +50,29 @@ type ImportResultBase = {
   warnings: CatalogImportRowMessage[];
 };
 
+/** Чтение заголовков файла и маппинга типа: по умолчанию — эндпоинты импорта справочников. */
+export type FileImportApi = {
+  readHeaders: (file: File, csrfToken: string) => Promise<string[]>;
+  getMapping: () => Promise<CatalogImportMappingField[]>;
+  saveMapping: (
+    mappings: Record<string, string>,
+    csrfToken: string,
+  ) => Promise<CatalogImportMappingField[]>;
+};
+
+function catalogImportApi(catalogType: CatalogType): FileImportApi {
+  return {
+    readHeaders: readCatalogImportHeaders,
+    getMapping: () => getCatalogImportMapping(catalogType),
+    saveMapping: (mappings, csrfToken) =>
+      saveCatalogImportMapping(catalogType, mappings, csrfToken),
+  };
+}
+
 type Props<Result extends ImportResultBase> = {
   catalogType: CatalogType;
+  /** Свои эндпоинты заголовков и маппинга — например, у загрузки обучающихся (право `training.import`). */
+  api?: FileImportApi;
   /** Номер первого шага: шаги до него (выбор справочника, потока) — у вызывающего экрана. */
   firstStep: number;
   /** Отправка файла: у импорта каталогов и загрузки обучающихся — свои эндпоинты. */
@@ -69,12 +91,14 @@ type Props<Result extends ImportResultBase> = {
  * маппингу, а не по форме на экране.
  */
 export function FileImportFlow<Result extends ImportResultBase>({
+  api: customApi,
   catalogType,
   firstStep,
   renderResultExtra,
   upload,
 }: Props<Result>) {
   const { csrfToken } = useAuth();
+  const api = customApi ?? catalogImportApi(catalogType);
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
@@ -95,12 +119,11 @@ export function FileImportFlow<Result extends ImportResultBase>({
 
   const mapping = useQuery({
     queryKey: catalogImportMappingQueryKey(catalogType),
-    queryFn: () => getCatalogImportMapping(catalogType),
+    queryFn: () => api.getMapping(),
   });
 
   const readHeaders = useMutation({
-    mutationFn: (selected: File) =>
-      readCatalogImportHeaders(selected, csrfToken),
+    mutationFn: (selected: File) => api.readHeaders(selected, csrfToken),
     onSuccess: (loaded) => {
       setHeaders(loaded);
       setFileError(null);
@@ -113,7 +136,7 @@ export function FileImportFlow<Result extends ImportResultBase>({
 
   const saveMapping = useMutation({
     mutationFn: (mappings: Record<string, string>) =>
-      saveCatalogImportMapping(catalogType, mappings, csrfToken),
+      api.saveMapping(mappings, csrfToken),
     onSuccess: (saved) => {
       queryClient.setQueryData(
         catalogImportMappingQueryKey(catalogType),

@@ -82,6 +82,8 @@ export const apiEndpoints = {
     learners: {
       detail: (id: string) => `/api/training/learners/${id}/`,
       import: "/api/training/learners/import/",
+      importHeaders: "/api/training/learners/import/headers/",
+      importMapping: "/api/training/learners/import/mapping/",
       list: "/api/training/learners/",
       personalData: (id: string) =>
         `/api/training/learners/${id}/personal-data/`,
