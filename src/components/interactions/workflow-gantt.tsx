@@ -126,6 +126,28 @@ const scalePresets: Record<
   },
 };
 
+type GanttViewState = {
+  collapsedTaskIds: string[];
+  scroll: { x: number; y: number };
+};
+
+/**
+ * `clearAll` стирает не только строки, но и UI-состояние dhtmlx: прокрутку и
+ * раскрытие групп. Снимок берём до обновления данных, чтобы рефетч доски не
+ * отправлял пользователя в начало и не раскрывал свёрнутые разделы.
+ */
+function captureViewState(gantt: GanttStatic): GanttViewState {
+  const collapsedTaskIds: string[] = [];
+
+  gantt.eachTask((task) => {
+    if (gantt.hasChild(task.id) && !task.$open) {
+      collapsedTaskIds.push(String(task.id));
+    }
+  });
+
+  return { collapsedTaskIds, scroll: gantt.getScrollState() };
+}
+
 const escapes: Record<string, string> = {
   '"': "&quot;",
   "&": "&amp;",
@@ -256,11 +278,19 @@ function renderBoard(
   gantt: GanttStatic,
   data: ReturnType<typeof buildGanttData>,
 ) {
+  const viewState = captureViewState(gantt);
   const range = resolveRange(data.data, new Date());
   gantt.config.start_date = range.start;
   gantt.config.end_date = range.end;
   gantt.clearAll();
   gantt.parse(data);
+
+  // Идентификаторы строк стабильны между ответами одной доски. Пропускаем
+  // отсутствующие: обновление могло удалить контекст или этап.
+  for (const id of viewState.collapsedTaskIds) {
+    if (gantt.isTaskExists(id) && gantt.hasChild(id)) gantt.close(id);
+  }
+  gantt.scrollTo(viewState.scroll.x, viewState.scroll.y);
 }
 
 /**
