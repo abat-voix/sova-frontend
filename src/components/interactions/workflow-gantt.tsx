@@ -1,0 +1,499 @@
+"use client";
+
+import {
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  type Ref,
+} from "react";
+import type { GanttStatic, Task } from "dhtmlx-gantt";
+
+import styles from "@/components/interactions/workflow-gantt.module.css";
+import type { Locale } from "@/i18n/translations";
+import { formatMoment, formatRange } from "@/lib/workflow/format-moment";
+import {
+  actualBarGeometry,
+  buildGanttData,
+  type ActionState,
+  type BoardSelection,
+  type BoardTask,
+  type StageState,
+} from "@/lib/workflow/board-to-gantt";
+import { cn } from "@/lib/utils";
+import { useLocale } from "@/providers/locale-provider";
+import type { WorkflowBoard } from "@/types/workflow-board";
+
+const copy = {
+  ru: {
+    actual: "Факт",
+    error: "Не удалось загрузить диаграмму.",
+    loading: "Загружаем диаграмму…",
+    name: "Наименование",
+    noDates: "нет дат",
+    optional: "необязательное",
+    plan: "План",
+    responsible: "Ответственный",
+    stageClosed: "Закрыт",
+    stageOpened: "Открыт",
+    states: {
+      completed: "Завершено",
+      in_progress: "В работе",
+      overdue: "Просрочено",
+      pending: "Ожидает",
+      unknown: "—",
+      waiting_transition: "Ждёт перехода",
+    },
+    status: "Статус",
+    unassigned: "не назначен",
+    undated: "без даты",
+  },
+  en: {
+    actual: "Actual",
+    error: "The timeline could not be loaded.",
+    loading: "Loading timeline…",
+    name: "Name",
+    noDates: "no dates",
+    optional: "optional",
+    plan: "Plan",
+    responsible: "Responsible",
+    stageClosed: "Closed",
+    stageOpened: "Opened",
+    states: {
+      completed: "Completed",
+      in_progress: "In progress",
+      overdue: "Overdue",
+      pending: "Pending",
+      unknown: "—",
+      waiting_transition: "Awaiting transition",
+    },
+    status: "Status",
+    unassigned: "unassigned",
+    undated: "no dates",
+  },
+} as const;
+
+type Labels = (typeof copy)[keyof typeof copy];
+
+/** Масштаб шкалы времени. Управляется тулбаром рабочего стола. */
+export type GanttScale = "day" | "week" | "month";
+
+export type WorkflowGanttHandle = {
+  /** Проматывает шкалу к сегодняшнему дню. */
+  showToday: () => void;
+};
+
+type WorkflowGanttProps = {
+  board: WorkflowBoard;
+  className?: string;
+  onSelect: (selection: BoardSelection) => void;
+  ref?: Ref<WorkflowGanttHandle>;
+  scale: GanttScale;
+  /** Таблица со списком действий слева от шкалы. */
+  showGrid: boolean;
+};
+
+const dayMs = 24 * 60 * 60 * 1000;
+
+/** Высота полосы: подпись сверху, полоса факта — снизу (высота задана в CSS). */
+const barHeight = 30;
+
+const scalePresets: Record<
+  GanttScale,
+  { minColumnWidth: number; scales: GanttStatic["config"]["scales"] }
+> = {
+  day: {
+    minColumnWidth: 32,
+    scales: [
+      { unit: "month", step: 1, format: "%F %Y" },
+      { unit: "day", step: 1, format: "%d" },
+    ],
+  },
+  week: {
+    minColumnWidth: 44,
+    scales: [
+      { unit: "month", step: 1, format: "%F %Y" },
+      { unit: "week", step: 1, format: "%d" },
+    ],
+  },
+  month: {
+    minColumnWidth: 68,
+    scales: [
+      { unit: "year", step: 1, format: "%Y" },
+      { unit: "month", step: 1, format: "%M" },
+    ],
+  },
+};
+
+type GanttViewState = {
+  collapsedTaskIds: string[];
+  scroll: { x: number; y: number };
+};
+
+/**
+ * `clearAll` стирает не только строки, но и UI-состояние dhtmlx: прокрутку и
+ * раскрытие групп. Снимок берём до обновления данных, чтобы рефетч доски не
+ * отправлял пользователя в начало и не раскрывал свёрнутые разделы.
+ */
+function captureViewState(gantt: GanttStatic): GanttViewState {
+  const collapsedTaskIds: string[] = [];
+
+  gantt.eachTask((task) => {
+    if (gantt.hasChild(task.id) && !task.$open) {
+      collapsedTaskIds.push(String(task.id));
+    }
+  });
+
+  return { collapsedTaskIds, scroll: gantt.getScrollState() };
+}
+
+const escapes: Record<string, string> = {
+  '"': "&quot;",
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+};
+
+function escapeHtml(value: string) {
+  return value.replace(/["&<>]/g, (char) => escapes[char]);
+}
+
+function actualBarHtml(row: BoardTask) {
+  const box = actualBarGeometry(row);
+  if (!box) return "";
+
+  return `<div class="sova-gantt-actual sova-gantt-actual--${row.state}" style="left:${box.left}%;width:${box.width}%"></div>`;
+}
+
+function tooltipRow(label: string, value: string) {
+  return `<div class="sova-gantt-tip__row"><span>${escapeHtml(label)}</span><span>${escapeHtml(value)}</span></div>`;
+}
+
+/**
+ * Содержимое подсказки.
+ *
+ * В короткую полосу подпись не помещается ни при каком масштабе, а колонка
+ * «Наименование» обрезает длинные названия, поэтому наведение — единственное
+ * место, где строку видно целиком.
+ */
+function tooltipHtml(row: BoardTask, labels: Labels, locale: Locale) {
+  const title = `<p class="sova-gantt-tip__title">${escapeHtml(String(row.text ?? ""))}</p>`;
+  if (row.rowKind === "group") return title;
+
+  const stateKey = row.state as ActionState | StageState;
+  const status = labels.states[stateKey] ?? labels.states.unknown;
+  const action = row.boardAction;
+
+  if (action) {
+    return [
+      title,
+      tooltipRow(
+        labels.status,
+        action.is_optional ? `${status} · ${labels.optional}` : status,
+      ),
+      tooltipRow(
+        labels.plan,
+        formatRange(
+          action.planned_start,
+          action.planned_end,
+          locale,
+          labels.noDates,
+        ),
+      ),
+      tooltipRow(
+        labels.actual,
+        formatRange(
+          action.actual_start,
+          action.actual_end,
+          locale,
+          labels.noDates,
+        ),
+      ),
+      tooltipRow(
+        labels.responsible,
+        action.responsible?.full_name ?? labels.unassigned,
+      ),
+    ].join("");
+  }
+
+  const stage = row.boardStage;
+  if (!stage) return title;
+
+  return [
+    title,
+    tooltipRow(labels.status, status),
+    tooltipRow(
+      labels.stageOpened,
+      formatMoment(stage.started_at, locale) ?? labels.noDates,
+    ),
+    tooltipRow(
+      labels.stageClosed,
+      formatMoment(stage.completed_at, locale) ?? labels.noDates,
+    ),
+  ].join("");
+}
+
+/**
+ * Окно по умолчанию, когда ни у одного действия ещё нет дат.
+ *
+ * Факт учитывается наравне с планом: у просроченного действия он выходит за
+ * правый край плановой полосы и иначе оказался бы за границей шкалы.
+ *
+ * Сегодняшний день входит в окно всегда — иначе кнопка «Сегодня» прокручивала
+ * бы за пределы шкалы.
+ */
+function resolveRange(tasks: BoardTask[], now: Date) {
+  const dates = tasks.flatMap((task) => {
+    const actual = task.actual ? [task.actual.start, task.actual.end] : [];
+
+    return task.unscheduled || !task.start_date
+      ? actual
+      : [task.start_date, task.end_date ?? task.start_date, ...actual];
+  });
+
+  if (dates.length === 0) {
+    return {
+      end: new Date(now.getTime() + 42 * dayMs),
+      start: new Date(now.getTime() - 14 * dayMs),
+    };
+  }
+
+  const times = [...dates.map((date) => date.getTime()), now.getTime()];
+
+  return {
+    end: new Date(Math.max(...times) + 7 * dayMs),
+    start: new Date(Math.min(...times) - 7 * dayMs),
+  };
+}
+
+function applyScale(gantt: GanttStatic, scale: GanttScale) {
+  const preset = scalePresets[scale];
+  gantt.config.scales = preset.scales;
+  gantt.config.min_column_width = preset.minColumnWidth;
+}
+
+/** Заливает доску в инстанс, пересчитав окно шкалы под свежие даты. */
+function renderBoard(
+  gantt: GanttStatic,
+  data: ReturnType<typeof buildGanttData>,
+) {
+  const viewState = captureViewState(gantt);
+  const range = resolveRange(data.data, new Date());
+  gantt.config.start_date = range.start;
+  gantt.config.end_date = range.end;
+  gantt.clearAll();
+  gantt.parse(data);
+
+  // Идентификаторы строк стабильны между ответами одной доски. Пропускаем
+  // отсутствующие: обновление могло удалить контекст или этап.
+  for (const id of viewState.collapsedTaskIds) {
+    if (gantt.isTaskExists(id) && gantt.hasChild(id)) gantt.close(id);
+  }
+  gantt.scrollTo(viewState.scroll.x, viewState.scroll.y);
+}
+
+/**
+ * Попадает ли текущий момент в ячейку шкалы. Расширение `marker` с вертикальной
+ * линией «сегодня» в GPL-сборке недоступно, поэтому подсвечиваем саму ячейку.
+ */
+function isCurrentCell(gantt: GanttStatic, date: Date) {
+  const scale = gantt.getScale();
+  if (!scale) return false;
+
+  const now = Date.now();
+  const next = gantt.date.add(date, scale.step, scale.unit) as Date;
+
+  return date.getTime() <= now && now < next.getTime();
+}
+
+export function WorkflowGantt({
+  board,
+  className,
+  onSelect,
+  ref,
+  scale,
+  showGrid,
+}: WorkflowGanttProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const ganttRef = useRef<GanttStatic | null>(null);
+  const { locale } = useLocale();
+  const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const text = copy[locale];
+
+  const ganttData = useMemo(() => buildGanttData(board), [board]);
+
+  // Обработчик клика и данные живут в ref: инстанс Gantt создаётся один раз и
+  // не должен пересоздаваться из-за новой ссылки на колбэк.
+  const dataRef = useRef(ganttData);
+  const selectRef = useRef(onSelect);
+  const viewRef = useRef({ scale, showGrid });
+
+  useEffect(() => {
+    dataRef.current = ganttData;
+  }, [ganttData]);
+
+  useEffect(() => {
+    selectRef.current = onSelect;
+  }, [onSelect]);
+
+  useEffect(() => {
+    viewRef.current = { scale, showGrid };
+  }, [scale, showGrid]);
+
+  useImperativeHandle(ref, () => ({
+    showToday: () => ganttRef.current?.showDate(new Date()),
+  }));
+
+  useEffect(() => {
+    let active = true;
+    let instance: GanttStatic | null = null;
+
+    async function initialize() {
+      try {
+        const { Gantt } = await import("dhtmlx-gantt");
+        if (!active || !containerRef.current) return;
+
+        const gantt = Gantt.getGanttInstance();
+        instance = gantt;
+        ganttRef.current = gantt;
+        const labels = copy[locale];
+
+        gantt.plugins({ tooltip: true });
+        gantt.i18n.setLocale(locale);
+        gantt.config.readonly = true;
+        gantt.config.show_unscheduled = true;
+        gantt.config.show_grid = viewRef.current.showGrid;
+        gantt.config.grid_width = 350;
+        gantt.config.row_height = 44;
+        gantt.config.bar_height = barHeight;
+        gantt.config.scale_height = 56;
+        applyScale(gantt, viewRef.current.scale);
+        gantt.config.columns = [
+          {
+            name: "text",
+            label: labels.name,
+            tree: true,
+            width: "*",
+            min_width: 170,
+          },
+          {
+            name: "status",
+            label: labels.status,
+            align: "center",
+            width: 110,
+            template: (task: Task) => {
+              const row = task as BoardTask;
+              if (row.rowKind === "group") return "";
+
+              const stateKey = row.state as ActionState | StageState;
+              const label = labels.states[stateKey] ?? labels.states.unknown;
+
+              return `<span class="sova-gantt-status sova-gantt-status--${stateKey}">${label}</span>`;
+            },
+          },
+        ];
+        gantt.templates.task_class = (_start, _end, task) => {
+          const row = task as BoardTask;
+
+          return `sova-gantt-task--${row.rowKind} sova-gantt-task--${row.state}`;
+        };
+
+        // Подпись и полоса факта живут внутри полосы плана. Слой
+        // `addTaskLayer` не годится: в dhtmlx-gantt 10 метод удаляется с
+        // инстанса (`src/core/data_task_layers.js`), хотя типы его объявляют.
+        gantt.templates.task_text = (_start, _end, task) => {
+          const row = task as BoardTask;
+          // Подпись в своём элементе: многоточие возможно только там, где
+          // обрезка и текст лежат на одном узле, а `.gantt_task_content`
+          // обрезает заодно и полосу факта.
+          const label = `<span class="sova-gantt-label">${escapeHtml(String(row.text ?? ""))}</span>`;
+
+          return row.rowKind === "action"
+            ? `${label}${actualBarHtml(row)}`
+            : label;
+        };
+        gantt.templates.grid_row_class = (_start, _end, task) => {
+          const row = task as BoardTask;
+
+          return row.rowKind === "action" ? "" : "sova-gantt-project-row";
+        };
+        gantt.templates.timeline_cell_class = (_task, date) =>
+          isCurrentCell(gantt, date) ? "sova-gantt-today" : "";
+        gantt.templates.tooltip_text = (_start, _end, task) =>
+          tooltipHtml(task as BoardTask, labels, locale);
+
+        gantt.attachEvent("onTaskClick", (id) => {
+          const row = gantt.getTask(id) as BoardTask;
+          if (row.rowKind === "action" && row.boardAction) {
+            selectRef.current({ action: row.boardAction, kind: "action" });
+          }
+          if (row.rowKind === "stage" && row.boardStage) {
+            selectRef.current({ kind: "stage", stage: row.boardStage });
+          }
+
+          return true;
+        });
+
+        gantt.init(containerRef.current);
+        renderBoard(gantt, dataRef.current);
+        if (active) setState("ready");
+      } catch {
+        if (active) setState("error");
+      }
+    }
+
+    void initialize();
+
+    return () => {
+      active = false;
+      ganttRef.current = null;
+      instance?.destructor();
+    };
+  }, [locale]);
+
+  // Инстанс появляется асинхронно, поэтому до его готовности эффекты ниже —
+  // пустышки: начальные значения берутся из ref прямо при инициализации.
+  useEffect(() => {
+    const gantt = ganttRef.current;
+    if (!gantt) return;
+
+    renderBoard(gantt, ganttData);
+  }, [ganttData]);
+
+  useEffect(() => {
+    const gantt = ganttRef.current;
+    if (!gantt) return;
+
+    applyScale(gantt, scale);
+    gantt.config.show_grid = showGrid;
+    gantt.render();
+  }, [scale, showGrid]);
+
+  // Ширина области меняется без перемонтирования: свернули список, открыли
+  // детали, спрятали таблицу. Сам dhtmlx следит только за размером окна.
+  useEffect(() => {
+    const node = containerRef.current;
+    if (!node || typeof ResizeObserver === "undefined") return;
+
+    const observer = new ResizeObserver(() => ganttRef.current?.setSizes());
+    observer.observe(node);
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <section
+      aria-busy={state === "loading"}
+      aria-label={locale === "ru" ? "План процесса" : "Workflow plan"}
+      className={cn(styles.root, "relative overflow-hidden", className)}
+    >
+      {state !== "ready" ? (
+        <div className="text-muted-foreground absolute inset-0 z-10 flex items-center justify-center bg-[var(--atmr-background-elevated)] text-sm">
+          {state === "error" ? text.error : text.loading}
+        </div>
+      ) : null}
+      <div className="h-full w-full" ref={containerRef} />
+    </section>
+  );
+}

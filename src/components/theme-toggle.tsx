@@ -4,22 +4,24 @@ import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
+import { useLocale } from "@/providers/locale-provider";
 
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
+  const { t } = useLocale();
 
   return (
     <Button
-      aria-label="Переключить тему"
-      className="border-border bg-card/70 rounded-full border shadow-sm backdrop-blur-xl"
+      aria-label={t("switchTheme")}
       onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
       size="icon"
-      title="Переключить тему"
+      title={t("switchTheme")}
       type="button"
-      variant="ghost"
+      variant="outline"
+      colorScheme="neutral"
     >
-      <Sun aria-hidden="true" className="size-4 dark:hidden" />
-      <Moon aria-hidden="true" className="hidden size-4 dark:block" />
+      <Sun aria-hidden="true" className="size-[1.125rem] dark:hidden" />
+      <Moon aria-hidden="true" className="hidden size-[1.125rem] dark:block" />
     </Button>
   );
 }

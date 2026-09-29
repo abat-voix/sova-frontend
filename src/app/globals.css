@@ -1,23 +1,59 @@
 @import "tailwindcss";
+@import "dhtmlx-gantt/codebase/dhtmlxgantt.css";
+@import "maplibre-gl/dist/maplibre-gl.css";
 
-@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:where(.Theme_root_rtk_default_dark, .Theme_root_rtk_default_dark *));
 
-:root {
-  --background: oklch(0.982 0.008 277);
-  --foreground: oklch(0.22 0.045 273);
-  --card: oklch(1 0 0 / 72%);
-  --card-foreground: oklch(0.22 0.045 273);
-  --primary: oklch(0.48 0.19 277);
-  --primary-foreground: oklch(0.99 0.004 277);
-  --secondary: oklch(0.94 0.024 278);
-  --secondary-foreground: oklch(0.34 0.095 277);
-  --muted: oklch(0.94 0.016 274);
-  --muted-foreground: oklch(0.5 0.045 273);
-  --accent: oklch(0.68 0.18 311);
-  --accent-foreground: oklch(0.99 0.004 277);
-  --border: oklch(0.86 0.035 277 / 72%);
-  --ring: oklch(0.58 0.18 278);
-  --radius: 1rem;
+:root,
+.Theme_root_rtk_default_light {
+  color-scheme: light;
+
+  /* Atomaro-compatible semantic layer. */
+  --atmr-background-primary: #f4f4f5;
+  --atmr-background-secondary: #e7e7ed;
+  --atmr-background-elevated: #ffffff;
+  --atmr-background-accent-soft: #f0e0ff;
+  --atmr-text-primary: #0f172a;
+  --atmr-text-secondary: #6f7687;
+  --atmr-text-on-accent: #ffffff;
+  --atmr-accent-primary: #7700ff;
+  --atmr-accent-hover: #6800de;
+  --atmr-accent-active: #5900bf;
+  --atmr-brand-orange: #ff4f12;
+  --atmr-brand-orange-hover: #e03000;
+  --atmr-positive: #0dbc00;
+  --atmr-border-primary: #dcd9e0;
+  --atmr-border-subtle: #e7e8ea;
+  --atmr-focus: #8300ff;
+  --atmr-overlay: rgb(20 22 27 / 48%);
+  --atmr-shadow-elevated: 0 20px 52px rgb(15 23 42 / 12%);
+  --atmr-font-family-primary: var(--font-rostelecom-basis), Arial, sans-serif;
+  --atmr-font-weight-regular: 400;
+  --atmr-font-weight-medium: 500;
+  --atmr-font-weight-bold: 700;
+
+  /* Категориальная палитра графиков: порядок фиксирован, цвета не циклятся. */
+  --chart-series-1: #2a78d6;
+  --chart-series-2: #eb6834;
+  --chart-series-3: #1baf7a;
+  --chart-series-4: #eda100;
+  --chart-series-5: #e87ba4;
+
+  --background: var(--atmr-background-primary);
+  --foreground: var(--atmr-text-primary);
+  --card: var(--atmr-background-elevated);
+  --card-foreground: var(--atmr-text-primary);
+  --primary: var(--atmr-accent-primary);
+  --primary-foreground: var(--atmr-text-on-accent);
+  --secondary: var(--atmr-background-secondary);
+  --secondary-foreground: var(--atmr-text-primary);
+  --muted: var(--atmr-background-secondary);
+  --muted-foreground: var(--atmr-text-secondary);
+  --accent: var(--atmr-brand-orange);
+  --accent-foreground: var(--atmr-text-on-accent);
+  --border: var(--atmr-border-primary);
+  --ring: var(--atmr-focus);
+  --radius: 0.75rem;
 }
 
 @theme inline {
@@ -35,29 +71,60 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-border: var(--border);
   --color-ring: var(--ring);
-  --font-sans: "Onest Variable", sans-serif;
-  --font-heading: "Onest Variable", sans-serif;
+  --font-sans: var(--atmr-font-family-primary);
+  --font-heading: var(--atmr-font-family-primary);
   --radius-sm: calc(var(--radius) - 0.375rem);
   --radius-md: calc(var(--radius) - 0.1875rem);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 0.5rem);
 }
 
-.dark {
-  --background: oklch(0.16 0.035 274);
-  --foreground: oklch(0.94 0.014 277);
-  --card: oklch(0.22 0.045 274 / 74%);
-  --card-foreground: oklch(0.94 0.014 277);
-  --primary: oklch(0.72 0.16 278);
-  --primary-foreground: oklch(0.17 0.04 274);
-  --secondary: oklch(0.27 0.055 276);
-  --secondary-foreground: oklch(0.92 0.02 277);
-  --muted: oklch(0.25 0.035 274);
-  --muted-foreground: oklch(0.72 0.035 277);
-  --accent: oklch(0.74 0.16 311);
-  --accent-foreground: oklch(0.17 0.04 274);
-  --border: oklch(0.45 0.055 277 / 42%);
-  --ring: oklch(0.7 0.15 278);
+.Theme_root_rtk_default_dark {
+  color-scheme: dark;
+
+  --atmr-background-primary: #0f172a;
+  --atmr-background-secondary: #182238;
+  --atmr-background-elevated: #202b43;
+  --atmr-background-accent-soft: #30204a;
+  --atmr-text-primary: #ffffff;
+  --atmr-text-secondary: #b8beca;
+  --atmr-text-on-accent: #ffffff;
+  --atmr-accent-primary: #a866ff;
+  --atmr-accent-hover: #bd8aff;
+  --atmr-accent-active: #8c42ed;
+  --atmr-brand-orange: #ff6b35;
+  --atmr-brand-orange-hover: #ff8054;
+  --atmr-positive: #50cf6a;
+  --atmr-border-primary: #465069;
+  --atmr-border-subtle: #303b53;
+  --atmr-focus: #bd8aff;
+  --atmr-overlay: rgb(0 0 0 / 64%);
+  --atmr-shadow-elevated: 0 24px 64px rgb(0 0 0 / 36%);
+  --atmr-font-family-primary: var(--font-rostelecom-basis), Arial, sans-serif;
+  --atmr-font-weight-regular: 400;
+  --atmr-font-weight-medium: 500;
+  --atmr-font-weight-bold: 700;
+
+  --chart-series-1: #3987e5;
+  --chart-series-2: #d95926;
+  --chart-series-3: #199e70;
+  --chart-series-4: #c98500;
+  --chart-series-5: #d55181;
+
+  --background: var(--atmr-background-primary);
+  --foreground: var(--atmr-text-primary);
+  --card: var(--atmr-background-elevated);
+  --card-foreground: var(--atmr-text-primary);
+  --primary: var(--atmr-accent-primary);
+  --primary-foreground: var(--atmr-text-on-accent);
+  --secondary: var(--atmr-background-secondary);
+  --secondary-foreground: var(--atmr-text-primary);
+  --muted: var(--atmr-background-secondary);
+  --muted-foreground: var(--atmr-text-secondary);
+  --accent: var(--atmr-brand-orange);
+  --accent-foreground: var(--atmr-text-on-accent);
+  --border: var(--atmr-border-primary);
+  --ring: var(--atmr-focus);
 }
 
 * {
@@ -66,12 +133,7 @@
 
 html {
   min-width: 20rem;
-  color-scheme: light;
   background: var(--background);
-}
-
-html.dark {
-  color-scheme: dark;
 }
 
 body {
@@ -79,7 +141,11 @@ body {
   overflow-x: hidden;
   background: var(--background);
   color: var(--foreground);
-  font-family: "Onest Variable", sans-serif;
+  font-family: var(--atmr-font-family-primary);
+  font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings:
+    "liga" off,
+    "clig" off;
   text-rendering: optimizeLegibility;
 }
 
@@ -88,8 +154,67 @@ a {
   -webkit-tap-highlight-color: transparent;
 }
 
+button {
+  font: inherit;
+}
+
+/* React Flow ships light-only control colors. Keep canvas controls readable in
+   both themes and make the icon color follow the application foreground. */
+.workflow-editor .react-flow__controls-button {
+  background: var(--card);
+  border-color: var(--border);
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.workflow-editor .react-flow__controls-button:hover {
+  background: var(--secondary);
+}
+
+.workflow-editor .react-flow__controls-button svg {
+  fill: currentColor;
+  stroke: currentColor;
+}
+
 ::selection {
   background: color-mix(in oklab, var(--primary) 24%, transparent);
+}
+
+/*
+ * Подсказка диаграммы Ганта. Живёт не в модуле `workflow-gantt.module.css`:
+ * dhtmlx вешает её на `document.body`, вне контейнера диаграммы.
+ */
+.gantt_tooltip {
+  max-width: 22rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--atmr-border-subtle);
+  border-radius: 0.625rem;
+  background: var(--atmr-background-elevated);
+  box-shadow: var(--atmr-shadow-elevated);
+  color: var(--atmr-text-primary);
+  font-family: var(--atmr-font-family-primary);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.sova-gantt-tip__title {
+  margin-bottom: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.sova-gantt-tip__row {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.sova-gantt-tip__row > span:first-child {
+  color: var(--atmr-text-secondary);
+}
+
+.sova-gantt-tip__row > span:last-child {
+  text-align: right;
 }
 
 @media (prefers-reduced-motion: reduce) {

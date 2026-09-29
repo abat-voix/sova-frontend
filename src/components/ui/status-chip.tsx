@@ -1,0 +1,40 @@
+import type { ReactNode } from "react";
+
+import { cn } from "@/lib/utils";
+
+const tones = {
+  accent:
+    "bg-[var(--atmr-background-accent-soft)] text-[var(--atmr-accent-primary)]",
+  neutral: "bg-secondary text-muted-foreground",
+  positive: "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300",
+  // Вид организации: отдельный цвет, чтобы не сливался со статусами
+  info: "bg-sky-500/12 text-sky-700 dark:text-sky-300",
+  // Место в рейтинге: «золото», чтобы не путать с акцентными метками
+  rank: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+} as const;
+
+/**
+ * Короткая метка состояния. Общая для всех разделов: одно и то же состояние не
+ * должно выглядеть по-разному в списке организаций и на карточке задачи.
+ */
+export function StatusChip({
+  children,
+  className,
+  tone = "neutral",
+}: {
+  children: ReactNode;
+  className?: string;
+  tone?: keyof typeof tones;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium",
+        tones[tone],
+        className,
+      )}
+    >
+      {children}
+    </span>
+  );
+}

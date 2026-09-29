@@ -1,0 +1,21 @@
+.sheet {
+  animation: sheet-in 220ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(24%);
+    opacity: 0;
+  }
+
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet {
+    animation: none;
+  }
+}

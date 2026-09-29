@@ -6,7 +6,7 @@
     "node": ">=20.9.0 <25"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build --webpack",
     "postbuild": "node scripts/prepare-standalone.mjs",
     "start": "node .next/standalone/server.js",
@@ -22,18 +22,26 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@fontsource-variable/onest": "^5.3.1",
     "@radix-ui/react-slot": "^1.3.3",
     "@tanstack/react-query": "^5.102.8",
+    "@xyflow/react": "^12.11.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dhtmlx-gantt": "^10.0.3",
     "lucide-react": "^1.46.0",
+    "maplibre-gl": "^6.10.0",
     "motion": "^13.3.0",
     "next": "16.3.5",
     "next-themes": "^0.4.6",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-hook-form": "^7.88.0",
+    "react-is": "^19.2.8",
+    "react-map-gl": "^8.1.3",
+    "react-markdown": "^10.1.0",
+    "recharts": "^3.10.1",
+    "remark-breaks": "^4.0.0",
+    "remark-gfm": "^4.0.1",
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.7.0",
     "zod": "^4.6.5"

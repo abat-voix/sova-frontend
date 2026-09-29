@@ -1,0 +1,249 @@
+import { apiEndpoints } from "@/lib/api/endpoints";
+import { buildQuery, getJson, postFormData, postJson } from "@/lib/api/http";
+import type { ActionAttachment } from "@/types/action-attachment";
+import type {
+  CancelActionPayload,
+  CancelActionResult,
+} from "@/types/action-rollback";
+import type { PaginatedResponse } from "@/types/api";
+import type {
+  ActionFeatureCode,
+  ActionFeatureInitialMap,
+  ActionFeaturePayloadMap,
+  ExecuteActionFeatureResult,
+} from "@/types/action-feature";
+import type {
+  CancelStagePayload,
+  CompleteActionPayload,
+  CompleteActionResult,
+  StartWorkflowInstancePayload,
+  WorkflowBoard,
+  WorkflowInstance,
+} from "@/types/workflow-board";
+
+export function boardQueryKey(workflowInstanceId: string) {
+  return ["processes", "workflow-board", workflowInstanceId] as const;
+}
+
+export function workflowInstancesQueryKey(interactionId: string) {
+  return ["processes", "workflow-instances", interactionId] as const;
+}
+
+export function workflowInstancesForInteractionsQueryKey(
+  interactionIds: string[],
+) {
+  return [
+    "processes",
+    "workflow-instances",
+    "cards",
+    { interactionIds },
+  ] as const;
+}
+
+export function getWorkflowInstances(interactionId: string) {
+  const query = buildQuery({
+    interaction__ids: interactionId,
+    ordering: "-started_at",
+  });
+
+  return getJson<PaginatedResponse<WorkflowInstance>>(
+    `${apiEndpoints.processes.workflowInstances.list}?${query}`,
+  );
+}
+
+/**
+ * Статусы последних процессов для карточек взаимодействий. Один запрос вместо
+ * запроса на каждую карточку; порядок нужен, чтобы первым для взаимодействия
+ * оказался его самый свежий процесс.
+ */
+export function getWorkflowInstancesForInteractions(interactionIds: string[]) {
+  const query = buildQuery({
+    interaction__ids: interactionIds.join(","),
+    ordering: "-started_at",
+    page_size: 200,
+  });
+
+  return getJson<PaginatedResponse<WorkflowInstance>>(
+    `${apiEndpoints.processes.workflowInstances.list}?${query}`,
+  );
+}
+
+/**
+ * Запускает процесс: движок создаёт все экземпляры этапов и действий и
+ * открывает этапы без входящих связей (Шаг 3 описания движка).
+ */
+export function startWorkflowInstance(
+  payload: StartWorkflowInstancePayload,
+  csrfToken: string,
+) {
+  return postJson<WorkflowInstance>(
+    apiEndpoints.processes.workflowInstances.list,
+    payload,
+    csrfToken,
+  );
+}
+
+/** Весь путь процесса одним ответом: этапы, действия, доступные исходы. */
+export function getWorkflowBoard(workflowInstanceId: string) {
+  return getJson<WorkflowBoard>(
+    apiEndpoints.processes.workflowInstances.board(workflowInstanceId),
+  );
+}
+
+/**
+ * Завершает действие выбранным исходом. Процесс двигает движок на бэкенде —
+ * после успеха доску перезапрашиваем, а не пересобираем у себя.
+ */
+export function completeAction(
+  actionInstanceId: string,
+  payload: CompleteActionPayload,
+  csrfToken: string,
+) {
+  return postJson<CompleteActionResult>(
+    apiEndpoints.processes.actionInstances.complete(actionInstanceId),
+    payload,
+    csrfToken,
+  );
+}
+
+/** Выполняет feature для текущего исполнения действия. Контекст задаёт backend. */
+export function executeActionFeature<Code extends ActionFeatureCode>(
+  actionInstanceId: string,
+  code: Code,
+  payload: ActionFeaturePayloadMap[Code],
+  csrfToken: string,
+) {
+  return postJson<ExecuteActionFeatureResult>(
+    apiEndpoints.processes.actionInstances.executeFeature(
+      actionInstanceId,
+      code,
+    ),
+    payload,
+    csrfToken,
+  );
+}
+
+/** Multipart-вариант feature API для действий с пользовательским файлом. */
+export function executeContractFileUploadFeature(
+  actionInstanceId: string,
+  payload: ActionFeaturePayloadMap["contract.file.upload"],
+  csrfToken: string,
+) {
+  const body = new FormData();
+  body.set("contract", payload.contract);
+  body.set("file", payload.file);
+
+  return postFormData<ExecuteActionFeatureResult>(
+    apiEndpoints.processes.actionInstances.executeFeature(
+      actionInstanceId,
+      "contract.file.upload",
+    ),
+    body,
+    csrfToken,
+  );
+}
+
+export function actionFeatureInitialQueryKey(
+  actionInstanceId: string,
+  code: keyof ActionFeatureInitialMap,
+) {
+  return [
+    "processes",
+    "action-feature-initial",
+    actionInstanceId,
+    code,
+  ] as const;
+}
+
+/** Черновик формы feature: backend заполняет то, что знает о контексте действия. */
+export function getActionFeatureInitial<
+  Code extends keyof ActionFeatureInitialMap,
+>(actionInstanceId: string, code: Code) {
+  return getJson<ActionFeatureInitialMap[Code]>(
+    apiEndpoints.processes.actionInstances.featureInitial(
+      actionInstanceId,
+      code,
+    ),
+  );
+}
+
+export function cancelStage(
+  stageInstanceId: string,
+  payload: CancelStagePayload,
+  csrfToken: string,
+) {
+  return postJson<unknown>(
+    apiEndpoints.processes.stageInstances.cancel(stageInstanceId),
+    payload,
+    csrfToken,
+  );
+}
+
+/**
+ * Откатывает выполненное действие: движок создаёт новое исполнение вместо
+ * отменённого.
+ *
+ * Доступность отката бэкенд проверяет сам — флага в доске нет, поэтому
+ * интерфейс показывает кнопку по статусу и разбирает отказ по коду ошибки.
+ */
+export function cancelAction(
+  actionInstanceId: string,
+  payload: CancelActionPayload,
+  csrfToken: string,
+) {
+  return postJson<CancelActionResult>(
+    apiEndpoints.processes.actionInstances.cancel(actionInstanceId),
+    payload,
+    csrfToken,
+  );
+}
+
+/**
+ * Загружает файл к исполнению действия.
+ *
+ * Исход с `is_attachment_required` проверяется на бэкенде при завершении, поэтому
+ * файл нужно отправить раньше, чем команду `complete`.
+ */
+export function uploadActionAttachment(
+  actionInstanceId: string,
+  file: File,
+  csrfToken: string,
+) {
+  const body = new FormData();
+  body.set("action_instance", actionInstanceId);
+  body.set("file", file);
+
+  return postFormData<unknown>(
+    apiEndpoints.processes.actionAttachments.list,
+    body,
+    csrfToken,
+  );
+}
+
+export function interactionAttachmentsQueryKey(interactionId: string) {
+  return [
+    "processes",
+    "action-attachments",
+    "by-interaction",
+    interactionId,
+  ] as const;
+}
+
+/**
+ * Все вложения действий взаимодействия — для карточки взаимодействия.
+ *
+ * У `ActionAttachment` нет своей ссылки на взаимодействие: бэкенд фильтрует
+ * по цепочке `action_instance → stage_instance → workflow_instance →
+ * interaction`.
+ */
+export function getInteractionAttachments(interactionId: string) {
+  const query = buildQuery({
+    interaction__ids: interactionId,
+    ordering: "-uploaded_at",
+    page_size: 200,
+  });
+
+  return getJson<PaginatedResponse<ActionAttachment>>(
+    `${apiEndpoints.processes.actionAttachments.list}?${query}`,
+  );
+}

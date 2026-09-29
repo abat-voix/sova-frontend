@@ -1,0 +1,2225 @@
+<!doctype html>
+
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Опросник — CRM для взаимодействия с вузами</title>
+    <style>
+      :root {
+        --primary: #6a1b9a;
+        --primary-light: #9c4dcc;
+        --primary-dark: #38006b;
+        --accent: #00bcd4;
+        --bg: #f4f6fb;
+        --card: #ffffff;
+        --text: #1f2233;
+        --muted: #6b7280;
+        --border: #e2e6f0;
+        --success: #10b981;
+        --shadow: 0 4px 20px rgba(106, 27, 154, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+        padding: 24px 16px 120px;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      /* Header */
+      .header {
+        background: linear-gradient(
+          135deg,
+          var(--primary-dark),
+          var(--primary),
+          var(--primary-light)
+        );
+        color: #fff;
+        border-radius: 20px;
+        padding: 40px 36px;
+        margin-bottom: 28px;
+        box-shadow: var(--shadow);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .header::after {
+        content: "";
+        position: absolute;
+        top: -60px;
+        right: -60px;
+        width: 220px;
+        height: 220px;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 50%;
+      }
+
+      .header h1 {
+        font-size: 28px;
+        margin-bottom: 12px;
+        font-weight: 700;
+        position: relative;
+        z-index: 1;
+      }
+
+      .header p {
+        font-size: 15px;
+        opacity: 0.92;
+        max-width: 640px;
+        position: relative;
+        z-index: 1;
+      }
+
+      .header .meta {
+        margin-top: 18px;
+        font-size: 13px;
+        opacity: 0.8;
+        position: relative;
+        z-index: 1;
+      }
+
+      /* Progress */
+      .progress-wrap {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: rgba(244, 246, 251, 0.95);
+        backdrop-filter: blur(8px);
+        padding: 12px 0;
+        margin-bottom: 20px;
+      }
+
+      .progress-bar {
+        height: 8px;
+        background: var(--border);
+        border-radius: 99px;
+        overflow: hidden;
+      }
+
+      .progress-fill {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, var(--primary), var(--accent));
+        border-radius: 99px;
+        transition: width 0.3s ease;
+      }
+
+      .progress-text {
+        font-size: 13px;
+        color: var(--muted);
+        margin-top: 6px;
+        text-align: right;
+      }
+
+      /* Sections */
+      .section {
+        background: var(--card);
+        border-radius: 16px;
+        padding: 28px 28px 20px;
+        margin-bottom: 20px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border);
+        transition: transform 0.2s ease;
+      }
+
+      .section:hover {
+        transform: translateY(-2px);
+      }
+
+      .section-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--primary-dark);
+        margin-bottom: 18px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .section-title .num {
+        background: var(--primary);
+        color: #fff;
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+
+      /* Questions */
+      .question {
+        margin-bottom: 22px;
+        padding-bottom: 18px;
+        border-bottom: 1px dashed var(--border);
+      }
+
+      .question:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+      }
+
+      .q-label {
+        font-weight: 600;
+        font-size: 15px;
+        margin-bottom: 10px;
+        display: block;
+        color: var(--text);
+      }
+
+      .q-label .q-num {
+        color: var(--primary);
+        font-weight: 700;
+        margin-right: 4px;
+      }
+
+      .q-hint {
+        font-size: 13px;
+        color: var(--muted);
+        font-weight: 400;
+        margin-left: 4px;
+      }
+
+      /* Options */
+      .options {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .options.grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .option {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 10px 14px;
+        border: 1.5px solid var(--border);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        background: #fafbff;
+        font-size: 14px;
+        user-select: none;
+      }
+
+      .option:hover {
+        border-color: var(--primary-light);
+        background: #f3eaff;
+      }
+
+      .option input {
+        margin-top: 3px;
+        accent-color: var(--primary);
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+        cursor: pointer;
+      }
+
+      .option.selected {
+        border-color: var(--primary);
+        background: #f3eaff;
+        box-shadow: 0 0 0 2px rgba(106, 27, 154, 0.1);
+      }
+
+      .option .other-input {
+        margin-top: 8px;
+        width: 100%;
+      }
+
+      /* Inputs */
+      textarea,
+      input[type="text"],
+      input[type="number"] {
+        width: 100%;
+        padding: 10px 14px;
+        border: 1.5px solid var(--border);
+        border-radius: 10px;
+        font-family: inherit;
+        font-size: 14px;
+        color: var(--text);
+        background: #fafbff;
+        resize: vertical;
+        transition:
+          border-color 0.15s ease,
+          box-shadow 0.15s ease;
+      }
+
+      textarea:focus,
+      input[type="text"]:focus,
+      input[type="number"]:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(106, 27, 154, 0.1);
+        background: #fff;
+      }
+
+      textarea {
+        min-height: 80px;
+      }
+
+      /* Scale table */
+      .scale-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 6px;
+        font-size: 14px;
+      }
+
+      .scale-table th {
+        text-align: center;
+        font-weight: 600;
+        color: var(--muted);
+        font-size: 12px;
+        padding: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .scale-table th:first-child {
+        text-align: left;
+      }
+
+      .scale-table td {
+        padding: 8px 6px;
+        background: #fafbff;
+        border-top: 1.5px solid var(--border);
+        border-bottom: 1.5px solid var(--border);
+        text-align: center;
+      }
+
+      .scale-table td:first-child {
+        text-align: left;
+        font-weight: 500;
+        border-left: 1.5px solid var(--border);
+        border-radius: 10px 0 0 10px;
+        padding-left: 14px;
+      }
+
+      .scale-table td:last-child {
+        border-right: 1.5px solid var(--border);
+        border-radius: 0 10px 10px 0;
+      }
+
+      .scale-table input[type="radio"] {
+        accent-color: var(--primary);
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+      }
+
+      /* Footer actions */
+      .actions {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(10px);
+        border-top: 1px solid var(--border);
+        padding: 14px 16px;
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        z-index: 100;
+        flex-wrap: wrap;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+      }
+
+      .btn {
+        padding: 11px 22px;
+        border: none;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        font-family: inherit;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .btn-primary {
+        background: linear-gradient(
+          135deg,
+          var(--primary),
+          var(--primary-light)
+        );
+        color: #fff;
+        box-shadow: 0 4px 14px rgba(106, 27, 154, 0.3);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(106, 27, 154, 0.4);
+      }
+
+      .btn-secondary {
+        background: #fff;
+        color: var(--primary);
+        border: 1.5px solid var(--primary);
+      }
+
+      .btn-secondary:hover {
+        background: #f3eaff;
+      }
+
+      .btn-danger {
+        background: #fff;
+        color: #dc2626;
+        border: 1.5px solid #fca5a5;
+      }
+
+      .btn-danger:hover {
+        background: #fef2f2;
+      }
+
+      /* Toast */
+      .toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: var(--success);
+        color: #fff;
+        padding: 12px 20px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 600;
+        box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
+        opacity: 0;
+        transform: translateY(-20px);
+        transition: all 0.3s ease;
+        z-index: 200;
+        pointer-events: none;
+      }
+
+      .toast.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      /* Autosave indicator */
+      .autosave {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        font-size: 12px;
+        color: var(--muted);
+        background: rgba(255, 255, 255, 0.9);
+        padding: 6px 12px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        z-index: 200;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      .autosave.show {
+        opacity: 1;
+      }
+
+      /* Responsive */
+      @media (max-width: 640px) {
+        body {
+          padding: 16px 10px 140px;
+        }
+        .header {
+          padding: 28px 22px;
+        }
+        .header h1 {
+          font-size: 22px;
+        }
+        .section {
+          padding: 22px 18px 16px;
+        }
+        .options.grid {
+          grid-template-columns: 1fr;
+        }
+        .actions {
+          padding: 10px;
+          gap: 8px;
+        }
+        .btn {
+          padding: 10px 16px;
+          font-size: 13px;
+          flex: 1;
+          justify-content: center;
+        }
+        .scale-table {
+          font-size: 12px;
+        }
+        .scale-table td {
+          padding: 6px 3px;
+        }
+      }
+    </style>
+    <base target="_blank" />
+  </head>
+  <body>
+    <div class="autosave" id="autosave">💾 Сохранено</div>
+    <div class="toast" id="toast">✅ Ответы выгружены</div>
+    <div class="container">
+      <!-- Header -->
+      <div class="header">
+        <h1>Опросник</h1>
+        <p>
+          Мы разрабатываем CRM-систему для автоматизации взаимодействия с вузами
+          по ИТ-направлениям. Ваш опыт в аналогичной организации очень ценен для
+          нас. Пожалуйста, ответьте на вопросы — это поможет учесть реальные
+          сложности и сделать систему максимально полезной.
+        </p>
+        <p>
+          Правила заполнения: отвечайте на вопросы, исходя из вашего текущего
+          или последнего опыта работы; выбирайте те варианты, которые лучше
+          всего описывают вашу ситуацию; если вопрос непонятен, не относится к
+          вашим задачам или затрагивает информацию, являющуюся коммерческой
+          тайной, — просто пропустите этот пункт и переходите к следующему.
+        </p>
+        <div class="meta">
+          ⏱ ~7–10 минут · 💾 Ответы сохраняются автоматически
+        </div>
+      </div>
+      <!-- Progress -->
+      <div class="progress-wrap">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-text" id="progressText">Заполнено: 0%</div>
+      </div>
+      <form id="surveyForm">
+        <!-- Вводная часть -->
+        <div class="section">
+          <div class="section-title">
+            <span class="num">i</span> Вводная часть
+          </div>
+          <div class="question">
+            <label class="q-label"
+              ><span class="q-num">1.</span> Ваша роль в организации</label
+            >
+            <div class="options">
+              <label class="option"
+                ><input
+                  name="role"
+                  type="radio"
+                  value="Менеджер по работе с клиентами"
+                />
+                Менеджер по работе с клиентами</label
+              >
+              <label class="option"
+                ><input name="role" type="radio" value="Руководитель" />
+                Руководитель</label
+              >
+              <label class="option"
+                ><input
+                  name="role"
+                  type="radio"
+                  value="Администратор платформы / технический специалист"
+                />
+                Администратор платформы / технический специалист</label
+              >
+              <label class="option"
+                ><input
+                  data-other="true"
+                  name="role"
+                  type="radio"
+                  value="Другое"
+                />
+                Другое
+                <input
+                  class="other-input"
+                  name="role_other"
+                  placeholder="Укажите..."
+                  style="display: none"
+                  type="text"
+                />
+              </label>
+            </div>
+          </div>
+          <div class="question">
+            <label class="q-label"
+              ><span class="q-num">2.</span> Сколько вузов вы лично курируете /
+              курировала ваша команда</label
+            >
+            <div class="options grid">
+              <label class="option"
+                ><input name="vuz_count" type="radio" value="1–5" /> 1–5</label
+              >
+              <label class="option"
+                ><input name="vuz_count" type="radio" value="6–15" />
+                6–15</label
+              >
+              <label class="option"
+                ><input name="vuz_count" type="radio" value="16–30" />
+                16–30</label
+              >
+              <label class="option"
+                ><input name="vuz_count" type="radio" value="Более 30" /> Более
+                30</label
+              >
+              <label class="option"
+                ><input
+                  name="vuz_count"
+                  type="radio"
+                  value="Затрудняюсь ответить"
+                />
+                Затрудняюсь ответить</label
+              >
+            </div>
+          </div>
+        </div>
+        <!-- Блок 1 -->
+        <div class="section">
+          <div class="section-title">
+            <span class="num">1</span> Текущий процесс взаимодействия с вузами
+          </div>
+          <div class="question">
+            <label class="q-label"
+              ><span class="q-num">3.</span> Как сейчас ведётся учёт
+              взаимодействий с вузами?</label
+            >
+            <div class="options">
+              <label class="option"
+                ><input
+                  name="tracking"
+                  type="checkbox"
+                  value="Excel / Google Таблицы"
+                />
+                Excel / Google Таблицы</label
+              >
+              <label class="option"
+                ><input
+                  data-other="true"
+                  name="tracking"
+                  type="checkbox"
+                  value="CRM-система"
+                />
+                CRM-система (укажите какая)
+                <input
+                  class="other-input"
+                  name="tracking_crm"
+                  placeholder="Какая CRM?"
+                  style="display: none"
+                  type="text"
+                />
+              </label>
+              <label class="option"
+                ><input
+                  name="tracking"
+                  type="checkbox"
+                  value="Самописная система"
+                />
+                Самописная система</label
+              >
+              <label class="option"
+                ><input
+                  name="tracking"
+                  type="checkbox"
+                  value="Бумажные документы / папки"
+                />
+                Бумажные документы / папки</label
+              >
+              <label class="option"
+                ><input
+                  name="tracking"
+                  type="checkbox"
+                  value="Комбинация нескольких инструментов"
+                />
+                Комбинация нескольких инструментов</label
+              >
+              <label class="option"
+                ><input
+                  data-other="true"
+                  name="tracking"
+                  type="checkbox"
+                  value="Другое"
+                />
+                Другое
+                <input
+                  class="other-input"
+                  name="tracking_other"
+                  placeholder="Укажите..."
+                  style="display: none"
+                  type="text"
+                />
+              </label>
+            </div>
+          </div>
+          <div class="question">
+            <label class="q-label"
+              ><span class="q-num">4.</span> Какие этапы взаимодействия с вузом
+              самые трудоёмкие? <span class="q-hint">(не более 3)</span></label
+            >
+            <div class="options">
+              <label class="option"
+                ><input
+                  name="hard_stages"
+                  type="checkbox"
+                  value="Поиск контактов ответственного в вузе"
+                />
+                Поиск контактов ответственного в вузе</label
+              >
+              <label class="option"
+                ><input
+                  name="hard_stages"
+                  type="checkbox"
+                  value="Коммуникация и уточнение актуальности программ"
+                />
+                Коммуникация и уточнение актуальности программ</label
+              >
+              <label class="option"
+                ><input
+                  name="hard_stages"
+                  type="checkbox"
+                  value="Организация встречи с представителями вуза"
+                />
+                Организация встречи с представителями вуза</label
+              >
+              <label class="option"
+                ><input
+                  name="hard_stages"
+                  type="checkbox"
+                  value="Обмен и подписание документов"
+                />
+                Обмен и подписание документов</label
+              >
+              <label class="option"
+                ><input
+                  name="hard_stages"
+                  type="checkbox"
+                  value="Передача обучающих материалов и лицензий"
+                />
+                Передача обучающих материалов и лицензий</label
+              >
+              <label class="option"
+                ><input
+                  name="hard_stages"
+                  type="checkbox"
+                  value="Сопровождение внедрения ИТ-продуктов"
+                />
+                Сопровождение внедрения ИТ-продуктов</label
+              >
+              <label class="option"
+                ><input
+                  name="hard_stages"
+                  type="checkbox"
+                  value="Обучение преподавателей"
+                />
+                Обучение преподавателей</label
+              >
+              <label class="option"
+                ><input
+                  name="hard_stages"
+                  type="checkbox"
+                  value="Актуализация учебной программы"
+                />
+                Актуализация учебной программы</label
+              >
+              <label class="option"
+                ><input
+                  name="hard_stages"
+                  type="checkbox"
+                  value="Ведение занятий"
+                />
+                Ведение занятий</label
+              >
+              <label class="option"
+                ><input
+                  name="hard_stages"
+                  type="checkbox"
+                  value="Контроль за исполнением этапов"
+                />
+                Контроль за исполнением этапов</label
+              >
+              <label class="option"
+                ><input
+                  data-other="true"
+                  name="hard_stages"
+                  type="checkbox"
+                  value="Другое"
+                />
+                Другое
+                <input
+                  class="other-input"
+                  name="hard_stages_other"
+                  placeholder="Укажите..."
+                  style="display: none"
+                  type="text"
+                />
+              </label>
+            </div>
+          </div>
+          <div class="question">
+            <label class="q-label"
+              ><span class="q-num">5.</span> Сколько времени в среднем занимает
+              одно взаимодействие с вузом?</label
+            >
+            <div class="options grid">
+              <label class="option"
+                ><input name="duration" type="radio" value="Менее 1 месяца" />
+                Менее 1 месяца</label
+              >
+              <label class="option"
+                ><input name="duration" type="radio" value="1–3 месяца" /> 1–3
+                месяца</label
+              >
+              <label class="option"
+                ><input name="duration" type="radio" value="3–6 месяцев" /> 3–6
+                месяцев</label
+              >
+              <label class="option"
+                ><input name="duration" type="radio" value="6–12 месяцев" />
+                6–12 месяцев</label
+              >
+              <label class="option"
+                ><input name="duration" type="radio" value="Более года" /> Более
+                года</label
+              >
+              <label class="option"
+                ><input
+                  name="duration"
+                  type="radio"
+                  value="Затрудняюсь ответить"
+                />
+                Затрудняюсь ответить</label
+              >
+            </div>
+          </div>
+          <div class="question">
+            <label class="q-label"
+              ><span class="q-num">6.</span> Как часто информация о статусе
+              взаимодействия оказывается неактуальной?</label
+            >
+            <div class="options grid">
+              <label class="option"
+                ><input name="stale_info" type="radio" value="Ежедневно" />
+                Ежедневно</label
+              >
+              <label class="option"
+                ><input
+                  name="stale_info"
+                  type="radio"
+                  value="Несколько раз в неделю"
+                />
+                Несколько раз в неделю</label
+              >
+              <label class="option"
+                ><input name="stale_info" type="radio" value="Раз в неделю" />
+                Раз в неделю</label
+              >
+              <label class="option"
+                ><input
+                  name="stale_info"
+                  type="radio"
+                  value="Несколько раз в месяц"
+                />
+                Несколько раз в месяц</label
+              >
+              <label class="option"
+                ><input name="stale_info" type="radio" value="Реже" />
+                Реже</label
+              >
+              <label class="option"
+                ><input
+                  name="stale_info"
+                  type="radio"
+                  value="Такой проблемы нет"
+                />
+                Такой проблемы нет</label
+              >
+            </div>
+          </div>
+        </div>
+        <!-- Блок 2 -->
+        <div class="section">
+          <div class="section-title">
+            <span class="num">2</span> Болевые точки
+          </div>
+          <div class="question">
+            <label class="q-label"
+              ><span class="q-num">7.</span> Что чаще всего «ломается» или
+              буксует в процессе?</label
+            >
+            <div class="options">
+              <label class="option"
+                ><input
+                  name="pain_points"
+                  type="checkbox"
+                  value="Теряется контакт с вузом"
+                />
+                Теряется контакт с вузом</label
+              >
+              <label class="option"
+                ><input
+                  name="pain_points"
+                  type="checkbox"
+                  value="Затягивается подписание документов"
+                />
+                Затягивается подписание документов</label
+              >
+              <label class="option"
+                ><input
+                  name="pain_points"
+                  type="checkbox"
+                  value="Неактуальные данные о статусе"
+                />
+                Неактуальные данные о статусе</label
+              >
+              <label class="option"
+                ><input
+                  name="pain_points"
+                  type="checkbox"
+                  value="Сложности с передачей материалов"
+                />
+                Сложности с передачей материалов</label
+              >
+              <label class="option"
+                ><input
+                  name="pain_points"
+                  type="checkbox"
+                  value="Преподаватели не проходят обучение вовремя"
+                />
+                Преподаватели не проходят обучение вовремя</label
+              >
+              <label class="option"
+                ><input
+                  name="pain_points"
+                  type="checkbox"
+                  value="Непонятно, кто ответственный за этап"
+                />
+                Непонятно, кто ответственный за этап</label
+              >
+              <label class="option"
+                ><input
+                  name="pain_points"
+                  type="checkbox"
+                  value="Дублирование информации в разных системах"
+                />
+                Дублирование информации в разных системах</label
+              >
+              <label class="option"
+                ><input
+                  name="pain_points"
+                  type="checkbox"
+                  value="Руководство не видит реальную картину"
+                />
+                Руководство не видит реальную картину</label
+              >
+              <label class="option"
+                ><input
+                  data-other="true"
+                  name="pain_points"
+                  type="checkbox"
+                  value="Другое"
+                />
+                Другое
+                <input
+                  class="other-input"
+                  name="pain_points_other"
+                  placeholder="Укажите..."
+                  style="display: none"
+                  type="text"
+                />
+              </label>
+            </div>
+          </div>
+          <div class="question">
+            <label class="q-label"
+              ><span class="q-num">8.</span> Как вы узнаёте, что вуз «выпал» из
+              процесса?</label
+            >
+            <div class="options">
+              <label class="option"
+                ><input name="lost_vuz" type="radio" value="Вуз сам сообщает" />
+                Вуз сам сообщает</label
+              >
+              <label class="option"
+                ><input
+                  name="lost_vuz"
+                  type="radio"
+                  value="Руководитель замечает при проверке"
+                />
+                Руководитель замечает при проверке</label
+              >
+              <label class="option"
+                ><input
+                  name="lost_vuz"
+                  type="radio"
+                  value="Случайно, при формировании отчёта"
+                />
+                Случайно, при формировании отчёта</label
+              >
+              <label class="option"
+                ><input
+                  name="lost_vuz"
+                  type="radio"
+                  value="Никак, узнаём слишком поздно"
+                />
+                Никак, узнаём слишком поздно</label
+              >
+              <label class="option"
+                ><input
+                  data-other="true"
+                  name="lost_vuz"
+                  type="radio"
+                  value="Другое"
+                />
+                Другое
+                <input
+                  class="other-input"
+                  name="lost_vuz_other"
+                  placeholder="Укажите..."
+                  style="display: none"
+                  type="text"
+                />
+              </label>
+            </div>
+          </div>
+          <div class="question">
+            <label class="q-label"
+              ><span class="q-num">9.</span> Случались ли конфликты или
+              недопонимания из-за неактуальной информации о статусе?</label
+            >
+            <div class="options grid">
+              <label class="option"
+                ><input name="conflicts" type="radio" value="Да, регулярно" />
+                Да, регулярно</label
+              >
+              <label class="option"
+                ><input name="conflicts" type="radio" value="Да, иногда" /> Да,
+                иногда</label
+              >
+              <label class="option"
+                ><input name="conflicts" type="radio" value="Редко" />
+                Редко</label
+              >
+              <label class="option"
+                ><input name="conflicts" type="radio" value="Нет" /> Нет</label
+              >
+              <label class="option"
+                ><input
+                  name="conflicts"
+                  type="radio"
+                  value="Затрудняюсь ответить"
+                />
+                Затрудняюсь ответить</label
+              >
+            </div>
+          </div>
+        </div>
+        <!-- Блок 3 -->
+        <div class="section">
+          <div class="section-title">
+            <span class="num">3</span> Отчётность и данные
+          </div>
+          <div class="question">
+            <label class="q-label"
+              ><span class="q-num">10.</span> Какие отчёты вы формируете
+              регулярно?</label
+            >
+            <div class="options">
+              <label class="option"
+                ><input
+                  name="reports"
+                  type="checkbox"
+                  value="По количеству заявок на обучение"
+                />
+                По количеству заявок на обучение</label
+              >
+              <label class="option"
+                ><input
+                  name="reports"
+                  type="checkbox"
+                  value="По количеству обучающихся"
+                />
+                По количеству обучающихся</label
+              >
+              <label class="option"
+                ><input
+                  name="reports"
+                  type="checkbox"
+                  value="По параллельным потокам"
+                />
+                По параллельным потокам</label
+              >
+              <label class="option"
+                ><input
+                  name="reports"
+                  type="checkbox"
+                  value="По статусам взаимодействия с вузами"
+                />
+                По статусам взаимодействия с вузами</label
+              >
+              <label class="option"
+                ><input
+                  name="reports"
+                  type="checkbox"
+                  value="По ответственным менеджерам"
+                />
+                По ответственным менеджерам</label
+              >
+              <label class="option"
+                ><input
+                  name="reports"
+                  type="checkbox"
+                  value="По ИТ-направлениям"
+                />
+                По ИТ-направлениям</label
+              >
+              <label class="option"
+                ><input
+                  name="reports"
+                  type="checkbox"
+                  value="По ИТ-продуктам"
+                />
+                По ИТ-продуктам</label
+              >
+              <label class="option"
+                ><input
+                  data-other="true"
+                  name="reports"
+                  type="checkbox"
+                  value="Другое"
+                />
+                Другое
+                <input
+                  class="other-input"
+                  name="reports_other"
+                  placeholder="Укажите..."
+                  style="display: none"
+                  type="text"
+                />
+              </label>
+            </div>
+          </div>
+          <div class="question">
+            <label class="q-label"
+              ><span class="q-num">11.</span> Какие данные сложнее всего собрать
+              или актуализировать?</label
+            >
+            <div class="options">
+              <label class="option"
+                ><input
+                  name="hard_data"
+                  type="checkbox"
+                  value="Контакты ответственных от вузов"
+                />
+                Контакты ответственных от вузов</label
+              >
+              <label class="option"
+                ><input
+                  name="hard_data"
+                  type="checkbox"
+                  value="Статусы подписания документов"
+                />
+                Статусы подписания документов</label
+              >
+              <label class="option"
+                ><input
+                  name="hard_data"
+                  type="checkbox"
+                  value="Сроки действия лицензий"
+                />
+                Сроки действия лицензий</label
+              >
+              <label class="option"
+                ><input
+                  name="hard_data"
+                  type="checkbox"
+                  value="Информация об обучении преподавателей"
+                />
+                Информация об обучении преподавателей</label
+              >
+              <label class="option"
+                ><input
+                  name="hard_data"
+                  type="checkbox"
+                  value="Количество обучающихся"
+                />
+                Количество обучающихся</label
+              >
+              <label class="option"
+                ><input
+                  data-other="true"
+                  name="hard_data"
+                  type="checkbox"
+                  value="Другое"
+                />
+                Другое
+                <input
+                  class="other-input"
+                  name="hard_data_other"
+                  placeholder="Укажите..."
+                  style="display: none"
+                  type="text"
+                />
+              </label>
+            </div>
+          </div>
+          <div class="question">
+            <label class="q-label"
+              ><span class="q-num">12.</span> Насколько важна фильтрация данных
+              по параметрам?
+              <span class="q-hint">(1 — не важно, 5 — критично)</span></label
+            >
+            <table class="scale-table">
+              <thead>
+                <tr>
+                  <th>Параметр</th>
+                  <th>1</th>
+                  <th>2</th>
+                  <th>3</th>
+                  <th>4</th>
+                  <th>5</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Период</td>
+                  <td><input name="filter_period" type="radio" value="1" /></td>
+                  <td><input name="filter_period" type="radio" value="2" /></td>
+                  <td><input name="filter_period" type="radio" value="3" /></td>
+                  <td><input name="filter_period" type="radio" value="4" /></td>
+                  <td><input name="filter_period" type="radio" value="5" /></td>
+                </tr>
+                <tr>
+                  <td>Вуз</td>
+                  <td><input name="filter_vuz" type="radio" value="1" /></td>
+                  <td><input name="filter_vuz" type="radio" value="2" /></td>
+                  <td><input name="filter_vuz" type="radio" value="3" /></td>
+                  <td><input name="filter_vuz" type="radio" value="4" /></td>
+                  <td><input name="filter_vuz" type="radio" value="5" /></td>
+                </tr>
+                <tr>
+                  <td>ИТ-направление</td>
+                  <td>
+                    <input name="filter_direction" type="radio" value="1" />
+                  </td>
+                  <td>
+                    <input name="filter_direction" type="radio" value="2" />
+                  </td>
+                  <td>
+                    <input name="filter_direction" type="radio" value="3" />
+                  </td>
+                  <td>
+                    <input name="filter_direction" type="radio" value="4" />
+                  </td>
+                  <td>
+                    <input name="filter_direction" type="radio" value="5" />
+                  </td>
+                </tr>
+                <tr>
+                  <td>ИТ-продукт</td>
+                  <td>
+                    <input name="filter_product" type="radio" value="1" />
+                  </td>
+                  <td>
+                    <input name="filter_product" type="radio" value="2" />
+                  </td>
+                  <td>
+                    <input name="filter_product" type="radio" value="3" />
+                  </td>
+                  <td>
+                    <input name="filter_product" type="radio" value="4" />
+                  </td>
+                  <td>
+                    <input name="filter_product" type="radio" value="5" />
+                  </td>
+                </tr>
+                <tr>
+                  <td>Ответственный</td>
+                  <td>
+                    <input name="filter_manager" type="radio" value="1" />
+                  </td>
+                  <td>
+                    <input name="filter_manager" type="radio" value="2" />
+                  </td>
+                  <td>
+                    <input name="filter_manager" type="radio" value="3" />
+                  </td>
+                  <td>
+                    <input name="filter_manager" type="radio" value="4" />
+                  </td>
+                  <td>
+                    <input name="filter_manager" type="radio" value="5" />
+                  </td>
+                </tr>
+                <tr>
+                  <td>Статус взаимодействия</td>
+                  <td><input name="filter_status" type="radio" value="1" /></td>
+                  <td><input name="filter_status" type="radio" value="2" /></td>
+                  <td><input name="filter_status" type="radio" value="3" /></td>
+                  <td><input name="filter_status" type="radio" value="4" /></td>
+                  <td><input name="filter_status" type="radio" value="5" /></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="question">
+            <label class="q-label"
+              ><span class="q-num">13.</span> Насколько важна визуализация
+              данных (диаграммы, графики)?</label
+            >
+            <div class="options">
+              <label class="option"
+                ><input
+                  name="visualization"
+                  type="radio"
+                  value="Критично, без неё не обойтись"
+                />
+                Критично, без неё не обойтись</label
+              >
+              <label class="option"
+                ><input name="visualization" type="radio" value="Очень важно" />
+                Очень важно</label
+              >
+              <label class="option"
+                ><input
+                  name="visualization"
+                  type="radio"
+                  value="Желательно, но можно и таблицами"
+                />
+                Желательно, но можно и таблицами</label
+              >
+              <label class="option"
+                ><input name="visualization" type="radio" value="Не важно" /> Не
+                важно</label
+              >
+              <label class="option"
+                ><input
+                  name="visualization"
+                  type="radio"
+                  value="Затрудняюсь ответить"
+                />
+                Затрудняюсь ответить</label
+              >
+            </div>
+          </div>
+          <div class="question">
+            <label class="q-label"
+              ><span class="q-num">14.</span> Приходится ли вам вручную сводить
+              данные из разных источников?</label
+            >
+            <div class="options grid">
+              <label class="option"
+                ><input
+                  name="manual_merge"
+                  type="radio"
+                  value="Да, постоянно"
+                />
+                Да, постоянно</label
+              >
+              <label class="option"
+                ><input name="manual_merge" type="radio" value="Да, иногда" />
+                Да, иногда</label
+              >
+              <label class="option"
+                ><input name="manual_merge" type="radio" value="Редко" />
+                Редко</label
+              >
+              <label class="option"
+                ><input name="manual_merge" type="radio" value="Нет" />
+                Нет</label
+              >
+              <label class="option"
+                ><input
+                  name="manual_merge"
+                  type="radio"
+                  value="Затрудняюсь ответить"
+                />
+                Затрудняюсь ответить</label
+              >
+            </div>
+          </div>
+        </div>
+        <!-- Блок 4 -->
+
+        <!-- Блок 5 -->
+        <div class="section">
+          <div class="section-title">
+            <span class="num">4</span> Пользовательский опыт
+          </div>
+          <div class="question">
+            <label class="q-label"
+              ><span class="q-num">15.</span> Что для ваших менеджеров критично
+              в интерфейсе? <span class="q-hint">(не более 3)</span></label
+            >
+            <div class="options">
+              <label class="option"
+                ><input
+                  name="ui_critical"
+                  type="checkbox"
+                  value="Скорость работы"
+                />
+                Скорость работы</label
+              >
+              <label class="option"
+                ><input
+                  name="ui_critical"
+                  type="checkbox"
+                  value="Простота освоения"
+                />
+                Простота освоения</label
+              >
+              <label class="option"
+                ><input
+                  name="ui_critical"
+                  type="checkbox"
+                  value="Мобильная версия"
+                />
+                Мобильная версия</label
+              >
+              <label class="option"
+                ><input
+                  name="ui_critical"
+                  type="checkbox"
+                  value="Визуальная привлекательность"
+                />
+                Визуальная привлекательность</label
+              >
+              <label class="option"
+                ><input
+                  name="ui_critical"
+                  type="checkbox"
+                  value="Минимум кликов для частых действий"
+                />
+                Минимум кликов для частых действий</label
+              >
+              <label class="option"
+                ><input
+                  name="ui_critical"
+                  type="checkbox"
+                  value="Понятная навигация"
+                />
+                Понятная навигация</label
+              >
+              <label class="option"
+                ><input
+                  data-other="true"
+                  name="ui_critical"
+                  type="checkbox"
+                  value="Другое"
+                />
+                Другое
+                <input
+                  class="other-input"
+                  name="ui_critical_other"
+                  placeholder="Укажите..."
+                  style="display: none"
+                  type="text"
+                />
+              </label>
+            </div>
+          </div>
+          <div class="question">
+            <label class="q-label"
+              ><span class="q-num">16.</span> Пользуетесь ли вы системой с
+              мобильных устройств?</label
+            >
+            <div class="options grid">
+              <label class="option"
+                ><input
+                  name="mobile_usage"
+                  type="radio"
+                  value="Да, постоянно"
+                />
+                Да, постоянно</label
+              >
+              <label class="option"
+                ><input name="mobile_usage" type="radio" value="Да, иногда" />
+                Да, иногда</label
+              >
+              <label class="option"
+                ><input
+                  name="mobile_usage"
+                  type="radio"
+                  value="Нет, только с десктопа"
+                />
+                Нет, только с десктопа</label
+              >
+              <label class="option"
+                ><input
+                  name="mobile_usage"
+                  type="radio"
+                  value="Затрудняюсь ответить"
+                />
+                Затрудняюсь ответить</label
+              >
+            </div>
+          </div>
+        </div>
+        <!-- Блок 6 -->
+        <div class="section">
+          <div class="section-title">
+            <span class="num">5</span> Организационные вопросы
+          </div>
+          <div class="question">
+            <label class="q-label"
+              ><span class="q-num">17.</span> Кто принимает решение о запуске
+              новой ИТ-программы в вузе?</label
+            >
+            <div class="options">
+              <label class="option"
+                ><input
+                  name="decision_maker"
+                  type="radio"
+                  value="Руководитель ИТ Школы"
+                />
+                Руководитель ИТ Школы</label
+              >
+              <label class="option"
+                ><input
+                  name="decision_maker"
+                  type="radio"
+                  value="Менеджер по вузам"
+                />
+                Менеджер по вузам</label
+              >
+              <label class="option"
+                ><input
+                  name="decision_maker"
+                  type="radio"
+                  value="Представитель вуза"
+                />
+                Представитель вуза</label
+              >
+              <label class="option"
+                ><input
+                  name="decision_maker"
+                  type="radio"
+                  value="Совместное решение"
+                />
+                Совместное решение</label
+              >
+              <label class="option"
+                ><input
+                  data-other="true"
+                  name="decision_maker"
+                  type="radio"
+                  value="Другое"
+                />
+                Другое
+                <input
+                  class="other-input"
+                  name="decision_maker_other"
+                  placeholder="Укажите..."
+                  style="display: none"
+                  type="text"
+                />
+              </label>
+            </div>
+          </div>
+          <div class="question">
+            <label class="q-label"
+              ><span class="q-num">18.</span> Есть ли у вас регламент по срокам
+              каждого этапа взаимодействия?</label
+            >
+            <div class="options grid">
+              <label class="option"
+                ><input name="regulations" type="radio" value="Да, строгий" />
+                Да, строгий</label
+              >
+              <label class="option"
+                ><input
+                  name="regulations"
+                  type="radio"
+                  value="Да, рекомендательный"
+                />
+                Да, рекомендательный</label
+              >
+              <label class="option"
+                ><input
+                  name="regulations"
+                  type="radio"
+                  value="Нет, но хотели бы"
+                />
+                Нет, но хотели бы</label
+              >
+              <label class="option"
+                ><input name="regulations" type="radio" value="Нет, не нужно" />
+                Нет, не нужно</label
+              >
+              <label class="option"
+                ><input
+                  name="regulations"
+                  type="radio"
+                  value="Затрудняюсь ответить"
+                />
+                Затрудняюсь ответить</label
+              >
+            </div>
+          </div>
+          <div class="question">
+            <label class="q-label"
+              ><span class="q-num">19.</span> Как вы оцениваете эффективность
+              взаимодействия с каждым вузом?</label
+            >
+            <div class="options">
+              <label class="option"
+                ><input
+                  name="efficiency"
+                  type="checkbox"
+                  value="По количеству обучающихся"
+                />
+                По количеству обучающихся</label
+              >
+              <label class="option"
+                ><input
+                  name="efficiency"
+                  type="checkbox"
+                  value="По скорости закрытия этапов"
+                />
+                По скорости закрытия этапов</label
+              >
+              <label class="option"
+                ><input
+                  name="efficiency"
+                  type="checkbox"
+                  value="По обратной связи от вуза"
+                />
+                По обратной связи от вуза</label
+              >
+              <label class="option"
+                ><input
+                  name="efficiency"
+                  type="checkbox"
+                  value="По количеству повторных обращений"
+                />
+                По количеству повторных обращений</label
+              >
+              <label class="option"
+                ><input
+                  name="efficiency"
+                  type="checkbox"
+                  value="Никак не оцениваем"
+                />
+                Никак не оцениваем</label
+              >
+              <label class="option"
+                ><input
+                  data-other="true"
+                  name="efficiency"
+                  type="checkbox"
+                  value="Другое"
+                />
+                Другое
+                <input
+                  class="other-input"
+                  name="efficiency_other"
+                  placeholder="Укажите..."
+                  style="display: none"
+                  type="text"
+                />
+              </label>
+            </div>
+          </div>
+          <div class="question">
+            <label class="q-label"
+              ><span class="q-num">20.</span> Какие метрики успеха вы
+              используете для оценки работы менеджеров?</label
+            >
+            <div class="options">
+              <label class="option"
+                ><input
+                  name="kpi"
+                  type="checkbox"
+                  value="Количество вузов в работе"
+                />
+                Количество вузов в работе</label
+              >
+              <label class="option"
+                ><input
+                  name="kpi"
+                  type="checkbox"
+                  value="Количество запущенных программ"
+                />
+                Количество запущенных программ</label
+              >
+              <label class="option"
+                ><input
+                  name="kpi"
+                  type="checkbox"
+                  value="Скорость прохождения этапов"
+                />
+                Скорость прохождения этапов</label
+              >
+              <label class="option"
+                ><input
+                  name="kpi"
+                  type="checkbox"
+                  value="Удовлетворённость вузов"
+                />
+                Удовлетворённость вузов</label
+              >
+              <label class="option"
+                ><input
+                  data-other="true"
+                  name="kpi"
+                  type="checkbox"
+                  value="Другое"
+                />
+                Другое
+                <input
+                  class="other-input"
+                  name="kpi_other"
+                  placeholder="Укажите..."
+                  style="display: none"
+                  type="text"
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+        <!-- Блок 7 -->
+        <div class="section">
+          <div class="section-title">
+            <span class="num">6</span> Видение идеального решения
+          </div>
+          <div class="question">
+            <label class="q-label"
+              ><span class="q-num">21.</span> Что обязательно должно быть в
+              идеальной системе? <span class="q-hint">(не более 5)</span></label
+            >
+            <div class="options">
+              <label class="option"
+                ><input
+                  name="ideal_features"
+                  type="checkbox"
+                  value="Единое место для всей информации о вузах"
+                />
+                Единое место для всей информации о вузах</label
+              >
+              <label class="option"
+                ><input
+                  name="ideal_features"
+                  type="checkbox"
+                  value="Автоматические напоминания о сроках"
+                />
+                Автоматические напоминания о сроках</label
+              >
+              <label class="option"
+                ><input
+                  name="ideal_features"
+                  type="checkbox"
+                  value="Визуализация workflow"
+                />
+                Визуализация workflow</label
+              >
+              <label class="option"
+                ><input
+                  name="ideal_features"
+                  type="checkbox"
+                  value="Быстрое формирование отчётов"
+                />
+                Быстрое формирование отчётов</label
+              >
+              <label class="option"
+                ><input
+                  name="ideal_features"
+                  type="checkbox"
+                  value="Интеграция с LMS и сайтом"
+                />
+                Интеграция с LMS и сайтом</label
+              >
+              <label class="option"
+                ><input
+                  name="ideal_features"
+                  type="checkbox"
+                  value="Мобильная версия"
+                />
+                Мобильная версия</label
+              >
+              <label class="option"
+                ><input
+                  name="ideal_features"
+                  type="checkbox"
+                  value="Кастомизация статусов"
+                />
+                Кастомизация статусов</label
+              >
+              <label class="option"
+                ><input
+                  name="ideal_features"
+                  type="checkbox"
+                  value="Комментирование на каждом этапе"
+                />
+                Комментирование на каждом этапе</label
+              >
+              <label class="option"
+                ><input
+                  name="ideal_features"
+                  type="checkbox"
+                  value="Прикладывание файлов"
+                />
+                Прикладывание файлов</label
+              >
+              <label class="option"
+                ><input
+                  name="ideal_features"
+                  type="checkbox"
+                  value="Ролевая модель доступа"
+                />
+                Ролевая модель доступа</label
+              >
+              <label class="option"
+                ><input
+                  data-other="true"
+                  name="ideal_features"
+                  type="checkbox"
+                  value="Другое"
+                />
+                Другое
+                <input
+                  class="other-input"
+                  name="ideal_features_other"
+                  placeholder="Укажите..."
+                  style="display: none"
+                  type="text"
+                />
+              </label>
+            </div>
+          </div>
+          <div class="question">
+            <label class="q-label"
+              ><span class="q-num">22.</span> Насколько для вас важно, чтобы
+              система предлагала рекомендации на основе ИИ?</label
+            >
+            <div class="options grid">
+              <label class="option"
+                ><input
+                  name="ai_recommendations"
+                  type="radio"
+                  value="Критично"
+                />
+                Критично</label
+              >
+              <label class="option"
+                ><input
+                  name="ai_recommendations"
+                  type="radio"
+                  value="Очень важно"
+                />
+                Очень важно</label
+              >
+              <label class="option"
+                ><input
+                  name="ai_recommendations"
+                  type="radio"
+                  value="Желательно"
+                />
+                Желательно</label
+              >
+              <label class="option"
+                ><input
+                  name="ai_recommendations"
+                  type="radio"
+                  value="Не важно"
+                />
+                Не важно</label
+              >
+              <label class="option"
+                ><input
+                  name="ai_recommendations"
+                  type="radio"
+                  value="Затрудняюсь ответить"
+                />
+                Затрудняюсь ответить</label
+              >
+            </div>
+          </div>
+          <div class="question">
+            <label class="q-label"
+              ><span class="q-num">23.</span> Какие три главные проблемы должна
+              решить новая система?</label
+            >
+            <input
+              name="top_problem_1"
+              placeholder="Проблема 1"
+              style="margin-bottom: 8px"
+              type="text"
+            />
+            <input
+              name="top_problem_2"
+              placeholder="Проблема 2"
+              style="margin-bottom: 8px"
+              type="text"
+            />
+            <input name="top_problem_3" placeholder="Проблема 3" type="text" />
+          </div>
+          <div class="question">
+            <label class="q-label"
+              ><span class="q-num">24.</span> Что бы вы посоветовали команде,
+              которая только начинает разработку такой системы?</label
+            >
+            <textarea name="advice" placeholder="Ваш совет..."></textarea>
+          </div>
+        </div>
+        <!-- Блок 8 -->
+
+        <!-- Блок 9 -->
+        <div class="section">
+          <div class="section-title">
+            <span class="num">7</span> Открытые вопросы
+          </div>
+          <div class="question">
+            <label class="q-label"
+              ><span class="q-num">25.</span> Что ещё вы хотели бы добавить, о
+              чём я не спросил?</label
+            >
+            <textarea name="additional" placeholder="Ваш ответ..."></textarea>
+          </div>
+        </div>
+      </form>
+    </div>
+    <!-- Fixed actions -->
+    <div class="actions">
+      <button class="btn btn-secondary" onclick="exportJSON()" type="button">
+        📥 Выгрузить JSON
+      </button>
+      <button class="btn btn-primary" onclick="exportJSON()" type="button">
+        ✅ Завершить и выгрузить
+      </button>
+      <button class="btn btn-danger" onclick="clearAll()" type="button">
+        🗑 Очистить
+      </button>
+    </div>
+    <script>
+      (function () {
+        "use strict";
+
+        const STORAGE_KEY = "crm_survey_answers_v1";
+        const form = document.getElementById("surveyForm");
+        const progressFill = document.getElementById("progressFill");
+        const progressText = document.getElementById("progressText");
+        const autosaveEl = document.getElementById("autosave");
+        const toastEl = document.getElementById("toast");
+
+        // ===== Утилиты =====
+        function showToast(msg) {
+          toastEl.textContent = msg;
+          toastEl.classList.add("show");
+          setTimeout(() => toastEl.classList.remove("show"), 2500);
+        }
+
+        function showAutosave() {
+          autosaveEl.classList.add("show");
+          clearTimeout(autosaveEl._timer);
+          autosaveEl._timer = setTimeout(
+            () => autosaveEl.classList.remove("show"),
+            1200,
+          );
+        }
+
+        // ===== Сбор данных формы =====
+        function collectData() {
+          const data = {};
+          const formData = new FormData(form);
+
+          // Обрабатываем все поля
+          form.querySelectorAll("input, textarea, select").forEach((el) => {
+            const name = el.name;
+            if (!name) return;
+
+            if (el.type === "radio") {
+              if (el.checked) {
+                data[name] = el.value;
+              } else if (!(name in data)) {
+                data[name] = data[name] || "";
+              }
+            } else if (el.type === "checkbox") {
+              if (!data[name]) data[name] = [];
+              if (el.checked) data[name].push(el.value);
+            } else {
+              data[name] = el.value;
+            }
+          });
+
+          // Специальная обработка "other" полей
+          form
+            .querySelectorAll('input[data-other="true"]')
+            .forEach((radioOrCheckbox) => {
+              const name = radioOrCheckbox.name;
+              const otherInput = form.querySelector(
+                `input[name="${name}_other"]`,
+              );
+              if (!otherInput) return;
+
+              if (radioOrCheckbox.type === "radio") {
+                if (radioOrCheckbox.checked) {
+                  data[name + "_other"] = otherInput.value;
+                }
+              } else if (radioOrCheckbox.type === "checkbox") {
+                if (radioOrCheckbox.checked) {
+                  if (!data[name + "_other"]) data[name + "_other"] = [];
+                  data[name + "_other"].push(otherInput.value);
+                }
+              }
+            });
+
+          // Убираем пустые значения
+          Object.keys(data).forEach((key) => {
+            if (
+              data[key] === "" ||
+              (Array.isArray(data[key]) && data[key].length === 0)
+            ) {
+              delete data[key];
+            }
+          });
+
+          // Метаданные
+          data._meta = {
+            savedAt: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+            url: window.location.href,
+          };
+
+          return data;
+        }
+
+        // ===== Сохранение в localStorage =====
+        function saveToStorage() {
+          try {
+            const data = collectData();
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            showAutosave();
+            updateProgress();
+          } catch (e) {
+            console.warn("Ошибка сохранения:", e);
+          }
+        }
+
+        // ===== Загрузка из localStorage =====
+        function loadFromStorage() {
+          try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return;
+            const data = JSON.parse(raw);
+
+            Object.keys(data).forEach((name) => {
+              if (name === "_meta") return;
+              const value = data[name];
+
+              // Radio
+              const radios = form.querySelectorAll(
+                `input[type="radio"][name="${name}"]`,
+              );
+              if (radios.length > 0) {
+                radios.forEach((r) => {
+                  if (r.value === value) {
+                    r.checked = true;
+                    highlightOption(r);
+                  }
+                });
+                return;
+              }
+
+              // Checkbox
+              const checkboxes = form.querySelectorAll(
+                `input[type="checkbox"][name="${name}"]`,
+              );
+              if (checkboxes.length > 0 && Array.isArray(value)) {
+                checkboxes.forEach((cb) => {
+                  if (value.includes(cb.value)) {
+                    cb.checked = true;
+                    highlightOption(cb);
+                  }
+                });
+                return;
+              }
+
+              // Text / textarea
+              const input = form.querySelector(`[name="${name}"]`);
+              if (input && typeof value === "string") {
+                input.value = value;
+              }
+            });
+
+            // Восстанавливаем other-поля
+            form.querySelectorAll('input[data-other="true"]').forEach((el) => {
+              const name = el.name;
+              const otherInput = form.querySelector(
+                `input[name="${name}_other"]`,
+              );
+              if (!otherInput) return;
+
+              if (el.type === "radio" && el.checked) {
+                otherInput.style.display = "block";
+                if (data[name + "_other"])
+                  otherInput.value = data[name + "_other"];
+              } else if (el.type === "checkbox" && el.checked) {
+                otherInput.style.display = "block";
+                if (Array.isArray(data[name + "_other"])) {
+                  otherInput.value = data[name + "_other"].join(", ");
+                } else if (data[name + "_other"]) {
+                  otherInput.value = data[name + "_other"];
+                }
+              }
+            });
+
+            updateProgress();
+          } catch (e) {
+            console.warn("Ошибка загрузки:", e);
+          }
+        }
+
+        // ===== Подсветка выбранной опции =====
+        function highlightOption(input) {
+          const label = input.closest(".option");
+          if (!label) return;
+          if (input.type === "radio") {
+            document
+              .querySelectorAll(`input[name="${input.name}"]`)
+              .forEach((r) => {
+                r.closest(".option")?.classList.remove("selected");
+              });
+          }
+          label.classList.toggle("selected", input.checked);
+        }
+
+        // ===== Прогресс =====
+        function updateProgress() {
+          const totalQuestions = 25;
+          let answered = 0;
+
+          // Проверяем основные вопросы по именам полей
+          const questionNames = new Set();
+          form.querySelectorAll("input, textarea").forEach((el) => {
+            if (el.name && !el.name.endsWith("_other")) {
+              questionNames.add(el.name);
+            }
+          });
+
+          questionNames.forEach((name) => {
+            const els = form.querySelectorAll(`[name="${name}"]`);
+            let hasValue = false;
+            els.forEach((el) => {
+              if (el.type === "radio" || el.type === "checkbox") {
+                if (el.checked) hasValue = true;
+              } else if (el.value && el.value.trim() !== "") {
+                hasValue = true;
+              }
+            });
+            if (hasValue) answered++;
+          });
+
+          const percent = Math.min(
+            100,
+            Math.round((answered / totalQuestions) * 100),
+          );
+          progressFill.style.width = percent + "%";
+          progressText.textContent = `Заполнено: ${percent}% (${answered} из ~${totalQuestions})`;
+        }
+
+        // ===== Экспорт JSON =====
+        function exportJSON() {
+          const data = collectData();
+          const blob = new Blob([JSON.stringify(data, null, 2)], {
+            type: "application/json",
+          });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          const date = new Date().toISOString().slice(0, 10);
+          a.href = url;
+          a.download = `survey_answers_${date}.json`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          showToast("✅ Ответы выгружены в JSON");
+        }
+
+        // ===== Очистка =====
+        function clearAll() {
+          if (!confirm("Удалить все ответы? Это действие нельзя отменить."))
+            return;
+          localStorage.removeItem(STORAGE_KEY);
+          form.reset();
+          document
+            .querySelectorAll(".option.selected")
+            .forEach((el) => el.classList.remove("selected"));
+          document.querySelectorAll(".other-input").forEach((el) => {
+            el.style.display = "none";
+            el.value = "";
+          });
+          updateProgress();
+          showToast("🗑 Все ответы очищены");
+        }
+
+        // ===== Обработчики =====
+        form.addEventListener("change", (e) => {
+          const target = e.target;
+
+          // Показ/скрытие other-input
+          if (target.matches('input[data-other="true"]')) {
+            const otherInput = form.querySelector(
+              `input[name="${target.name}_other"]`,
+            );
+            if (otherInput) {
+              otherInput.style.display = target.checked ? "block" : "none";
+              if (!target.checked) otherInput.value = "";
+            }
+          }
+
+          // Подсветка
+          if (target.type === "radio" || target.type === "checkbox") {
+            if (target.type === "radio") {
+              document
+                .querySelectorAll(`input[name="${target.name}"]`)
+                .forEach((r) => {
+                  r.closest(".option")?.classList.remove("selected");
+                });
+              if (target.checked)
+                target.closest(".option")?.classList.add("selected");
+            } else {
+              target
+                .closest(".option")
+                ?.classList.toggle("selected", target.checked);
+            }
+          }
+
+          saveToStorage();
+        });
+
+        form.addEventListener("input", (e) => {
+          if (e.target.matches('input[type="text"], textarea')) {
+            saveToStorage();
+          }
+        });
+
+        // ===== Инициализация =====
+        loadFromStorage();
+        updateProgress();
+
+        // Периодическое сохранение на всякий случай
+        setInterval(saveToStorage, 30000);
+
+        // Экспорт функций в глобальную область
+        window.exportJSON = exportJSON;
+        window.clearAll = clearAll;
+      })();
+    </script>
+  </body>
+</html>

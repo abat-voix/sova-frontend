@@ -1,0 +1,229 @@
+.root {
+  --dhx-gantt-base-colors-hover-color: var(--atmr-background-accent-soft);
+  --dhx-gantt-base-colors-select: var(--atmr-background-accent-soft);
+  --dhx-gantt-task-row-background: var(--atmr-background-elevated);
+  --dhx-gantt-task-row-background--odd: color-mix(
+    in oklab,
+    var(--atmr-background-secondary) 20%,
+    var(--atmr-background-elevated)
+  );
+  --gantt-grid-border: var(--atmr-border-subtle);
+  --gantt-row-border: color-mix(
+    in oklab,
+    var(--atmr-border-subtle) 78%,
+    transparent
+  );
+  min-width: 0;
+}
+
+.root :global(.gantt_container),
+.root :global(.gantt_layout),
+.root :global(.gantt_layout_cell),
+.root :global(.gantt_grid),
+.root :global(.gantt_task),
+.root :global(.gantt_grid_data),
+.root :global(.gantt_task_bg) {
+  background: var(--atmr-background-elevated);
+  color: var(--atmr-text-primary);
+  font-family: var(--atmr-font-family-primary);
+}
+
+.root :global(.gantt_grid_scale),
+.root :global(.gantt_task_scale) {
+  border-color: var(--gantt-grid-border);
+  background: color-mix(
+    in oklab,
+    var(--atmr-background-secondary) 42%,
+    var(--atmr-background-elevated)
+  );
+  color: var(--atmr-text-primary);
+}
+
+.root :global(.gantt_grid_head_cell),
+.root :global(.gantt_scale_cell),
+.root :global(.gantt_row),
+.root :global(.gantt_task_row),
+.root :global(.gantt_cell),
+.root :global(.gantt_task_cell) {
+  border-color: var(--gantt-row-border);
+}
+
+.root :global(.gantt_grid_data .gantt_row) {
+  cursor: pointer;
+}
+
+.root :global(.gantt_row:hover),
+.root :global(.gantt_task_row:hover) {
+  background: color-mix(
+    in oklab,
+    var(--atmr-background-accent-soft) 38%,
+    transparent
+  );
+}
+
+.root :global(.sova-gantt-project-row) {
+  background: color-mix(
+    in oklab,
+    var(--atmr-background-accent-soft) 24%,
+    var(--atmr-background-elevated)
+  );
+  font-weight: 500;
+}
+
+.root :global(.gantt_task_line) {
+  border: 0;
+  border-radius: 0.45rem;
+  box-shadow: none;
+}
+
+/*
+ * Цвет состояния объявляется и на полосе плана, и на полосе факта: факт
+ * рисуется в отдельном слое Gantt и ничего не наследует от полосы.
+ * Нейтральный тон задан константой, а не темой: обе полосы всегда светлые
+ * (смешаны с белым), и переменная темы в тёмном режиме дала бы светлый текст.
+ */
+.root :global(.gantt_task_line),
+.root :global(.sova-gantt-actual) {
+  --sova-gantt-state: #64748b;
+}
+
+.root :global(.sova-gantt-task--completed),
+.root :global(.sova-gantt-actual--completed) {
+  --sova-gantt-state: var(--atmr-positive);
+}
+
+.root :global(.sova-gantt-task--in_progress),
+.root :global(.sova-gantt-actual--in_progress) {
+  --sova-gantt-state: #2878ff;
+}
+
+.root :global(.sova-gantt-task--overdue),
+.root :global(.sova-gantt-actual--overdue) {
+  --sova-gantt-state: var(--atmr-brand-orange);
+}
+
+/* План — бледная заливка: насыщенный тон достаётся факту поверх неё. */
+.root :global(.gantt_task_line) {
+  background: color-mix(in oklab, var(--sova-gantt-state) 17%, white);
+  color: color-mix(in oklab, var(--sova-gantt-state) 78%, black);
+}
+
+/*
+ * Подпись красится отдельно: базовое правило `.gantt_task_content` задаёт
+ * `color: var(--dhx-gantt-task-color)` прямо на элементе подписи, и цвет с
+ * полосы до неё не наследуется — на бледной заливке остаётся белый текст темы.
+ */
+.root :global(.gantt_task_line .gantt_task_content) {
+  color: color-mix(in oklab, var(--sova-gantt-state) 78%, black);
+}
+
+.root :global(.gantt_task_line.sova-gantt-task--waiting_transition) {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 6px,
+    color-mix(in oklab, var(--sova-gantt-state) 22%, transparent) 6px 12px
+  );
+}
+
+/*
+ * Подпись занимает всю полосу, но прижата к верху: снизу её не перекрывает
+ * факт. Высота нужна, чтобы полоса факта могла прижаться к низу полосы плана.
+ */
+.root :global(.sova-gantt-task--action .gantt_task_content) {
+  box-sizing: border-box;
+  height: 100%;
+  padding-top: 0.15rem;
+  font-size: 0.75rem;
+  /* Перебивает line-height, который рендерер проставляет полосе инлайном. */
+  line-height: 1.2;
+}
+
+/*
+ * Не поместившееся название обрывается многоточием, а не посередине буквы.
+ * Целиком его показывает подсказка при наведении.
+ */
+.root :global(.sova-gantt-label) {
+  display: block;
+  overflow: hidden;
+  padding: 0 0.25rem;
+  text-overflow: ellipsis;
+}
+
+/* Смещение и ширину задаёт шаблон — в процентах от планового интервала. */
+.root :global(.sova-gantt-actual) {
+  position: absolute;
+  bottom: 0;
+  height: 11px;
+  /* Действие, выполненное за минуты, иначе схлопнулось бы в нулевую ширину. */
+  min-width: 4px;
+  border-radius: 0.3rem;
+  background: color-mix(in oklab, var(--sova-gantt-state) 74%, white);
+  /* Клик должен доставаться полосе под накладкой: он открывает действие. */
+  pointer-events: none;
+}
+
+.root :global(.gantt_task_progress) {
+  background: color-mix(in oklab, currentColor 22%, transparent);
+  opacity: 0.65;
+}
+
+.root :global(.gantt_link_line_right),
+.root :global(.gantt_link_line_left),
+.root :global(.gantt_link_line_up),
+.root :global(.gantt_link_line_down) {
+  border-color: color-mix(
+    in oklab,
+    var(--atmr-accent-primary) 70%,
+    var(--atmr-text-primary)
+  );
+}
+
+.root :global(.gantt_link_arrow_right) {
+  border-left-color: var(--atmr-accent-primary);
+}
+
+.root :global(.sova-gantt-status) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.root :global(.sova-gantt-status--completed) {
+  background: color-mix(in oklab, var(--atmr-positive) 18%, transparent);
+  color: color-mix(in oklab, var(--atmr-positive) 76%, black);
+}
+
+.root :global(.sova-gantt-status--in_progress) {
+  background: color-mix(in oklab, #2878ff 15%, transparent);
+  color: #1d5fcf;
+}
+
+.root :global(.sova-gantt-status--overdue) {
+  background: color-mix(in oklab, var(--atmr-brand-orange) 20%, transparent);
+  color: color-mix(in oklab, var(--atmr-brand-orange) 82%, black);
+}
+
+.root :global(.sova-gantt-status--pending),
+.root :global(.sova-gantt-status--waiting_transition),
+.root :global(.sova-gantt-status--unknown) {
+  background: var(--atmr-background-secondary);
+  color: var(--atmr-text-secondary);
+}
+
+.root :global(.gantt_task_cell.sova-gantt-today) {
+  background: color-mix(in oklab, var(--atmr-brand-orange) 9%, transparent);
+  border-left: 1px solid
+    color-mix(in oklab, var(--atmr-brand-orange) 55%, transparent);
+}
+
+@media (max-width: 64rem) {
+  .root :global(.gantt_grid) {
+    max-width: 22rem;
+  }
+}
