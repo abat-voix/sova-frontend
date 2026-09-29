@@ -14,6 +14,7 @@ import {
   interactionContactsQueryKey,
 } from "@/lib/api/interactions/contacts";
 import { boardQueryKey, executeActionFeature } from "@/lib/api/processes/board";
+import { sanitizePhone } from "@/lib/inn-phone";
 import { useLocale } from "@/providers/locale-provider";
 import type {
   ActionFeatureExecution,
@@ -240,12 +241,20 @@ export function ContactPersonUpdateFeature({
                 onChange={(event) =>
                   setValues((previous) =>
                     previous
-                      ? { ...previous, [name]: event.target.value }
+                      ? {
+                          ...previous,
+                          [name]:
+                            name === "phone"
+                              ? sanitizePhone(event.target.value)
+                              : event.target.value,
+                        }
                       : previous,
                   )
                 }
                 required={name === "full_name"}
-                type={name === "email" ? "email" : "text"}
+                type={
+                  name === "email" ? "email" : name === "phone" ? "tel" : "text"
+                }
                 value={values[name]}
               />
               {fieldErrors[name]?.map((message) => (

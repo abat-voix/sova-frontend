@@ -9,6 +9,9 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const navigation = vi.hoisted(() => ({ search: "" }));
+const auth = vi.hoisted(() => ({
+  permissions: ["catalog.import", "integrations.manage", "training.read"],
+}));
 
 vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(navigation.search),
@@ -19,7 +22,7 @@ vi.mock("@/providers/auth-provider", () => ({
     user: {
       id: 1,
       isSuperuser: false,
-      permissions: ["catalog.import", "integrations.manage", "training.read"],
+      permissions: auth.permissions,
       role: "platform_admin",
     },
   }),
@@ -96,9 +99,22 @@ afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
   navigation.search = "";
+  auth.permissions = ["catalog.import", "integrations.manage", "training.read"];
 });
 
 describe("learner import workspace", () => {
+  it("denies access without the import permission", () => {
+    auth.permissions = ["training.read"];
+    stubApi();
+    renderWorkspace();
+
+    expect(screen.getByText("Доступ ограничен")).toBeInTheDocument();
+    expect(screen.queryByLabelText("В поток")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Все обучающиеся" }),
+    ).toHaveAttribute("href", "/training/learners");
+  });
+
   it("uploads to the stream from the link and links to the new application", async () => {
     navigation.search = "stream=s1";
     const uploads = stubApi();

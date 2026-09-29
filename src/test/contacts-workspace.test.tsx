@@ -18,6 +18,11 @@ import {
 import type { ContactPerson } from "@/types/contact-person";
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
+const navigation = vi.hoisted(() => ({ replace: vi.fn(), search: "" }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: navigation.replace }),
+  useSearchParams: () => new URLSearchParams(navigation.search),
+}));
 const auth = vi.hoisted(() => ({ permissions: [] as string[] }));
 vi.mock("@/providers/auth-provider", () => ({
   useAuth: () => ({
@@ -33,6 +38,8 @@ vi.mock("@/providers/auth-provider", () => ({
 
 beforeEach(() => {
   auth.permissions = kamPermissions;
+  navigation.search = "";
+  navigation.replace.mockClear();
 });
 
 const organizationContact: ContactPerson = {
@@ -221,6 +228,22 @@ describe("ContactsWorkspace", () => {
       expect(
         writes(calls, "GET", "/api/catalog/contact-persons/c1/"),
       ).not.toHaveLength(0),
+    );
+  });
+
+  it("opens the person from a ?contact= link and drops the link on close", async () => {
+    navigation.search = "contact=c1";
+    stubCatalog();
+    renderWorkspace();
+
+    const drawer = await screen.findByRole("dialog");
+    expect(
+      await within(drawer).findByRole("heading", { name: "Анна Иванова" }),
+    ).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    await waitFor(() =>
+      expect(navigation.replace).toHaveBeenCalledWith("/contacts"),
     );
   });
 

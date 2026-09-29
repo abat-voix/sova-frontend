@@ -121,6 +121,38 @@ describe("contact affiliations API", () => {
     });
   });
 
+  it("creates a new contact together with the affiliation", async () => {
+    const fetchMock = stubResponse({ id: "a1" }, 201);
+
+    await createAffiliation(
+      {
+        newContact: {
+          email: "",
+          full_name: "Иванов Иван",
+          phone: "+7 999 123-45-67",
+          telegram: "",
+        },
+        organization: { id: "b1", type: "b2c_client" },
+        position: "",
+        preferredChannels: ["phone"],
+      },
+      "csrf",
+    );
+
+    const { body } = call(fetchMock);
+    expect(body).toEqual({
+      b2c_client: "b1",
+      new_contact: {
+        email: "",
+        full_name: "Иванов Иван",
+        phone: "+7 999 123-45-67",
+        telegram: "",
+      },
+      position: "",
+      preferred_channels: ["phone"],
+    });
+  });
+
   it("sends products only for a vendor affiliation", async () => {
     const fetchMock = stubResponse({ id: "a1" }, 201);
 

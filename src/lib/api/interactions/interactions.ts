@@ -1,5 +1,5 @@
 import { apiEndpoints } from "@/lib/api/endpoints";
-import { buildQuery, getJson, postJson } from "@/lib/api/http";
+import { buildQuery, deleteJson, getJson, postJson } from "@/lib/api/http";
 import type { PaginatedResponse } from "@/types/api";
 import type {
   CreateInteractionDirectionPayload,
@@ -94,6 +94,17 @@ export function createInteraction(
   return postJson<Interaction>(
     apiEndpoints.interactions.interactions.list,
     payload,
+    csrfToken,
+  );
+}
+
+/**
+ * Удаляет незапущенное взаимодействие (`can_delete`) вместе с составом,
+ * контактами, ответственными и чатом; запущенное бэкенд не удалит — 409.
+ */
+export function deleteInteraction(id: string, csrfToken: string) {
+  return deleteJson(
+    apiEndpoints.interactions.interactions.detail(id),
     csrfToken,
   );
 }

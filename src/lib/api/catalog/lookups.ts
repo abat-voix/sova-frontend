@@ -82,6 +82,31 @@ export function searchPrograms(search: string, directionId: string) {
 }
 
 /**
+ * Все активные программы направления, со всех страниц: «выбрать все» в
+ * компетенциях преподавателя не должно ограничиваться первой страницей поиска.
+ */
+export async function listDirectionPrograms(directionId: string) {
+  const options: LookupOption[] = [];
+  for (let page = 1; ; page += 1) {
+    const response = await getJson<PaginatedResponse<Program>>(
+      `${apiEndpoints.catalog.programs.list}?${buildQuery({
+        direction__ids: directionId,
+        is_active: "true",
+        page,
+        page_size: 200,
+      })}`,
+    );
+    options.push(
+      ...response.results.map((program) => ({
+        id: program.id,
+        name: program.name,
+      })),
+    );
+    if (!response.next) return options;
+  }
+}
+
+/**
  * Продукты выбранной программы. Бэкенд при создании продукта взаимодействия
  * проверяет, что продукт входит в каталог программы, — фильтр снимает этот
  * отказ заранее.

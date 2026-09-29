@@ -6,7 +6,11 @@
  * файла «Пользователи», их персональные данные в обычных ответах замаскированы.
  */
 
-import type { DirectionShort, ProgramShort } from "@/types/catalog";
+import type {
+  DirectionShort,
+  ProgramShort,
+  ProgramWithDirection,
+} from "@/types/catalog";
 import type { B2CClientShort, OrganizationShort } from "@/types/workflow-board";
 
 export type TrainingStreamStatus =
@@ -166,7 +170,8 @@ export type TrainingInstructor = {
   teaching_experience_years: number | null;
   education: string;
   directions: DirectionShort[];
-  programs: ProgramShort[];
+  /** Программы — всегда из выбранных направлений, с направлением для группировки. */
+  programs: ProgramWithDirection[];
   lms_external_id: string;
   is_active: boolean;
   comment: string;

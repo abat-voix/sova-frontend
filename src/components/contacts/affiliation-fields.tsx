@@ -1,6 +1,10 @@
 "use client";
 
-import { ChannelCheckboxes } from "@/components/contacts/contact-channels";
+import {
+  availableChannels,
+  ChannelCheckboxes,
+  type ChannelSource,
+} from "@/components/contacts/contact-channels";
 import { Field, fieldInputClass } from "@/components/registry/registry-shared";
 import { MultiEntitySelect } from "@/components/ui/multi-entity-select";
 import {
@@ -37,18 +41,23 @@ export const emptyAffiliationValues: AffiliationFieldValues = {
   products: [],
 };
 
-/** Данные связи: должность и способы связи, у вендора — ещё продукты. */
+/**
+ * Данные связи: должность и способы связи, у вендора — ещё продукты. Способ связи
+ * выбирается только из заполненных у человека (`person`) полей.
+ */
 export function AffiliationFields({
   idPrefix,
   locale,
   onChange,
   organization,
+  person,
   values,
 }: {
   idPrefix: string;
   locale: Locale;
   onChange: (values: AffiliationFieldValues) => void;
   organization: ContactOwnerRef | null;
+  person: ChannelSource;
   values: AffiliationFieldValues;
 }) {
   const text = copy[locale];
@@ -67,6 +76,7 @@ export function AffiliationFields({
         />
       </Field>
       <ChannelCheckboxes
+        available={availableChannels(person)}
         idPrefix={`${idPrefix}-channel`}
         label={text.channels}
         locale={locale}
@@ -90,11 +100,18 @@ export function AffiliationFields({
   );
 }
 
-/** Значения полей → тело запроса связи. */
-export function affiliationPayload(values: AffiliationFieldValues) {
+/** Значения полей → тело запроса связи; способы связи без данных у человека отбрасываются. */
+export function affiliationPayload(
+  values: AffiliationFieldValues,
+  person: ChannelSource,
+) {
+  const available = availableChannels(person);
+
   return {
     position: values.position.trim(),
-    preferredChannels: values.preferredChannels,
+    preferredChannels: values.preferredChannels.filter((channel) =>
+      available.includes(channel),
+    ),
     productIds: values.products.map((product) => product.id),
   };
 }

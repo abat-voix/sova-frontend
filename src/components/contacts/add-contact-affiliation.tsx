@@ -98,7 +98,7 @@ export function AddContactAffiliation({
         {
           contactId: contact.id,
           organization: organizationRef!,
-          ...affiliationPayload(values),
+          ...affiliationPayload(values, contact),
         },
         csrfToken,
       ),
@@ -161,6 +161,7 @@ export function AddContactAffiliation({
             locale={locale}
             onChange={setValues}
             organization={organizationRef}
+            person={contact}
             values={values}
           />
         </div>

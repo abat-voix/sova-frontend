@@ -7,7 +7,6 @@ import {
   Factory,
   FileSpreadsheet,
   FileText,
-  FileUp,
   GraduationCap,
   Handshake,
   House,
@@ -46,8 +45,7 @@ export type CrmSection =
   | "team"
   | "trainingStreams"
   | "learners"
-  | "trainingInstructors"
-  | "learnerImport";
+  | "trainingInstructors";
 
 export type SectionAccess = "everyone";
 
@@ -218,14 +216,6 @@ export const crmNavigation: CrmNavigationGroup[] = [
         descriptionKey: "trainingInstructorsDescription",
         href: "/training/instructors",
         icon: Presentation,
-      },
-      {
-        id: "learnerImport",
-        permission: "catalog.import",
-        labelKey: "learnerImport",
-        descriptionKey: "learnerImportDescription",
-        href: "/training/import",
-        icon: FileUp,
       },
     ],
   },

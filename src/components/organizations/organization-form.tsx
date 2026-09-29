@@ -23,6 +23,14 @@ import {
   createOrganization,
   updateOrganization,
 } from "@/lib/api/catalog/organizations";
+import {
+  innHint,
+  isValidInn,
+  isValidPhone,
+  phoneHint,
+  sanitizeInn,
+  sanitizePhone,
+} from "@/lib/inn-phone";
 import { organizationTypeLabels } from "@/lib/organization-type";
 import { useAuth } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
@@ -167,6 +175,8 @@ export function OrganizationForm({
 
   const canSubmit =
     name.trim() !== "" &&
+    isValidInn(inn) &&
+    isValidPhone(phone) &&
     !hasInvalidCoordinates(legal) &&
     (sameAsLegal || !hasInvalidCoordinates(actual)) &&
     !mutation.isPending;
@@ -177,12 +187,23 @@ export function OrganizationForm({
     label: string,
     value: string,
     onChange: (value: string) => void,
-    options: { required?: boolean; type?: string } = {},
+    options: {
+      hint?: string;
+      inputMode?: "numeric" | "tel";
+      required?: boolean;
+      type?: string;
+    } = {},
   ) => (
-    <Field htmlFor={id} label={label} required={options.required}>
+    <Field
+      hint={options.hint}
+      htmlFor={id}
+      label={label}
+      required={options.required}
+    >
       <input
         className={fieldInputClass}
         id={id}
+        inputMode={options.inputMode}
         onChange={(event) => onChange(event.target.value)}
         required={options.required}
         type={options.type ?? "text"}
@@ -237,7 +258,13 @@ export function OrganizationForm({
             </select>
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
-            {input("organization-inn", text.inn, inn, setInn)}
+            {input(
+              "organization-inn",
+              text.inn,
+              inn,
+              (value) => setInn(sanitizeInn(value)),
+              { hint: innHint(inn, locale), inputMode: "numeric" },
+            )}
             {input(
               "organization-external-code",
               text.externalCode,
@@ -247,9 +274,13 @@ export function OrganizationForm({
             {input("organization-email", text.email, email, setEmail, {
               type: "email",
             })}
-            {input("organization-phone", text.phone, phone, setPhone, {
-              type: "tel",
-            })}
+            {input(
+              "organization-phone",
+              text.phone,
+              phone,
+              (value) => setPhone(sanitizePhone(value)),
+              { hint: phoneHint(phone, locale), type: "tel" },
+            )}
           </div>
           <fieldset className="space-y-3">
             <legend className="text-sm font-medium">{text.legalAddress}</legend>

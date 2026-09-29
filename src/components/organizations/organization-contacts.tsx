@@ -339,7 +339,7 @@ export function OrganizationContacts({
       {editing ? (
         <EditAffiliation
           affiliation={editing}
-          contactName={editing.contact.full_name}
+          contact={editing.contact}
           csrfToken={csrfToken}
           onClose={closeEdit}
           onSaved={() => {

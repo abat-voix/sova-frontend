@@ -1,6 +1,6 @@
 import { apiEndpoints } from "@/lib/api/endpoints";
 import { rankParams, type RankFilter } from "@/lib/api/catalog/rank";
-import { buildQuery, getJson } from "@/lib/api/http";
+import { buildQuery, getJson, patchJson, postJson } from "@/lib/api/http";
 import type { PaginatedResponse } from "@/types/api";
 import type { Direction, Product, Program } from "@/types/catalog";
 
@@ -74,4 +74,89 @@ export function getProducts(query: CatalogListQuery) {
 
 export function getProduct(id: string) {
   return getJson<Product>(apiEndpoints.catalog.products.detail(id));
+}
+
+/** Запись направления: название и внешний код уникальны без учёта регистра. */
+export type DirectionPayload = {
+  name: string;
+  external_code: string | null;
+  is_active: boolean;
+};
+
+/** Запись программы: направление у программы ровно одно. */
+export type ProgramPayload = {
+  name: string;
+  direction: string;
+  is_active: boolean;
+};
+
+/** Запись продукта: вендор необязателен, программы — по id. */
+export type ProductPayload = {
+  name: string;
+  external_code: string | null;
+  vendor: string | null;
+  programs: string[];
+  is_active: boolean;
+};
+
+// Удаления нет: запись каталога выключают (`is_active`), а не удаляют
+
+export function createDirection(payload: DirectionPayload, csrfToken: string) {
+  return postJson<Direction>(
+    apiEndpoints.catalog.directions.list,
+    payload,
+    csrfToken,
+  );
+}
+
+export function updateDirection(
+  id: string,
+  payload: DirectionPayload,
+  csrfToken: string,
+) {
+  return patchJson<Direction>(
+    apiEndpoints.catalog.directions.detail(id),
+    payload,
+    csrfToken,
+  );
+}
+
+export function createProgram(payload: ProgramPayload, csrfToken: string) {
+  return postJson<Program>(
+    apiEndpoints.catalog.programs.list,
+    payload,
+    csrfToken,
+  );
+}
+
+export function updateProgram(
+  id: string,
+  payload: ProgramPayload,
+  csrfToken: string,
+) {
+  return patchJson<Program>(
+    apiEndpoints.catalog.programs.detail(id),
+    payload,
+    csrfToken,
+  );
+}
+
+export function createProduct(payload: ProductPayload, csrfToken: string) {
+  return postJson<Product>(
+    apiEndpoints.catalog.products.list,
+    payload,
+    csrfToken,
+  );
+}
+
+export function updateProduct(
+  id: string,
+  payload: ProductPayload,
+  csrfToken: string,
+) {
+  return patchJson<Product>(
+    apiEndpoints.catalog.products.detail(id),
+    payload,
+    csrfToken,
+  );
 }

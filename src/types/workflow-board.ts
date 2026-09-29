@@ -67,6 +67,8 @@ export type Interaction = {
   directions_count: number;
   programs_count: number;
   products_count: number;
+  /** Не запущено: нет процесса и договоров — взаимодействие можно удалить. */
+  can_delete?: boolean;
 };
 
 /** `WriteInteraction`: контрагент ровно один — организация либо B2C-клиент. */

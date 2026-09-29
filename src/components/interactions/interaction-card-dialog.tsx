@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Building2,
   Download,
@@ -11,12 +11,15 @@ import {
   User,
 } from "lucide-react";
 import type { ReactNode } from "react";
+import { toast } from "sonner";
 
 import {
   interactionTitle,
   responsibleNames,
 } from "@/components/interactions/interaction-list";
 import {
+  apiErrorMessage,
+  ConfirmDeleteButton,
   DetailRows,
   registryCopy,
 } from "@/components/registry/registry-shared";
@@ -34,6 +37,7 @@ import {
   interactionContactsQueryKey,
 } from "@/lib/api/interactions/contacts";
 import {
+  deleteInteraction,
   getInteractionDirections,
   getInteractionPrograms,
   getInteractionProducts,
@@ -90,6 +94,9 @@ const copy = {
     download: "Скачать",
     draft: "Черновик",
     edit: "Редактировать",
+    deleteDescription:
+      "Взаимодействие удалится вместе с составом, контактами, ответственными и чатом.",
+    deleted: "Взаимодействие удалено.",
     error: "Не удалось загрузить.",
     files: "файлов",
     inactive: "Неактивно",
@@ -139,6 +146,9 @@ const copy = {
     download: "Download",
     draft: "Draft",
     edit: "Edit",
+    deleteDescription:
+      "The interaction will be deleted with its scope, contacts, responsibles and chat.",
+    deleted: "The interaction was deleted.",
     error: "Could not load.",
     files: "files",
     inactive: "Inactive",
@@ -637,9 +647,11 @@ function ChatSection({
 export function InteractionCardDialog({
   canSeeDocuments = true,
   canSeeTraining = false,
+  csrfToken,
   interaction,
   onClose,
   onCreateChat,
+  onDeleted,
   onEdit,
   onOpenChat,
 }: {
@@ -647,10 +659,14 @@ export function InteractionCardDialog({
   canSeeDocuments?: boolean;
   /** Потоки обучения по программам взаимодействия — ссылки в раздел «Обучение». */
   canSeeTraining?: boolean;
+  /** Нужен для удаления; без него кнопки удаления нет. */
+  csrfToken?: string;
   interaction: Interaction;
   onClose: () => void;
-  /** Чат, редактирование: без колбэка раздел или кнопка не показываются. */
+  /** Чат, редактирование, удаление: без колбэка раздел или кнопка не показываются. */
   onCreateChat?: (interaction: Interaction) => void;
+  /** Удаление — только незапущенного взаимодействия (`can_delete`). */
+  onDeleted?: (interaction: Interaction) => void;
   onEdit?: (interaction: Interaction) => void;
   onOpenChat?: (conversationId: string) => void;
 }) {
@@ -658,6 +674,19 @@ export function InteractionCardDialog({
   const text = copy[locale];
   const common = registryCopy[locale];
   const isB2C = Boolean(interaction.b2c_client);
+  const queryClient = useQueryClient();
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteInteraction(interaction.id, csrfToken ?? ""),
+    onSuccess: () => {
+      toast.success(text.deleted);
+      void queryClient.invalidateQueries({ queryKey: ["interactions"] });
+      onDeleted?.(interaction);
+    },
+  });
+  const canDelete =
+    onDeleted !== undefined &&
+    csrfToken !== undefined &&
+    interaction.can_delete === true;
 
   return (
     <Modal
@@ -747,21 +776,44 @@ export function InteractionCardDialog({
           ) : null}
         </div>
 
-        <div className="flex justify-end gap-2 border-t px-5 py-4">
-          <Button
-            colorScheme="neutral"
-            onClick={onClose}
-            size="m"
-            type="button"
-            variant="outline"
-          >
-            {text.close}
-          </Button>
-          {onEdit ? (
-            <Button onClick={() => onEdit(interaction)} size="m" type="button">
-              {text.edit}
-            </Button>
+        <div className="space-y-3 border-t px-5 py-4">
+          {deleteMutation.isError ? (
+            <p className="text-sm text-[var(--atmr-brand-orange)]">
+              {apiErrorMessage(deleteMutation.error, common.unknownError)}
+            </p>
           ) : null}
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <div>
+              {canDelete ? (
+                <ConfirmDeleteButton
+                  description={text.deleteDescription}
+                  isPending={deleteMutation.isPending}
+                  locale={locale}
+                  onConfirm={() => deleteMutation.mutate()}
+                />
+              ) : null}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                colorScheme="neutral"
+                onClick={onClose}
+                size="m"
+                type="button"
+                variant="outline"
+              >
+                {text.close}
+              </Button>
+              {onEdit ? (
+                <Button
+                  onClick={() => onEdit(interaction)}
+                  size="m"
+                  type="button"
+                >
+                  {text.edit}
+                </Button>
+              ) : null}
+            </div>
+          </div>
         </div>
       </div>
     </Modal>

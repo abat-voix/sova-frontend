@@ -15,6 +15,7 @@ import {
   Power,
   User,
 } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
@@ -215,7 +216,10 @@ export function ContactsWorkspace() {
   const [organization, setOrganization] = useState<LookupOption | null>(null);
   const [b2cClient, setB2cClient] = useState<LookupOption | null>(null);
   const [vendor, setVendor] = useState<LookupOption | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const router = useRouter();
+  // Ссылка вида ?contact=<id> (из карточки организации) сразу открывает человека
+  const linkedContactId = useSearchParams()?.get("contact") || null;
+  const [selectedId, setSelectedId] = useState<string | null>(linkedContactId);
   const [personForm, setPersonForm] = useState<{
     contact: ContactPerson | null;
   } | null>(null);
@@ -223,7 +227,11 @@ export function ContactsWorkspace() {
   const [editingAffiliation, setEditingAffiliation] =
     useState<ContactAffiliation | null>(null);
   // Стабильные обработчики: панель и окна перезапускают эффект фокуса при их смене.
-  const closeDrawer = useCallback(() => setSelectedId(null), []);
+  const closeDrawer = useCallback(() => {
+    setSelectedId(null);
+    // Иначе обновление страницы снова откроет закрытую карточку
+    if (linkedContactId) router.replace("/contacts");
+  }, [linkedContactId, router]);
   const closePersonForm = useCallback(() => setPersonForm(null), []);
   const closeAddAffiliation = useCallback(
     () => setIsAddingAffiliation(false),
@@ -558,12 +566,14 @@ export function ContactsWorkspace() {
                       <ConfirmAction
                         cancelLabel={common.cancel}
                         confirmLabel={text.deactivateConfirm}
-                        icon={<Power aria-hidden="true" className="size-3.5" />}
+                        icon={<Power aria-hidden="true" className="size-4" />}
                         isPending={activityMutation.isPending}
                         label={text.deactivate}
                         onConfirm={() => activityMutation.mutate(false)}
                         pendingLabel={text.deactivating}
                         question={text.deactivateQuestion}
+                        size="m"
+                        variant="outline"
                       />
                     ) : (
                       <Button
@@ -664,8 +674,9 @@ export function ContactsWorkspace() {
       {editingAffiliation && contact ? (
         <EditAffiliation
           affiliation={editingAffiliation}
-          contactName={contact.full_name}
+          contact={contact}
           csrfToken={csrfToken}
+          linkToContact={false}
           onClose={closeEditAffiliation}
           onSaved={() => {
             toast.success(text.saved);

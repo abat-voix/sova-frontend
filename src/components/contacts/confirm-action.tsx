@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button";
  * Действие в два шага: первая кнопка только объясняет последствия и
  * спрашивает подтверждение — удаление связи или выключение человека
  * отвязывает его от взаимодействий и уведомляет КАМов.
+ *
+ * По умолчанию — мелкое действие у строки связи; в подвале панели размер и вид
+ * задаются как у соседних кнопок (`size`, `variant`).
  */
 export function ConfirmAction({
   cancelLabel,
@@ -18,6 +21,8 @@ export function ConfirmAction({
   onConfirm,
   pendingLabel,
   question,
+  size = "s",
+  variant = "ghost",
 }: {
   cancelLabel: string;
   confirmLabel: string;
@@ -27,6 +32,8 @@ export function ConfirmAction({
   onConfirm: () => void;
   pendingLabel: string;
   question: string;
+  size?: "s" | "m";
+  variant?: "ghost" | "outline";
 }) {
   const [isConfirming, setIsConfirming] = useState(false);
 
@@ -35,9 +42,9 @@ export function ConfirmAction({
       <Button
         colorScheme="neutral"
         onClick={() => setIsConfirming(true)}
-        size="s"
+        size={size}
         type="button"
-        variant="ghost"
+        variant={variant}
       >
         {icon}
         {label}
@@ -49,14 +56,19 @@ export function ConfirmAction({
     <div className="space-y-2">
       <p className="text-sm">{question}</p>
       <div className="flex flex-wrap gap-2">
-        <Button disabled={isPending} onClick={onConfirm} size="s" type="button">
+        <Button
+          disabled={isPending}
+          onClick={onConfirm}
+          size={size}
+          type="button"
+        >
           {isPending ? pendingLabel : confirmLabel}
         </Button>
         <Button
           colorScheme="neutral"
           disabled={isPending}
           onClick={() => setIsConfirming(false)}
-          size="s"
+          size={size}
           type="button"
           variant="outline"
         >

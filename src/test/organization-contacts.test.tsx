@@ -57,6 +57,7 @@ function stubCatalog(
   endpoint: string,
   affiliations: unknown[],
   duplicates: unknown[] = [],
+  directory: unknown[] = [],
 ) {
   const calls: Call[] = [];
   let listed = affiliations;
@@ -86,6 +87,17 @@ function stubCatalog(
         url.pathname === "/api/catalog/contact-persons/possible-duplicates/"
       ) {
         return json(duplicates);
+      }
+      if (
+        url.pathname === "/api/catalog/contact-persons/" &&
+        method === "GET"
+      ) {
+        return json({
+          count: directory.length,
+          next: null,
+          previous: null,
+          results: directory,
+        });
       }
       if (
         url.pathname === "/api/catalog/contact-persons/" &&
@@ -199,7 +211,13 @@ describe("OrganizationContacts", () => {
     fireEvent.change(within(dialog).getByLabelText("Должность"), {
       target: { value: "Декан" },
     });
-    fireEvent.click(within(dialog).getByRole("checkbox", { name: "Телефон" }));
+    // Телефона у человека нет — способ связи «Телефон» выбрать нельзя
+    expect(
+      within(dialog).getByRole("checkbox", { name: "Телефон" }),
+    ).toHaveProperty("disabled", true);
+    fireEvent.click(
+      within(dialog).getByRole("checkbox", { name: "Чат в Telegram" }),
+    );
     fireEvent.click(within(dialog).getByRole("button", { name: "Добавить" }));
 
     await waitFor(() =>
@@ -211,24 +229,28 @@ describe("OrganizationContacts", () => {
         ),
       ).toBe(true),
     );
-    const created = calls.find(
-      (call) =>
-        call.method === "POST" &&
-        call.url.pathname === "/api/catalog/contact-persons/",
-    )!;
-    expect(created.body).toMatchObject({
-      full_name: "Пётр Петров",
-      telegram: "@petrov_pp",
-    });
+    // Человек создаётся вместе со связью одним запросом
+    expect(
+      calls.some(
+        (call) =>
+          call.method === "POST" &&
+          call.url.pathname === "/api/catalog/contact-persons/",
+      ),
+    ).toBe(false);
     const linked = calls.find(
       (call) =>
         call.method === "POST" &&
         call.url.pathname === "/api/catalog/organization-contacts/",
     )!;
     expect(linked.body).toEqual({
-      contact: "new-person",
+      new_contact: {
+        email: "",
+        full_name: "Пётр Петров",
+        phone: "",
+        telegram: "@petrov_pp",
+      },
       position: "Декан",
-      preferred_channels: ["phone"],
+      preferred_channels: ["telegram"],
       organization: "u1",
     });
   });
@@ -288,6 +310,121 @@ describe("OrganizationContacts", () => {
     ).toBe(false);
     const linked = calls.find((call) => call.method === "POST")!;
     expect(linked.body).toMatchObject({ contact: "c7", organization: "u1" });
+  });
+
+  it("links an active person picked from the directory, hiding already linked ones", async () => {
+    const affiliation = (organizationId: string, name: string) => ({
+      id: `x-${organizationId}`,
+      organization: { id: organizationId, name },
+      position: "",
+      preferred_channels: [],
+      products: [],
+      type: "organization",
+    });
+    const free = {
+      ...person("c7", "Иван Иванов"),
+      affiliations: [affiliation("u9", "МГУ")],
+    };
+    const linked = {
+      ...person("c8", "Пётр Петров"),
+      affiliations: [affiliation("u1", "Академия")],
+    };
+    const calls = stubCatalog(
+      "/api/catalog/organization-contacts/",
+      [],
+      [],
+      [free, linked],
+    );
+    renderContacts({ id: "u1", type: "organization" });
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Добавить контакт" }),
+    );
+    const dialog = screen.getByRole("dialog");
+    fireEvent.click(within(dialog).getByLabelText("Из справочника"));
+    fireEvent.click(
+      within(dialog).getByRole("combobox", { name: "Контактное лицо" }),
+    );
+
+    const option = await within(dialog).findByRole("option", {
+      name: /Иван Иванов · c7@example.com · МГУ/,
+    });
+    // Уже связанный с организацией человек не предлагается
+    expect(
+      within(dialog).queryByRole("option", { name: /Пётр Петров/ }),
+    ).toBeNull();
+    const search = calls.find(
+      (call) =>
+        call.method === "GET" &&
+        call.url.pathname === "/api/catalog/contact-persons/",
+    )!;
+    expect(search.url.searchParams.get("is_active")).toBe("true");
+
+    fireEvent.click(option);
+    // Выбранный человек остаётся в поле, без плашки
+    const picker = within(dialog).getByRole("combobox", {
+      name: "Контактное лицо",
+    });
+    expect(picker).toHaveTextContent("Иван Иванов");
+    expect(within(dialog).queryByText("Существующий человек")).toBeNull();
+
+    // Крестик сбрасывает выбор — сохранять некого
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Очистить: Контактное лицо" }),
+    );
+    expect(
+      within(dialog).getByRole("button", { name: "Добавить" }),
+    ).toBeDisabled();
+
+    fireEvent.click(picker);
+    fireEvent.click(
+      await within(dialog).findByRole("option", { name: /Иван Иванов/ }),
+    );
+    fireEvent.click(within(dialog).getByRole("button", { name: "Добавить" }));
+
+    await waitFor(() =>
+      expect(
+        calls.some(
+          (call) =>
+            call.method === "POST" &&
+            call.url.pathname === "/api/catalog/organization-contacts/",
+        ),
+      ).toBe(true),
+    );
+    const created = calls.find((call) => call.method === "POST")!;
+    expect(created.body).toMatchObject({ contact: "c7", organization: "u1" });
+  });
+
+  it("shows the person read-only when editing the affiliation, with a link to Contacts", async () => {
+    stubCatalog("/api/catalog/organization-contacts/", [
+      {
+        contact: person("c1", "Анна Смирнова"),
+        id: "a1",
+        position: "Проректор",
+        preferred_channels: ["email"],
+        products: [],
+      },
+    ]);
+    renderContacts({ id: "u1", type: "organization" });
+
+    fireEvent.click(await screen.findByRole("button", { name: "Изменить" }));
+    const dialog = screen.getByRole("dialog");
+    const details = within(dialog).getByRole("region", {
+      name: "Контактное лицо",
+    });
+
+    expect(within(details).getByText("Анна Смирнова")).toBeInTheDocument();
+    expect(within(details).getByText("c1@example.com")).toBeInTheDocument();
+    // Телефона и Telegram нет — видно, почему эти способы связи недоступны
+    expect(within(details).getAllByText("не указано")).toHaveLength(2);
+    expect(
+      within(details).getByRole("link", { name: "Открыть в «Контактах»" }),
+    ).toHaveAttribute("href", "/contacts?contact=c1");
+    // Данные человека здесь не редактируются
+    expect(
+      within(dialog).queryByRole("textbox", { name: "Телефон" }),
+    ).toBeNull();
+    expect(within(dialog).getByLabelText("Должность")).toHaveValue("Проректор");
   });
 
   it("shows an observer the organization's people without editing actions", async () => {

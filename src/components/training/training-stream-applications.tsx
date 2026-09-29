@@ -5,6 +5,7 @@ import { Plus, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { ConfirmAction } from "@/components/contacts/confirm-action";
 import {
   apiErrorMessage,
   ConfirmDeleteButton,
@@ -45,6 +46,11 @@ const copy = {
     error: "Не удалось загрузить заявки.",
     applicationFrom: "Заявка от",
     cancelApplication: "Отменить заявку",
+    cancelQuestion:
+      "Отменить заявку? Участники перестанут считаться зачисленными. Добавлять участников и отмечать оплату по этой заявке будет нельзя.",
+    keepApplication: "Не отменять",
+    cancelling: "Отменяем…",
+    deleteDescription: "Заявка и её участники будут удалены безвозвратно.",
     noParticipants: "В заявке пока нет участников.",
     learner: "Обучающийся",
     contacts: "Контакты",
@@ -75,6 +81,12 @@ const copy = {
     error: "Applications could not be loaded.",
     applicationFrom: "Application of",
     cancelApplication: "Cancel application",
+    cancelQuestion:
+      "Cancel the application? Its participants will no longer count as enrolled. You will not be able to add participants or mark payments for it.",
+    keepApplication: "Keep it",
+    cancelling: "Cancelling…",
+    deleteDescription:
+      "The application and its participants will be deleted permanently.",
     noParticipants: "The application has no participants yet.",
     learner: "Learner",
     contacts: "Contacts",
@@ -265,19 +277,20 @@ function ApplicationCard({
         {canUpdate ? (
           <div className="flex flex-wrap gap-2">
             {isActive ? (
-              <Button
-                colorScheme="neutral"
-                disabled={cancelMutation.isPending}
-                onClick={() => cancelMutation.mutate()}
-                size="s"
-                type="button"
+              <ConfirmAction
+                cancelLabel={text.keepApplication}
+                confirmLabel={text.cancelApplication}
+                isPending={cancelMutation.isPending}
+                label={text.cancelApplication}
+                onConfirm={() => cancelMutation.mutate()}
+                pendingLabel={text.cancelling}
+                question={text.cancelQuestion}
                 variant="outline"
-              >
-                {text.cancelApplication}
-              </Button>
+              />
             ) : null}
             {!hasPaid ? (
               <ConfirmDeleteButton
+                description={text.deleteDescription}
                 isPending={deleteMutation.isPending}
                 locale={locale}
                 onConfirm={() => deleteMutation.mutate()}

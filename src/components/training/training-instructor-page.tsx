@@ -15,6 +15,7 @@ import {
   fieldInputClass,
   registryCopy,
 } from "@/components/registry/registry-shared";
+import { groupByDirection } from "@/components/catalog/direction-programs-field";
 import { BackLink } from "@/components/training/back-link";
 import {
   academicDegreeLabels,
@@ -65,7 +66,7 @@ const text = {
   education: "Образование",
   competences: "Компетенции",
   directions: "Направления",
-  programs: "Программы",
+  noPrograms: "Программы не выбраны",
   competencePlaceholder: "Выберите программу",
   service: "Служебное",
   lms: "ID в LMS",
@@ -373,6 +374,10 @@ export function TrainingInstructorPage({
         </p>
       </div>
     );
+  const competences = groupByDirection(
+    instructor.directions,
+    instructor.programs,
+  );
 
   return (
     <div className="space-y-5">
@@ -456,16 +461,16 @@ export function TrainingInstructorPage({
         <InfoSection title={text.competences}>
           <DetailRows
             noValue={common.noValue}
-            rows={[
-              [
-                text.directions,
-                instructor.directions.map((item) => item.name).join(", "),
-              ],
-              [
-                text.programs,
-                instructor.programs.map((item) => item.name).join(", "),
-              ],
-            ]}
+            // Программа — внутри своего направления: тёзки из разных направлений различимы
+            rows={
+              competences.length > 0
+                ? competences.map(({ direction, programs }) => [
+                    direction.name,
+                    programs.map((item) => item.name).join(", ") ||
+                      text.noPrograms,
+                  ])
+                : [[text.directions, null]]
+            }
           />
         </InfoSection>
         <InfoSection title={text.service}>
