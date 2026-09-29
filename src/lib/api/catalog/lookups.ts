@@ -188,6 +188,45 @@ export function searchContracts(search: string) {
   );
 }
 
+/** Договор реестра в выпадушке: контрагент нужен, чтобы подставить его в форму. */
+export type RegistryContractOption = LookupOption & {
+  organization: LookupOption;
+};
+
+/**
+ * Договоры из реестра, по которым ещё не создано взаимодействие. Реестр
+ * загружает только договоры организаций; `organizationId` сужает список до
+ * договоров выбранной организации.
+ */
+export async function searchRegistryContracts(
+  search: string,
+  organizationId: string | null,
+): Promise<RegistryContractOption[]> {
+  const query = buildQuery({
+    is_attached: "false",
+    ordering: "contract_number",
+    organization__ids: organizationId ?? undefined,
+    page: 1,
+    page_size: lookupPageSize,
+    search: search.trim(),
+  });
+  const page = await getJson<PaginatedResponse<Contract>>(
+    `${apiEndpoints.interactions.contracts.list}?${query}`,
+  );
+
+  return page.results
+    .filter((contract) => contract.organization !== null)
+    .map((contract) => ({
+      hint: contract.organization!.name,
+      id: contract.id,
+      name: contract.contract_number || "б/н",
+      organization: {
+        id: contract.organization!.id,
+        name: contract.organization!.name,
+      },
+    }));
+}
+
 /** Продукты конкретного взаимодействия — лицензия выдаётся только на них. */
 export function searchInteractionProducts(
   search: string,

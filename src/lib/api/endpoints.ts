@@ -102,6 +102,8 @@ export const apiEndpoints = {
       list: "/api/interactions/contract-files/",
     },
     contracts: {
+      attachToNewInteraction: (id: string) =>
+        `/api/interactions/contracts/${id}/attach-to-new-interaction/`,
       detail: (id: string) => `/api/interactions/contracts/${id}/`,
       download: (id: string) => `/api/interactions/contracts/${id}/download/`,
       list: "/api/interactions/contracts/",

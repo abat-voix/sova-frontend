@@ -26,8 +26,12 @@ function stubFetch(fail: (url: string, body: never) => boolean = () => false) {
       }
 
       nextId += 1;
+      // Создание из договора отвечает договором с новым взаимодействием.
+      const responseBody = url.includes("attach-to-new-interaction")
+        ? { id: "contract-1", interaction: { id: `new-${nextId}` } }
+        : { id: `new-${nextId}` };
 
-      return new Response(JSON.stringify({ id: `new-${nextId}` }), {
+      return new Response(JSON.stringify(responseBody), {
         headers: { "content-type": "application/json" },
         status: 201,
       });
@@ -40,6 +44,7 @@ function stubFetch(fail: (url: string, body: never) => boolean = () => false) {
 }
 
 const plan = (overrides: Partial<CreationPlan> = {}): CreationPlan => ({
+  contractId: null,
   directions: [{ directionId: "dir-1", key: "d1" }],
   interaction: { comment: "", is_active: true, organization: "u-1" },
   interactionId: null,
@@ -223,5 +228,48 @@ describe("runCreationPlan", () => {
     expect(calls).toHaveLength(1);
     expect(outcome.interactionId).toBeNull();
     expect(outcome.error).not.toBeNull();
+  });
+
+  it("creates the interaction from a registry contract, then assigns responsibles", async () => {
+    const calls = stubFetch();
+
+    const outcome = await runCreationPlan(
+      plan({
+        contractId: "contract-1",
+        directions: [],
+        programs: [],
+        responsibleIds: [7],
+      }),
+      "csrf",
+    );
+
+    expect(outcome.error).toBeNull();
+    expect(outcome.interactionId).toBe("new-1");
+    expect(calls.map((call) => call.url)).toEqual([
+      "/api/interactions/contracts/contract-1/attach-to-new-interaction/",
+      "/api/interactions/interactions/new-1/assign-responsible/",
+    ]);
+    // Пустой комментарий не уходит: бэк оставит комментарий из реестра.
+    expect(calls[0].body).toEqual({ is_active: true });
+  });
+
+  it("sends the form comment when creating from a registry contract", async () => {
+    const calls = stubFetch();
+
+    await runCreationPlan(
+      plan({
+        contractId: "contract-1",
+        directions: [],
+        interaction: {
+          comment: "Пилот",
+          is_active: false,
+          organization: "u-1",
+        },
+        programs: [],
+      }),
+      "csrf",
+    );
+
+    expect(calls[0].body).toEqual({ comment: "Пилот", is_active: false });
   });
 });

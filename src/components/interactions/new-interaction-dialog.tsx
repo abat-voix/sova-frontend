@@ -32,6 +32,8 @@ import {
   searchProducts,
   searchPrograms,
   searchOrganizations,
+  searchRegistryContracts,
+  type LookupOption,
 } from "@/lib/api/catalog/lookups";
 import { ApiError } from "@/lib/api/http";
 import { listUsers, usersQueryKey, usersRootKey } from "@/lib/api/users/team";
@@ -59,7 +61,13 @@ const copy = {
     catalogHint:
       "Необязательно. Движок откроет отдельный этап на каждое направление, программу и продукт; добавить их можно и после запуска.",
     catalogTitle: "Направления, программы и продукты",
+    catalogFromContract:
+      "Перейдут из выбранного договора — добавить свои можно после создания.",
     clientPlaceholder: "Выберите клиента",
+    contract: "Договор из реестра",
+    contractHint:
+      "Необязательно. Только договоры, по которым ещё нет взаимодействия; организация подставится из договора.",
+    contractPlaceholder: "Выберите договор",
     comment: "Комментарий",
     commentPlaceholder: "Например: пилот на осенний семестр",
     counterparty: "Контрагент",
@@ -107,7 +115,13 @@ const copy = {
     catalogHint:
       "Optional. The engine opens a separate stage per direction, program, and product; you can add them after the start too.",
     catalogTitle: "Directions, programs, and products",
+    catalogFromContract:
+      "They carry over from the selected contract — you can add more after creation.",
     clientPlaceholder: "Pick a client",
+    contract: "Registry contract",
+    contractHint:
+      "Optional. Only contracts that have no interaction yet; the organization is taken from the contract.",
+    contractPlaceholder: "Pick a contract",
     comment: "Comment",
     commentPlaceholder: "For example: pilot for the autumn term",
     counterparty: "Counterparty",
@@ -183,6 +197,7 @@ function initialDraft({
   if (editInteraction) {
     return {
       comment: editInteraction.comment ?? "",
+      contract: null,
       counterparty: editInteraction.organization
         ? {
             id: editInteraction.organization.id,
@@ -472,6 +487,21 @@ export function NewInteractionDialog({
     !hasSelf;
   const [error, setError] = useState<string | null>(null);
   const keyCounter = useRef(0);
+  // Организации договоров из последних результатов поиска: выпадушка отдаёт
+  // только `{ id, name }`, а в черновик договор ложится вместе с контрагентом.
+  const contractOrganizations = useRef(new Map<string, LookupOption>());
+  const contractOrganizationId = draft.contract
+    ? null
+    : (draft.counterparty?.id ?? null);
+
+  async function searchContracts(term: string) {
+    const options = await searchRegistryContracts(term, contractOrganizationId);
+    for (const option of options) {
+      contractOrganizations.current.set(option.id, option.organization);
+    }
+
+    return options;
+  }
 
   function assignSelf() {
     dispatch({
@@ -649,7 +679,7 @@ export function NewInteractionDialog({
               ))}
             </div>
             <EntitySelect
-              disabled={isEditing || isRetry}
+              disabled={isEditing || isRetry || draft.contract !== null}
               id="new-interaction-counterparty"
               label={text.counterparty}
               onChange={(option) =>
@@ -668,6 +698,40 @@ export function NewInteractionDialog({
               }
               value={draft.counterparty}
             />
+            {/* Реестр загружает только договоры организаций. */}
+            {!isEditing && draft.counterpartyKind === "organization" ? (
+              <div className="pt-2">
+                <p className="text-muted-foreground mb-1 text-xs">
+                  {text.contract}
+                </p>
+                <EntitySelect
+                  disabled={isRetry}
+                  id="new-interaction-contract"
+                  label={text.contract}
+                  onChange={(option) =>
+                    dispatch({
+                      counterparty: option
+                        ? (contractOrganizations.current.get(option.id) ?? null)
+                        : null,
+                      option,
+                      type: "set-contract",
+                    })
+                  }
+                  placeholder={text.contractPlaceholder}
+                  queryKey={[
+                    "interactions",
+                    "contracts",
+                    "registry",
+                    contractOrganizationId,
+                  ]}
+                  search={searchContracts}
+                  value={draft.contract}
+                />
+                <p className="text-muted-foreground mt-1 text-xs">
+                  {text.contractHint}
+                </p>
+              </div>
+            ) : null}
           </fieldset>
 
           <div>
@@ -781,33 +845,40 @@ export function NewInteractionDialog({
             <div>
               <h3 className="text-sm font-medium">{text.catalogTitle}</h3>
               <p className="text-muted-foreground mt-1 text-xs leading-5">
-                {text.catalogHint}
+                {draft.contract ? text.catalogFromContract : text.catalogHint}
               </p>
             </div>
 
-            {draft.directions.map((direction) => (
-              <DirectionRow
-                direction={direction}
-                dispatch={dispatch}
-                draft={draft}
-                key={direction.key}
-                makeKey={makeKey}
-                text={text}
-              />
-            ))}
+            {draft.contract ? null : (
+              <>
+                {draft.directions.map((direction) => (
+                  <DirectionRow
+                    direction={direction}
+                    dispatch={dispatch}
+                    draft={draft}
+                    key={direction.key}
+                    makeKey={makeKey}
+                    text={text}
+                  />
+                ))}
 
-            <Button
-              colorScheme="neutral"
-              onClick={() =>
-                dispatch({ key: makeKey("direction"), type: "add-direction" })
-              }
-              size="m"
-              type="button"
-              variant="outline"
-            >
-              <Plus aria-hidden="true" className="size-4" />
-              {text.addDirection}
-            </Button>
+                <Button
+                  colorScheme="neutral"
+                  onClick={() =>
+                    dispatch({
+                      key: makeKey("direction"),
+                      type: "add-direction",
+                    })
+                  }
+                  size="m"
+                  type="button"
+                  variant="outline"
+                >
+                  <Plus aria-hidden="true" className="size-4" />
+                  {text.addDirection}
+                </Button>
+              </>
+            )}
           </fieldset>
         </div>
 

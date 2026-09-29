@@ -234,3 +234,48 @@ describe("isDraftReady", () => {
     expect(isDraftReady(filledDraft())).toBe(true);
   });
 });
+
+describe("registry contract", () => {
+  const contract = option("contract-1", "Д-1");
+  const organization = option("u-2", "Университет из договора");
+
+  it("takes the counterparty from the contract and drops the catalog tree", () => {
+    const draft = reduce(filledDraft(), {
+      counterparty: organization,
+      option: contract,
+      type: "set-contract",
+    });
+
+    expect(draft.counterparty).toEqual(organization);
+    expect(draft.directions).toEqual([]);
+    expect(isDraftReady(draft)).toBe(true);
+
+    const plan = buildCreationPlan(draft);
+    expect(plan.contractId).toBe("contract-1");
+    expect(plan.directions).toEqual([]);
+    expect(plan.programs).toEqual([]);
+  });
+
+  it("keeps the counterparty when the contract is cleared", () => {
+    const draft = reduce(
+      emptyDraft,
+      { counterparty: organization, option: contract, type: "set-contract" },
+      { counterparty: null, option: null, type: "set-contract" },
+    );
+
+    expect(draft.contract).toBeNull();
+    expect(draft.counterparty).toEqual(organization);
+    expect(buildCreationPlan(draft).contractId).toBeNull();
+  });
+
+  it("drops the contract when the counterparty kind changes", () => {
+    const draft = reduce(
+      emptyDraft,
+      { counterparty: organization, option: contract, type: "set-contract" },
+      { kind: "b2c_client", type: "set-counterparty-kind" },
+    );
+
+    expect(draft.contract).toBeNull();
+    expect(draft.counterparty).toBeNull();
+  });
+});

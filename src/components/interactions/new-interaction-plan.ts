@@ -40,6 +40,12 @@ export type DirectionNode = {
 
 export type InteractionDraft = {
   comment: string;
+  /**
+   * Договор из реестра без взаимодействия. Выбран — взаимодействие создаётся
+   * из него: контрагент берётся из договора, направления, программы и продукты
+   * переходят с договора, поэтому своё дерево в черновике пустое.
+   */
+  contract: LookupOption | null;
   counterparty: LookupOption | null;
   counterpartyKind: CounterpartyKind;
   /** Заполняется после успешного `POST /interactions/`: повтор его не создаёт. */
@@ -58,6 +64,7 @@ export type InteractionDraft = {
 
 export const emptyDraft: InteractionDraft = {
   comment: "",
+  contract: null,
   counterparty: null,
   counterpartyKind: "organization",
   createdInteractionId: null,
@@ -82,6 +89,12 @@ export function draftWithResponsible(
 export type DraftAction =
   | { type: "set-counterparty-kind"; kind: CounterpartyKind }
   | { type: "set-counterparty"; option: LookupOption | null }
+  | {
+      type: "set-contract";
+      option: LookupOption | null;
+      /** Контрагент договора; подставляется в черновик вместе с ним. */
+      counterparty: LookupOption | null;
+    }
   | { type: "set-comment"; comment: string }
   | { type: "set-active"; isActive: boolean }
   | { type: "set-responsibles"; options: LookupOption[] }
@@ -141,12 +154,24 @@ export function draftReducer(
       // после смены типа недействителен.
       return {
         ...draft,
+        contract: null,
         counterparty: null,
         counterpartyKind: action.kind,
       };
 
     case "set-counterparty":
       return { ...draft, counterparty: action.option };
+
+    case "set-contract":
+      // Снятый договор оставляет его контрагента: пользователь продолжает с ним.
+      return action.option
+        ? {
+            ...draft,
+            contract: action.option,
+            counterparty: action.counterparty,
+            directions: [],
+          }
+        : { ...draft, contract: null };
 
     case "set-comment":
       return { ...draft, comment: action.comment };
@@ -353,6 +378,8 @@ export type PlannedProgram = {
 };
 
 export type CreationPlan = {
+  /** Договор реестра, из которого создаётся взаимодействие; `null` — обычное создание. */
+  contractId: string | null;
   directions: { directionId: string; key: string }[];
   /** `null` — взаимодействие уже создано (повтор после частичного сбоя). */
   interaction: CreateInteractionPayload | null;
@@ -403,6 +430,7 @@ export function buildCreationPlan(draft: InteractionDraft): CreationPlan {
   }
 
   return {
+    contractId: draft.contract?.id ?? null,
     directions: draft.directions
       .filter(
         (direction) => direction.direction && direction.createdId === null,

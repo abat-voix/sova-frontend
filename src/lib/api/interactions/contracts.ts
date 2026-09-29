@@ -6,6 +6,7 @@ import {
   patchFormData,
   patchJson,
   postFormData,
+  postJson,
 } from "@/lib/api/http";
 import type { PaginatedResponse } from "@/types/api";
 import type { Contract, PatchedWriteContract } from "@/types/contract";
@@ -153,6 +154,29 @@ export function uploadContractFile(id: string, file: File, csrfToken: string) {
   return patchFormData<Contract>(
     apiEndpoints.interactions.contracts.detail(id),
     body,
+    csrfToken,
+  );
+}
+
+export type AttachContractPayload = {
+  /** Не передан — бэк берёт комментарий договора из реестра. */
+  comment?: string;
+  is_active: boolean;
+};
+
+/**
+ * Создаёт взаимодействие из договора реестра: контрагент, направления,
+ * программы и продукты переходят из договора, комментарий и активность — из
+ * формы. 409 `contract_already_attached` — договор уже привязан.
+ */
+export function attachContractToNewInteraction(
+  id: string,
+  payload: AttachContractPayload,
+  csrfToken: string,
+) {
+  return postJson<Contract>(
+    apiEndpoints.interactions.contracts.attachToNewInteraction(id),
+    payload,
     csrfToken,
   );
 }
