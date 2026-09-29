@@ -12,10 +12,10 @@ import {
   type AddressFieldsLabels,
 } from "@/components/catalog/address-fields";
 import {
-  apiErrorMessage,
   Field,
   fieldInputClass,
   registryCopy,
+  useServerFieldErrors,
 } from "@/components/registry/registry-shared";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -24,9 +24,11 @@ import {
   updateOrganization,
 } from "@/lib/api/catalog/organizations";
 import {
+  innError,
   innHint,
   isValidInn,
   isValidPhone,
+  phoneError,
   phoneHint,
   sanitizeInn,
   sanitizePhone,
@@ -37,6 +39,18 @@ import { useLocale } from "@/providers/locale-provider";
 import type { Organization, OrganizationType } from "@/types/organization";
 
 const formHeadingId = "organization-form-title";
+
+type AddressKey = "legal_address" | "actual_address";
+
+/**
+ * Ключи ошибок бэкенда для части адреса: координаты в ответе разложены на
+ * `lat` и `lon`, в форме это одно поле.
+ */
+function addressErrorKeys(address: AddressKey, field: AddressField) {
+  return field === "coordinates"
+    ? [`${address}.lat`, `${address}.lon`]
+    : [`${address}.${field}`];
+}
 
 const addressFields: AddressField[] = [
   "postal_code",
@@ -140,6 +154,7 @@ export function OrganizationForm({
   const [legal, setLegal] = useState(() =>
     addressDraft(organization?.legal_address),
   );
+  const serverErrors = useServerFieldErrors();
   const [sameAsLegal, setSameAsLegal] = useState(
     organization?.actual_same_as_legal ?? false,
   );
@@ -170,8 +185,43 @@ export function OrganizationForm({
         ? updateOrganization(organization.id, payload, csrfToken)
         : createOrganization(payload, csrfToken);
     },
+    onMutate: () => serverErrors.capture(null),
+    onError: serverErrors.capture,
     onSuccess: onSaved,
   });
+  const shownAddresses: AddressKey[] = sameAsLegal
+    ? ["legal_address"]
+    : ["legal_address", "actual_address"];
+  // Поля, ошибки бэкенда по которым показываются под самими полями
+  const shownFields = [
+    "name",
+    "inn",
+    "external_code",
+    "email",
+    "phone",
+    ...shownAddresses.flatMap((address) =>
+      addressFields.flatMap((field) => addressErrorKeys(address, field)),
+    ),
+  ];
+  const generalError = mutation.isError
+    ? serverErrors.rest(mutation.error, shownFields, common.unknownError)
+    : null;
+
+  const addressErrors = (address: AddressKey) =>
+    Object.fromEntries(
+      addressFields.map((field) => [
+        field,
+        [
+          ...new Set(
+            addressErrorKeys(address, field).flatMap(
+              (key) => serverErrors.errors[key] ?? [],
+            ),
+          ),
+        ],
+      ]),
+    );
+  const clearAddressError = (address: AddressKey) => (field: AddressField) =>
+    addressErrorKeys(address, field).forEach(serverErrors.clear);
 
   const canSubmit =
     name.trim() !== "" &&
@@ -188,29 +238,46 @@ export function OrganizationForm({
     value: string,
     onChange: (value: string) => void,
     options: {
+      /** Ключ поля в ответе бэкенда — его ошибки показываются под полем. */
+      field?: string;
+      /** Ошибка проверки на фронте; пока она есть, ошибки бэкенда не видны. */
+      error?: string;
       hint?: string;
       inputMode?: "numeric" | "tel";
       required?: boolean;
       type?: string;
     } = {},
-  ) => (
-    <Field
-      hint={options.hint}
-      htmlFor={id}
-      label={label}
-      required={options.required}
-    >
-      <input
-        className={fieldInputClass}
-        id={id}
-        inputMode={options.inputMode}
-        onChange={(event) => onChange(event.target.value)}
+  ) => {
+    const errors = options.error
+      ? [options.error]
+      : options.field
+        ? (serverErrors.errors[options.field] ?? [])
+        : [];
+
+    return (
+      <Field
+        errors={errors}
+        hint={options.hint}
+        htmlFor={id}
+        label={label}
         required={options.required}
-        type={options.type ?? "text"}
-        value={value}
-      />
-    </Field>
-  );
+      >
+        <input
+          aria-invalid={errors.length > 0 || undefined}
+          className={fieldInputClass}
+          id={id}
+          inputMode={options.inputMode}
+          onChange={(event) => {
+            if (options.field) serverErrors.clear(options.field);
+            onChange(event.target.value);
+          }}
+          required={options.required}
+          type={options.type ?? "text"}
+          value={value}
+        />
+      </Field>
+    );
+  };
 
   return (
     <Modal
@@ -237,6 +304,7 @@ export function OrganizationForm({
         </div>
         <div className="space-y-4 overflow-y-auto px-5 py-4">
           {input("organization-name", text.name, name, setName, {
+            field: "name",
             required: true,
           })}
           <Field htmlFor="organization-type" label={text.type}>
@@ -263,15 +331,22 @@ export function OrganizationForm({
               text.inn,
               inn,
               (value) => setInn(sanitizeInn(value)),
-              { hint: innHint(inn, locale), inputMode: "numeric" },
+              {
+                error: innError(inn, locale),
+                field: "inn",
+                hint: innHint(inn, locale),
+                inputMode: "numeric",
+              },
             )}
             {input(
               "organization-external-code",
               text.externalCode,
               externalCode,
               setExternalCode,
+              { field: "external_code" },
             )}
             {input("organization-email", text.email, email, setEmail, {
+              field: "email",
               type: "email",
             })}
             {input(
@@ -279,17 +354,24 @@ export function OrganizationForm({
               text.phone,
               phone,
               (value) => setPhone(sanitizePhone(value)),
-              { hint: phoneHint(phone, locale), type: "tel" },
+              {
+                error: phoneError(phone, locale),
+                field: "phone",
+                hint: phoneHint(phone, locale),
+                type: "tel",
+              },
             )}
           </div>
           <fieldset className="space-y-3">
             <legend className="text-sm font-medium">{text.legalAddress}</legend>
             <AddressFields
               draft={legal}
+              errors={addressErrors("legal_address")}
               fields={addressFields}
               idPrefix="organization-legal"
               labels={addressText}
               onChange={setLegal}
+              onEdit={clearAddressError("legal_address")}
             />
           </fieldset>
           <fieldset className="space-y-3">
@@ -307,10 +389,12 @@ export function OrganizationForm({
             {sameAsLegal ? null : (
               <AddressFields
                 draft={actual}
+                errors={addressErrors("actual_address")}
                 fields={addressFields}
                 idPrefix="organization-actual"
                 labels={addressText}
                 onChange={setActual}
+                onEdit={clearAddressError("actual_address")}
               />
             )}
           </fieldset>
@@ -325,9 +409,9 @@ export function OrganizationForm({
           <p className="text-muted-foreground text-xs">{text.requiredHint}</p>
         </div>
         <div className="space-y-3 border-t px-5 py-4">
-          {mutation.isError ? (
+          {generalError ? (
             <p className="text-sm text-[var(--atmr-brand-orange)]">
-              {apiErrorMessage(mutation.error, common.unknownError)}
+              {generalError}
             </p>
           ) : null}
           <div className="flex justify-end gap-2">

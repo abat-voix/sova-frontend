@@ -153,7 +153,7 @@ export function LearnersWorkspace() {
       <RegistryHeader
         action={
           canUpload || canCreate ? (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex shrink-0 flex-wrap items-center gap-3">
               {canCreate ? (
                 <Button
                   onClick={() => setIsCreating(true)}

@@ -72,6 +72,11 @@ const copy = {
     removed: "Участник убран из заявки.",
     paidOn: "Оплата отмечена.",
     paidOff: "Отметка об оплате снята.",
+    statusFilter: "Статус заявок",
+    activeTab: "Действующие",
+    cancelledTab: "Отменённые",
+    emptyActive: "Действующих заявок нет.",
+    emptyCancelled: "Отменённых заявок нет.",
   },
   en: {
     title: "Applications",
@@ -110,8 +115,15 @@ const copy = {
     removed: "Participant removed.",
     paidOn: "Payment marked.",
     paidOff: "Payment mark removed.",
+    statusFilter: "Application status",
+    activeTab: "Active",
+    cancelledTab: "Cancelled",
+    emptyActive: "No active applications.",
+    emptyCancelled: "No cancelled applications.",
   },
 } as const;
+
+type StatusTab = "active" | "cancelled";
 
 type Text = (typeof copy)[keyof typeof copy];
 
@@ -464,6 +476,7 @@ export function TrainingStreamApplications({
   const invalidate = useInvalidate(streamId);
   const [isCreating, setIsCreating] = useState(false);
   const [comment, setComment] = useState("");
+  const [statusTab, setStatusTab] = useState<StatusTab>("active");
 
   const applicationsQuery = useQuery({
     queryKey: streamApplicationsQueryKey(streamId),
@@ -479,10 +492,23 @@ export function TrainingStreamApplications({
       toast.success(text.created);
       setIsCreating(false);
       setComment("");
+      // Новая заявка действует — показываем её вкладку
+      setStatusTab("active");
       invalidate();
     },
   });
-  const applications = applicationsQuery.data?.results ?? [];
+  // Заявки потока приходят одной страницей — вкладки делят их на месте, так
+  // видно и число заявок в каждой
+  const allApplications = applicationsQuery.data?.results ?? [];
+  const byTab: Record<StatusTab, TrainingApplication[]> = {
+    active: allApplications.filter(({ status }) => status === "new"),
+    cancelled: allApplications.filter(({ status }) => status === "cancelled"),
+  };
+  const applications = byTab[statusTab];
+  const tabs: { key: StatusTab; label: string; empty: string }[] = [
+    { key: "active", label: text.activeTab, empty: text.emptyActive },
+    { key: "cancelled", label: text.cancelledTab, empty: text.emptyCancelled },
+  ];
 
   return (
     <section aria-label={text.title} className="space-y-3">
@@ -536,19 +562,56 @@ export function TrainingStreamApplications({
         <p className="text-muted-foreground text-sm">{text.loading}</p>
       ) : applicationsQuery.isError ? (
         <p className="text-sm text-[var(--atmr-brand-orange)]">{text.error}</p>
-      ) : applications.length === 0 ? (
+      ) : allApplications.length === 0 ? (
         <p className="text-muted-foreground text-sm">{text.empty}</p>
       ) : (
-        applications.map((application) => (
-          <ApplicationCard
-            application={application}
-            canUpdate={canUpdate}
-            csrfToken={csrfToken}
-            key={application.id}
-            streamId={streamId}
-            text={text}
-          />
-        ))
+        <>
+          <div
+            aria-label={text.statusFilter}
+            className="flex gap-1"
+            role="tablist"
+          >
+            {tabs.map((tab) => (
+              <Button
+                aria-controls="stream-applications-panel"
+                aria-selected={statusTab === tab.key}
+                colorScheme={statusTab === tab.key ? "accent" : "neutral"}
+                id={`stream-applications-${tab.key}-tab`}
+                key={tab.key}
+                onClick={() => setStatusTab(tab.key)}
+                role="tab"
+                size="s"
+                type="button"
+                variant={statusTab === tab.key ? "secondary" : "ghost"}
+              >
+                {tab.label} · {byTab[tab.key].length}
+              </Button>
+            ))}
+          </div>
+          <div
+            aria-labelledby={`stream-applications-${statusTab}-tab`}
+            className="space-y-3"
+            id="stream-applications-panel"
+            role="tabpanel"
+          >
+            {applications.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                {tabs.find((tab) => tab.key === statusTab)?.empty}
+              </p>
+            ) : (
+              applications.map((application) => (
+                <ApplicationCard
+                  application={application}
+                  canUpdate={canUpdate}
+                  csrfToken={csrfToken}
+                  key={application.id}
+                  streamId={streamId}
+                  text={text}
+                />
+              ))
+            )}
+          </div>
+        </>
       )}
     </section>
   );

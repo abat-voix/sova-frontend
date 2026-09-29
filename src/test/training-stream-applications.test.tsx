@@ -236,4 +236,45 @@ describe("TrainingStreamApplications new learner", () => {
       url: "/api/training/application-learners/",
     });
   });
+
+  it("shows active applications by default and cancelled ones on their tab", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              count: 2,
+              next: null,
+              previous: null,
+              results: [
+                { ...application, comment: "Действующая заявка" },
+                {
+                  ...application,
+                  id: "a2",
+                  status: "cancelled",
+                  comment: "Отменённая заявка",
+                },
+              ],
+            }),
+            {
+              headers: { "content-type": "application/json" },
+              status: 200,
+            },
+          ),
+      ),
+    );
+    renderApplications();
+
+    expect(await screen.findByText("Действующая заявка")).toBeInTheDocument();
+    expect(screen.queryByText("Отменённая заявка")).toBeNull();
+    expect(
+      screen.getByRole("tab", { name: "Действующие · 1" }),
+    ).toHaveAttribute("aria-selected", "true");
+
+    fireEvent.click(screen.getByRole("tab", { name: "Отменённые · 1" }));
+
+    expect(screen.getByText("Отменённая заявка")).toBeInTheDocument();
+    expect(screen.queryByText("Действующая заявка")).toBeNull();
+  });
 });
