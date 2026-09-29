@@ -54,7 +54,13 @@ describe("training instructor page", () => {
             teaching_experience_years: 7,
             education: "",
             directions: [{ id: "d1", name: "DevOps" }],
-            programs: [{ id: "p1", name: "DevOps-инженер" }],
+            programs: [
+              {
+                id: "p1",
+                name: "DevOps-инженер",
+                direction: { id: "d1", name: "DevOps" },
+              },
+            ],
             lms_external_id: "",
             comment: "",
             is_active: true,

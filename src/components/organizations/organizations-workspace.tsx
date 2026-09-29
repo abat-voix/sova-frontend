@@ -345,6 +345,8 @@ export function OrganizationsWorkspace() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [creatingFor, setCreatingFor] = useState<Organization | null>(null);
+  // Форма из инспектора: инспектор на это время закрыт, после формы — открывается снова
+  const [returnToId, setReturnToId] = useState<string | null>(null);
   const [interactions, setInteractions] = useState<InteractionsFilter>("all");
   const [activity, setActivity] = useState<ActivityFilter>("all");
   const [organizationType, setOrganizationType] =
@@ -450,6 +452,16 @@ export function OrganizationsWorkspace() {
     createInteraction: text.createInteraction,
   };
   const clearSelection = useCallback(() => setSelectedId(null), []);
+  const createFromInspector = (organization: Organization) => {
+    setReturnToId(organization.id);
+    setSelectedId(null);
+    setCreatingFor(organization);
+  };
+  const closeCreating = () => {
+    setCreatingFor(null);
+    if (returnToId) setSelectedId(returnToId);
+    setReturnToId(null);
+  };
   const handleSearchChange = useCallback((value: string) => {
     setSearch(value);
     setSelectedId(null);
@@ -519,7 +531,7 @@ export function OrganizationsWorkspace() {
           locale={locale}
           onCreateInteraction={
             canCreateInteraction
-              ? () => setCreatingFor(selectedOrganizationQuery.data!)
+              ? () => createFromInspector(selectedOrganizationQuery.data!)
               : undefined
           }
           onOpenInteractions={
@@ -552,8 +564,8 @@ export function OrganizationsWorkspace() {
           csrfToken={csrfToken}
           currentUser={user}
           key={creatingFor.id}
-          onClose={() => setCreatingFor(null)}
-          onCreated={() => setCreatingFor(null)}
+          onClose={closeCreating}
+          onCreated={closeCreating}
           onCreatedAction={{
             label: text.openInteraction,
             onClick: (interactionId) =>

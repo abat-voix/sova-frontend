@@ -9,6 +9,7 @@ import {
 import type { PaginatedResponse } from "@/types/api";
 import type {
   ContactChannel,
+  ContactPersonPayload,
   OrganizationAffiliation,
   ContactOwnerRef,
   ContactOwnerType,
@@ -118,13 +119,22 @@ function affiliationBody(type: ContactOwnerType, values: AffiliationValues) {
   };
 }
 
-/** Новая связь; у выключенного человека она включает его (на бэкенде). */
+/** Человек связи: существующий (`contactId`) или новый — создаётся вместе со связью. */
+export type AffiliationPerson =
+  | { contactId: string; newContact?: never }
+  | { contactId?: never; newContact: ContactPersonPayload };
+
+/**
+ * Новая связь; у выключенного человека она включает его (на бэкенде). Новый
+ * человек создаётся в той же транзакции: ошибка связи не оставит его без организации.
+ */
 export function createAffiliation(
   {
     contactId,
+    newContact,
     organization,
     ...values
-  }: AffiliationValues & { contactId: string; organization: ContactOwnerRef },
+  }: AffiliationValues & AffiliationPerson & { organization: ContactOwnerRef },
   csrfToken: string,
 ) {
   const resource = resources[organization.type];
@@ -132,7 +142,7 @@ export function createAffiliation(
   return postJson<{ id: string }>(
     resource.endpoint.list,
     {
-      contact: contactId,
+      ...(newContact ? { new_contact: newContact } : { contact: contactId }),
       [resource.field]: organization.id,
       ...affiliationBody(organization.type, values),
     },

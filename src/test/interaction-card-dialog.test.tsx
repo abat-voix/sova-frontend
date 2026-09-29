@@ -1,5 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { InteractionCardDialog } from "@/components/interactions/interaction-card-dialog";
@@ -396,5 +402,106 @@ describe("InteractionCardDialog chat", () => {
     expect(
       screen.queryByRole("button", { name: "Создать чат" }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("InteractionCardDialog deletion", () => {
+  function renderDeletable(
+    value: Interaction,
+    deleteResponse: () => Response,
+    onDeleted = vi.fn(),
+  ) {
+    const calls: { method: string; url: string }[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(async (input, init) => {
+        const url = String(input);
+        const method = init?.method ?? "GET";
+        calls.push({ method, url });
+        if (method === "DELETE") return deleteResponse();
+        if (url === chatUrl) return json({ detail: "not found" }, 404);
+        // Контакты взаимодействия приходят списком, без пагинации
+        if (url.includes("/contacts/")) return json([]);
+        return json(paginated([]));
+      }),
+    );
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <LocaleProvider>
+          <InteractionCardDialog
+            csrfToken="csrf"
+            interaction={value}
+            onClose={vi.fn()}
+            onDeleted={onDeleted}
+          />
+        </LocaleProvider>
+      </QueryClientProvider>,
+    );
+
+    return { calls, onDeleted };
+  }
+
+  it("deletes a not started interaction after the warning", async () => {
+    const { calls, onDeleted } = renderDeletable(
+      { ...interaction, can_delete: true },
+      () => new Response(null, { status: 204 }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Удалить" }));
+    expect(
+      screen.getByText(
+        "Взаимодействие удалится вместе с составом, контактами, ответственными и чатом.",
+      ),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Удалить" }));
+
+    await waitFor(() =>
+      expect(onDeleted).toHaveBeenCalledWith(
+        expect.objectContaining({ id: interaction.id }),
+      ),
+    );
+    expect(calls.filter((call) => call.method === "DELETE")).toEqual([
+      {
+        method: "DELETE",
+        url: `/api/interactions/interactions/${interaction.id}/`,
+      },
+    ]);
+  });
+
+  it("offers no deletion once the interaction is started", () => {
+    renderDeletable(
+      { ...interaction, can_delete: false },
+      () => new Response(null, { status: 204 }),
+    );
+
+    expect(screen.queryByRole("button", { name: "Удалить" })).toBeNull();
+  });
+
+  it("shows the backend refusal and keeps the card", async () => {
+    const { onDeleted } = renderDeletable(
+      { ...interaction, can_delete: true },
+      () =>
+        json(
+          {
+            code: "workflow_started",
+            detail:
+              "По взаимодействию уже запущен процесс — удалить его нельзя.",
+          },
+          409,
+        ),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Удалить" }));
+    fireEvent.click(screen.getByRole("button", { name: "Удалить" }));
+
+    expect(
+      await screen.findByText(
+        "По взаимодействию уже запущен процесс — удалить его нельзя.",
+      ),
+    ).toBeInTheDocument();
+    expect(onDeleted).not.toHaveBeenCalled();
   });
 });

@@ -5,6 +5,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -105,17 +106,32 @@ describe("training instructor form page", () => {
     expect(submit).toBeDisabled();
     await pick("Организация", /МГУ/);
 
-    expect(screen.getAllByText("Ничего не выбрано.")).toHaveLength(2);
-    await pick("Направления", /DevOps/);
-    fireEvent.keyDown(document, { key: "Escape" });
+    // Программу без направления выбрать негде
     expect(
-      await screen.findByRole("button", { name: "Убрать: DevOps" }),
+      screen.getByText(
+        "Сначала добавьте направление, затем выберите его программы.",
+      ),
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Показаны программы выбранных направлений."),
+      screen.queryByRole("combobox", { name: "Программы направления" }),
+    ).toBeNull();
+
+    await pick("Добавить направление", /DevOps/);
+    const block = await screen.findByRole("listitem", { name: "DevOps" });
+    expect(
+      within(block).getByText(
+        "Программы не выбраны. Для подбора на потоки выберите программы.",
+      ),
     ).toBeInTheDocument();
 
-    await pick("Программы", /DevOps-инженер/);
+    fireEvent.click(
+      within(block).getByRole("combobox", { name: "Программы направления" }),
+    );
+    fireEvent.click(
+      await within(block).findByRole("option", { name: /DevOps-инженер/ }),
+    );
+    fireEvent.keyDown(document, { key: "Escape" });
+    // Программы ищутся только в своём направлении
     await waitFor(() =>
       expect(
         urls.some(
@@ -125,6 +141,18 @@ describe("training instructor form page", () => {
         ),
       ).toBe(true),
     );
+    expect(
+      await within(block).findByRole("button", {
+        name: "Убрать: DevOps-инженер",
+      }),
+    ).toBeInTheDocument();
+
+    // Одно направление дважды не добавить
+    fireEvent.click(
+      screen.getByRole("combobox", { name: "Добавить направление" }),
+    );
+    expect(await screen.findByText("Ничего не найдено.")).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: "Escape" });
 
     fireEvent.click(submit);
 
@@ -139,5 +167,55 @@ describe("training instructor form page", () => {
     await waitFor(() =>
       expect(navigation.push).toHaveBeenCalledWith("/training/instructors/t1"),
     );
+  });
+
+  it("selects every program of a direction across pages", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn<typeof fetch>(async (input) => {
+        const url = new URL(String(input), "http://localhost");
+        if (url.pathname === "/api/catalog/directions/")
+          return json(page([{ id: "d1", name: "DevOps" }]));
+        if (
+          url.pathname === "/api/catalog/programs/" &&
+          url.searchParams.get("page_size") === "200"
+        ) {
+          // Две страницы: «выбрать все» не должно остановиться на первой
+          return url.searchParams.get("page") === "1"
+            ? json({
+                count: 2,
+                next: "/api/catalog/programs/?page=2",
+                previous: null,
+                results: [{ id: "p1", name: "DevOps-инженер" }],
+              })
+            : json({
+                count: 2,
+                next: null,
+                previous: "/api/catalog/programs/?page=1",
+                results: [{ id: "p2", name: "SRE" }],
+              });
+        }
+        return json(page([]));
+      }),
+    );
+    renderPage();
+
+    await pick("Добавить направление", /DevOps/);
+    const block = await screen.findByRole("listitem", { name: "DevOps" });
+    const selectAll = within(block).getByRole("button", {
+      name: "Выбрать все программы: DevOps",
+    });
+    await waitFor(() => expect(selectAll).toBeEnabled());
+
+    fireEvent.click(selectAll);
+
+    expect(
+      within(block).getByRole("button", { name: "Убрать: DevOps-инженер" }),
+    ).toBeInTheDocument();
+    expect(
+      within(block).getByRole("button", { name: "Убрать: SRE" }),
+    ).toBeInTheDocument();
+    // Всё выбрано — выбирать больше нечего
+    expect(selectAll).toBeDisabled();
   });
 });

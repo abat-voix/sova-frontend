@@ -57,13 +57,16 @@ export type Program = {
   products_count: number;
 };
 
+/** Программа с направлением: одинаковые названия бывают в разных направлениях. */
+export type ProgramWithDirection = ProgramShort & { direction: DirectionShort };
+
 export type Product = {
   id: string;
   name: string;
   external_code: string | null;
   is_active: boolean;
   vendor: VendorShort | null;
-  programs: ProgramShort[];
+  programs: ProgramWithDirection[];
   created_at: string;
   updated_at: string;
   /** Место в рейтинге по числу взаимодействий с продуктом; `null` — места нет. */

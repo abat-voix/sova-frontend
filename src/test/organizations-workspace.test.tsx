@@ -15,6 +15,28 @@ import { kamPermissions } from "@/test/fixtures/permissions";
 import type { Organization } from "@/types/organization";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("@/components/interactions/new-interaction-dialog", () => ({
+  // Заглушка формы: проверяем только, что открылась и что делает workspace после неё
+  NewInteractionDialog: ({
+    onClose,
+    onCreated,
+    preselectedCounterparty,
+  }: {
+    onClose: () => void;
+    onCreated: (interactionId: string) => void;
+    preselectedCounterparty: { name: string };
+  }) => (
+    <div aria-label="Новое взаимодействие" role="dialog">
+      {preselectedCounterparty.name}
+      <button onClick={onClose} type="button">
+        Отменить форму
+      </button>
+      <button onClick={() => onCreated("i1")} type="button">
+        Создать в форме
+      </button>
+    </div>
+  ),
+}));
 
 vi.mock("@/providers/auth-provider", () => ({
   useAuth: () => ({
@@ -417,5 +439,72 @@ describe("OrganizationsWorkspace", () => {
         expect.objectContaining({ credentials: "include" }),
       ),
     );
+  });
+
+  it("closes the inspector while creating an interaction from it and brings it back after", async () => {
+    const selected = organization("organization-1", "Тюменский университет");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = new URL(String(input), "http://localhost");
+        const body =
+          url.pathname === "/api/catalog/organizations/"
+            ? { count: 1, next: null, previous: null, results: [selected] }
+            : url.pathname === "/api/catalog/organizations/organization-1/"
+              ? selected
+              : { count: 0, next: null, previous: null, results: [] };
+
+        return new Response(JSON.stringify(body), {
+          headers: { "content-type": "application/json" },
+          status: 200,
+        });
+      }),
+    );
+    render(
+      <QueryClientProvider
+        client={
+          new QueryClient({ defaultOptions: { queries: { retry: false } } })
+        }
+      >
+        <LocaleProvider>
+          <OrganizationsWorkspace />
+        </LocaleProvider>
+      </QueryClientProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Список" }));
+    const name = await screen.findByText("Тюменский университет");
+    fireEvent.click(name.closest("button")!);
+    const inspector = await screen.findByRole("dialog");
+    fireEvent.click(
+      await within(inspector).findByRole("button", {
+        name: "Создать взаимодействие",
+      }),
+    );
+
+    // Форма одна на экране — инспектор её не перекрывает
+    const form = screen.getByRole("dialog");
+    expect(form).toHaveAccessibleName("Новое взаимодействие");
+    expect(within(form).getByText("Тюменский университет")).toBeInTheDocument();
+
+    fireEvent.click(
+      within(form).getByRole("button", { name: "Отменить форму" }),
+    );
+    expect(
+      await within(await screen.findByRole("dialog")).findByRole("heading", {
+        name: "Тюменский университет",
+      }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "Создать взаимодействие",
+      }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Создать в форме" }));
+    expect(
+      await within(await screen.findByRole("dialog")).findByRole("heading", {
+        name: "Тюменский университет",
+      }),
+    ).toBeInTheDocument();
   });
 });

@@ -7,6 +7,7 @@ import { useState } from "react";
 
 import { FileImportFlow } from "@/components/catalog-import/file-import-flow";
 import { RegistryHeader } from "@/components/registry/registry-shared";
+import { BackLink } from "@/components/training/back-link";
 import { EntitySelect } from "@/components/ui/entity-select";
 import type { LookupOption } from "@/lib/api/catalog/lookups";
 import { uploadLearners } from "@/lib/api/training/learners";
@@ -58,8 +59,24 @@ export function LearnerImportWorkspace() {
   const isFirstStepDone =
     mode === "none" || (mode === "stream" && stream !== null);
 
+  // Страница живёт в разделе «Обучающиеся» (training.read), а загрузка требует своего права
+  if (user === null || !can(user, "catalog.import"))
+    return (
+      <div className="space-y-4">
+        <BackLink href="/training/learners" label="Все обучающиеся" />
+        <div className="bg-card rounded-xl border border-dashed p-12 text-center">
+          <h1 className="text-2xl font-medium">Доступ ограничен</h1>
+          <p className="text-muted-foreground mt-2">
+            Загрузка обучающихся недоступна для вашей роли. Если доступ нужен,
+            обратитесь к администратору платформы.
+          </p>
+        </div>
+      </div>
+    );
+
   return (
     <div className="space-y-6">
+      <BackLink href="/training/learners" label="Все обучающиеся" />
       <div>
         <RegistryHeader
           description="Обучающиеся и их персональные данные из файла «Пользователи». Существующий обучающийся находится по email, затем по телефону; пустая ячейка стирает значение, колонки, которой нет в файле, это не касается."

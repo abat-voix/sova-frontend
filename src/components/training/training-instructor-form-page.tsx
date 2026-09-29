@@ -1,11 +1,16 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { LoaderCircle, X } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
 
+import {
+  DirectionProgramsField,
+  type DirectionPrograms,
+  groupByDirection,
+} from "@/components/catalog/direction-programs-field";
 import {
   apiErrorMessage,
   Field,
@@ -19,12 +24,9 @@ import {
 } from "@/components/training/training-labels";
 import { Button } from "@/components/ui/button";
 import { EntitySelect } from "@/components/ui/entity-select";
-import { MultiEntitySelect } from "@/components/ui/multi-entity-select";
 import {
   type LookupOption,
   searchB2CClients,
-  searchDirections,
-  searchPrograms,
   searchOrganizations,
 } from "@/lib/api/catalog/lookups";
 import {
@@ -34,6 +36,7 @@ import {
   trainingInstructorHref,
   updateInstructor,
 } from "@/lib/api/training/instructors";
+import { isValidPhone, phoneHint, sanitizePhone } from "@/lib/inn-phone";
 import { useAuth } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
 import type {
@@ -74,14 +77,8 @@ const text = {
   education: "Образование",
   competences: "Компетенции",
   competencesHint:
-    "Какие направления и программы каталога преподаватель может вести.",
-  directions: "Направления",
-  directionsPlaceholder: "Выберите направления",
-  programs: "Программы",
-  programsPlaceholder: "Выберите программы",
-  programsFiltered: "Показаны программы выбранных направлений.",
-  noneSelected: "Ничего не выбрано.",
-  removeSelected: "Убрать",
+    "Какие программы каталога преподаватель может вести: сначала направление, затем его программы.",
+  noProgramsHint: "Для подбора на потоки выберите программы.",
   service: "Служебное",
   lms: "ID в LMS",
   comment: "Комментарий",
@@ -116,68 +113,6 @@ function FormSection({
  * Множественный выбор из каталога с видимой подписью и выбранными значениями
  * плашками: сам выпадающий список показывает только их число.
  */
-function CatalogMultiField({
-  hint,
-  id,
-  label,
-  onChange,
-  placeholder,
-  queryKey,
-  search,
-  value,
-}: {
-  hint?: string;
-  id: string;
-  label: string;
-  onChange: (value: LookupOption[]) => void;
-  placeholder: string;
-  queryKey: readonly unknown[];
-  search: (term: string) => Promise<LookupOption[]>;
-  value: LookupOption[];
-}) {
-  return (
-    <div className="space-y-2">
-      <p className="text-muted-foreground text-xs" id={`${id}-label`}>
-        {label}
-      </p>
-      <MultiEntitySelect
-        id={id}
-        label={label}
-        onChange={onChange}
-        placeholder={placeholder}
-        queryKey={queryKey}
-        search={search}
-        value={value}
-      />
-      {hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
-      {value.length === 0 ? (
-        <p className="text-muted-foreground text-sm">{text.noneSelected}</p>
-      ) : (
-        <ul aria-labelledby={`${id}-label`} className="flex flex-wrap gap-2">
-          {value.map((item) => (
-            <li
-              className="bg-secondary inline-flex items-center gap-1 rounded-full py-1 pr-1 pl-3 text-sm"
-              key={item.id}
-            >
-              {item.name}
-              <button
-                aria-label={`${text.removeSelected}: ${item.name}`}
-                className="hover:bg-muted rounded-full p-1"
-                onClick={() =>
-                  onChange(value.filter((option) => option.id !== item.id))
-                }
-                type="button"
-              >
-                <X aria-hidden="true" className="size-3" />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
 function InstructorForm({
   instructor,
 }: {
@@ -219,16 +154,12 @@ function InstructorForm({
     instructor?.teaching_experience_years?.toString() ?? "",
   );
   const [education, setEducation] = useState(instructor?.education ?? "");
-  const [directions, setDirections] = useState<LookupOption[]>(
-    instructor?.directions ?? [],
-  );
-  const [programs, setPrograms] = useState<LookupOption[]>(
-    instructor?.programs ?? [],
+  const [competences, setCompetences] = useState<DirectionPrograms[]>(() =>
+    groupByDirection(instructor?.directions ?? [], instructor?.programs ?? []),
   );
   const [lms, setLms] = useState(instructor?.lms_external_id ?? "");
   const [isActive, setIsActive] = useState(instructor?.is_active ?? true);
   const [comment, setComment] = useState(instructor?.comment ?? "");
-  const directionIds = directions.map((item) => item.id).join(",");
 
   const mutation = useMutation({
     mutationFn: () => {
@@ -238,7 +169,7 @@ function InstructorForm({
         b2c_client: kind === "b2c" ? (organization?.id ?? null) : null,
         comment,
         department: department.trim(),
-        directions: directions.map((item) => item.id),
+        directions: competences.map((item) => item.direction.id),
         education,
         email: email.trim(),
         first_name: firstName.trim(),
@@ -248,7 +179,9 @@ function InstructorForm({
         middle_name: middleName.trim(),
         phone: phone.trim(),
         position: position.trim(),
-        programs: programs.map((item) => item.id),
+        programs: competences.flatMap((item) =>
+          item.programs.map((program) => program.id),
+        ),
         teaching_experience_years: experience ? Number(experience) : null,
         telegram: telegram.trim(),
         organization:
@@ -274,9 +207,14 @@ function InstructorForm({
     label: string,
     value: string,
     onChange: (value: string) => void,
-    options: { required?: boolean; type?: string } = {},
+    options: { hint?: string; required?: boolean; type?: string } = {},
   ) => (
-    <Field htmlFor={id} label={label} required={options.required}>
+    <Field
+      hint={options.hint}
+      htmlFor={id}
+      label={label}
+      required={options.required}
+    >
       <input
         className={fieldInputClass}
         id={id}
@@ -368,7 +306,13 @@ function InstructorForm({
           {input("instructor-email", text.email, email, setEmail, {
             type: "email",
           })}
-          {input("instructor-phone", text.phone, phone, setPhone)}
+          {input(
+            "instructor-phone",
+            text.phone,
+            phone,
+            (value) => setPhone(sanitizePhone(value)),
+            { hint: phoneHint(phone, locale), type: "tel" },
+          )}
           {input("instructor-telegram", text.telegram, telegram, setTelegram)}
         </div>
       </FormSection>
@@ -428,28 +372,12 @@ function InstructorForm({
       </FormSection>
 
       <FormSection hint={text.competencesHint} title={text.competences}>
-        <div className="grid gap-5 lg:grid-cols-2">
-          <CatalogMultiField
-            id="instructor-directions"
-            label={text.directions}
-            onChange={setDirections}
-            placeholder={text.directionsPlaceholder}
-            queryKey={["training", "instructor-directions"]}
-            search={searchDirections}
-            value={directions}
-          />
-          <CatalogMultiField
-            hint={directions.length > 0 ? text.programsFiltered : undefined}
-            id="instructor-programs"
-            label={text.programs}
-            onChange={setPrograms}
-            placeholder={text.programsPlaceholder}
-            // Программы фильтруются по выбранным направлениям — ключ кэша вместе с ними
-            queryKey={["training", "instructor-programs", directionIds]}
-            search={(term) => searchPrograms(term, directionIds)}
-            value={programs}
-          />
-        </div>
+        <DirectionProgramsField
+          idPrefix="instructor"
+          noProgramsHint={text.noProgramsHint}
+          onChange={setCompetences}
+          value={competences}
+        />
       </FormSection>
 
       <FormSection title={text.service}>
@@ -494,6 +422,7 @@ function InstructorForm({
             !lastName.trim() ||
             !firstName.trim() ||
             !organization ||
+            !isValidPhone(phone) ||
             mutation.isPending
           }
           size="m"

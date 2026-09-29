@@ -17,6 +17,7 @@ import {
   executeActionFeature,
   getActionFeatureInitial,
 } from "@/lib/api/processes/board";
+import { sanitizeInn, sanitizePhone } from "@/lib/inn-phone";
 import { useLocale } from "@/providers/locale-provider";
 import type {
   ActionFeatureExecution,
@@ -530,7 +531,8 @@ function ContractForm({
             {field("counterparty.inn", text.inn, {
               inputMode: "numeric",
               maxLength: 12,
-              onChange: (value) => updateNested("counterparty", "inn", value),
+              onChange: (value) =>
+                updateNested("counterparty", "inn", sanitizeInn(value)),
               value: draft.counterparty.inn,
             })}
           </div>
@@ -548,7 +550,8 @@ function ContractForm({
             })}
             {field("counterparty.phone", text.phone, {
               maxLength: 50,
-              onChange: (value) => updateNested("counterparty", "phone", value),
+              onChange: (value) =>
+                updateNested("counterparty", "phone", sanitizePhone(value)),
               type: "tel",
               value: draft.counterparty.phone,
             })}

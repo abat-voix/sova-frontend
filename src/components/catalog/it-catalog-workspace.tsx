@@ -1,14 +1,25 @@
 "use client";
 
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { Pencil, Plus } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import {
   DataTable,
   type DataTableColumn,
   type DataTableLabels,
 } from "@/components/ui/data-table";
+import {
+  CatalogItemForm,
+  type CatalogFormTarget,
+} from "@/components/catalog/it-catalog-forms";
 import { RankChip } from "@/components/catalog/rank-chip";
+import { Button } from "@/components/ui/button";
 import { Drawer } from "@/components/ui/drawer";
 import { EntitySelect } from "@/components/ui/entity-select";
 import { StatusChip } from "@/components/ui/status-chip";
@@ -31,6 +42,8 @@ import {
 } from "@/lib/api/catalog/it-catalog";
 import { rankOrdering, type RankFilter } from "@/lib/api/catalog/rank";
 import { formatDate } from "@/lib/format-date";
+import { can } from "@/lib/permissions";
+import { useAuth } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
 import type { Direction, Product, Program } from "@/types/catalog";
 
@@ -43,6 +56,14 @@ const copy = {
   ru: {
     title: "ИТ-каталог",
     description: "Направления обучения, программы и продукты каталога.",
+    create: {
+      directions: "Создать направление",
+      programs: "Создать программу",
+      products: "Создать продукт",
+    },
+    edit: "Изменить",
+    created: "Запись создана.",
+    saved: "Изменения сохранены.",
     directions: "Направления",
     programs: "Программы",
     products: "Продукты",
@@ -95,6 +116,14 @@ const copy = {
   en: {
     title: "IT catalog",
     description: "Training directions, programs, and catalog products.",
+    create: {
+      directions: "Create direction",
+      programs: "Create program",
+      products: "Create product",
+    },
+    edit: "Edit",
+    created: "The record was created.",
+    saved: "Changes saved.",
     directions: "Directions",
     programs: "Programs",
     products: "Products",
@@ -155,7 +184,13 @@ function isProduct(item: CatalogItem): item is Product {
 
 export function ItCatalogWorkspace() {
   const { locale } = useLocale();
+  const { user } = useAuth();
+  // Кнопки прячутся по правам справочников; решение всё равно за бэкендом
+  const canCreate = user !== null && can(user, "catalog.create");
+  const canUpdate = user !== null && can(user, "catalog.update");
+  const queryClient = useQueryClient();
   const text = copy[locale];
+  const [form, setForm] = useState<CatalogFormTarget | null>(null);
   const [tab, setTab] = useState<CatalogTab>("directions");
   const [activity, setActivity] = useState<Activity>("all");
   const [hasProducts, setHasProducts] = useState("all");
@@ -448,7 +483,10 @@ export function ItCatalogWorkspace() {
               [text.vendor, detail.vendor?.name],
               [
                 text.relatedPrograms,
-                detail.programs.map((item) => item.name).join(", "),
+                // С направлением: тёзки из разных направлений различимы
+                detail.programs
+                  .map((item) => `${item.direction.name} · ${item.name}`)
+                  .join(", "),
               ],
             ]
           : []
@@ -461,13 +499,27 @@ export function ItCatalogWorkspace() {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-5">
-      <header>
-        <h1 className="text-3xl font-medium tracking-[-0.025em] sm:text-4xl">
-          {text.title}
-        </h1>
-        <p className="text-muted-foreground mt-2 max-w-2xl text-base leading-7">
-          {text.description}
-        </p>
+      <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div>
+          <h1 className="text-3xl font-medium tracking-[-0.025em] sm:text-4xl">
+            {text.title}
+          </h1>
+          <p className="text-muted-foreground mt-2 max-w-2xl text-base leading-7">
+            {text.description}
+          </p>
+        </div>
+        {canCreate ? (
+          <Button
+            onClick={() =>
+              setForm({ item: null, kind: tab } as CatalogFormTarget)
+            }
+            size="m"
+            type="button"
+          >
+            <Plus aria-hidden="true" className="size-4" />
+            {text.create[tab]}
+          </Button>
+        ) : null}
       </header>
       <div
         aria-label={text.title}
@@ -558,6 +610,25 @@ export function ItCatalogWorkspace() {
       {selected ? (
         <Drawer
           closeLabel={text.close}
+          footer={
+            canUpdate && detail ? (
+              <Button
+                colorScheme="neutral"
+                onClick={() =>
+                  setForm({
+                    item: detail,
+                    kind: selected.tab,
+                  } as CatalogFormTarget)
+                }
+                size="m"
+                type="button"
+                variant="outline"
+              >
+                <Pencil aria-hidden="true" className="size-4" />
+                {text.edit}
+              </Button>
+            ) : undefined
+          }
           labelledBy={headingId}
           onClose={() => setSelected(null)}
         >
@@ -603,6 +674,21 @@ export function ItCatalogWorkspace() {
             </p>
           )}
         </Drawer>
+      ) : null}
+      {form ? (
+        <CatalogItemForm
+          key={`${form.kind}-${form.item?.id ?? "new"}`}
+          onClose={() => setForm(null)}
+          onSaved={(saved) => {
+            toast.success(form.item ? text.saved : text.created);
+            setForm(null);
+            setSelected({ id: saved.id, tab: saved.kind });
+            // Меняются списки, карточка и выпадушки каталога в других разделах
+            void queryClient.invalidateQueries({ queryKey: ["it-catalog"] });
+            void queryClient.invalidateQueries({ queryKey: ["catalog"] });
+          }}
+          target={form}
+        />
       ) : null}
     </div>
   );

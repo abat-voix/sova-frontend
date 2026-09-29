@@ -40,7 +40,6 @@ import { MyTasksWorkspace } from "@/components/tasks/my-tasks-workspace";
 import { TeamSection } from "@/components/team/team-section";
 import { WorkflowTemplatesWorkspace } from "@/components/workflows/workflow-templates-workspace";
 import { UserRolesWorkspace } from "@/components/users/user-roles-workspace";
-import { LearnerImportWorkspace } from "@/components/training/learner-import-workspace";
 import { LearnersWorkspace } from "@/components/training/learners-workspace";
 import { TrainingInstructorsWorkspace } from "@/components/training/training-instructors-workspace";
 import { TrainingStreamsWorkspace } from "@/components/training/training-streams-workspace";
@@ -562,8 +561,6 @@ export function CrmShell(props: CrmShellProps) {
             <LearnersWorkspace />
           ) : activeSection === "trainingInstructors" ? (
             <TrainingInstructorsWorkspace />
-          ) : activeSection === "learnerImport" ? (
-            <LearnerImportWorkspace />
           ) : (
             <SectionPlaceholder section={currentSection} />
           )}

@@ -424,7 +424,7 @@ export function TrainingStreamPage({ streamId }: { streamId: string }) {
           <div className="flex flex-wrap gap-2">
             {canImport && !isCancelled ? (
               <Button asChild colorScheme="neutral" size="m" variant="outline">
-                <Link href={`/training/import?stream=${stream.id}`}>
+                <Link href={`/training/learners/import?stream=${stream.id}`}>
                   <Upload aria-hidden="true" className="size-4" />
                   {text.upload}
                 </Link>

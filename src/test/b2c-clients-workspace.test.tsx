@@ -15,6 +15,28 @@ import { kamPermissions } from "@/test/fixtures/permissions";
 import type { B2CClient } from "@/types/catalog";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
+vi.mock("@/components/interactions/new-interaction-dialog", () => ({
+  // Заглушка формы: проверяем только, что открылась и что делает workspace после неё
+  NewInteractionDialog: ({
+    onClose,
+    onCreated,
+    preselectedCounterparty,
+  }: {
+    onClose: () => void;
+    onCreated: (interactionId: string) => void;
+    preselectedCounterparty: { name: string };
+  }) => (
+    <div aria-label="Новое взаимодействие" role="dialog">
+      {preselectedCounterparty.name}
+      <button onClick={onClose} type="button">
+        Отменить форму
+      </button>
+      <button onClick={() => onCreated("i1")} type="button">
+        Создать в форме
+      </button>
+    </div>
+  ),
+}));
 
 vi.mock("@/providers/auth-provider", () => ({
   useAuth: () => ({
@@ -129,5 +151,43 @@ describe("B2CClientsWorkspace", () => {
     await waitFor(() =>
       expect(urls.some((url) => url.includes("b2c_client__ids=b1"))).toBe(true),
     );
+  });
+
+  it("closes the inspector while creating an interaction from it and brings it back after", async () => {
+    stubCatalog();
+    renderWorkspace();
+    fireEvent.click(await screen.findByText("ООО «Ромашка»"));
+    const inspector = await screen.findByRole("dialog");
+    fireEvent.click(
+      await within(inspector).findByRole("button", {
+        name: "Создать взаимодействие",
+      }),
+    );
+
+    // Форма одна на экране — инспектор её не перекрывает
+    const form = screen.getByRole("dialog");
+    expect(form).toHaveAccessibleName("Новое взаимодействие");
+    expect(within(form).getByText("ООО «Ромашка»")).toBeInTheDocument();
+
+    fireEvent.click(
+      within(form).getByRole("button", { name: "Отменить форму" }),
+    );
+    expect(
+      await within(await screen.findByRole("dialog")).findByRole("heading", {
+        name: "ООО «Ромашка»",
+      }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "Создать взаимодействие",
+      }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Создать в форме" }));
+    expect(
+      await within(await screen.findByRole("dialog")).findByRole("heading", {
+        name: "ООО «Ромашка»",
+      }),
+    ).toBeInTheDocument();
   });
 });

@@ -9,6 +9,7 @@ import {
   emptyAffiliationValues,
   type AffiliationFieldValues,
 } from "@/components/contacts/affiliation-fields";
+import { ExistingContactSelect } from "@/components/contacts/existing-contact-select";
 import {
   PossibleDuplicates,
   usePossibleDuplicates,
@@ -22,7 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { createAffiliation } from "@/lib/api/catalog/contact-affiliations";
-import { createContactPerson } from "@/lib/api/catalog/contact-persons";
+import { isValidPhone, phoneHint, sanitizePhone } from "@/lib/inn-phone";
 import { useLocale } from "@/providers/locale-provider";
 import type {
   ContactPerson,
@@ -40,6 +41,9 @@ const copy = {
     phone: "Телефон",
     telegram: "Telegram",
     telegramHint: "Ник, @ник или ссылка t.me",
+    modeNew: "Новый контакт",
+    modeExisting: "Из справочника",
+    contact: "Контактное лицо",
     picked: "Существующий человек",
     another: "Другой человек",
     submit: "Добавить",
@@ -51,6 +55,9 @@ const copy = {
     phone: "Phone",
     telegram: "Telegram",
     telegramHint: "Handle, @handle, or a t.me link",
+    modeNew: "New contact",
+    modeExisting: "From the directory",
+    contact: "Contact person",
     picked: "Existing person",
     another: "Someone else",
     submit: "Add",
@@ -65,8 +72,9 @@ const emptyPerson: ContactPersonPayload = {
 };
 
 /**
- * Контакт организации: новый человек или уже существующий (подсказка дублей) и
- * его связь с организацией. Выбран существующий — создаётся только связь.
+ * Контакт организации: новый человек или существующий — из справочника или из
+ * подсказки дублей — и его связь с организацией. Выбран существующий — создаётся только связь.
+ * Плашка «Существующий человек» — только для выбора из подсказки: она заменяет поля нового человека.
  */
 export function AddOrganizationContact({
   csrfToken,
@@ -85,6 +93,7 @@ export function AddOrganizationContact({
   const text = copy[locale];
   const common = registryCopy[locale];
   const [person, setPerson] = useState<ContactPersonPayload>(emptyPerson);
+  const [mode, setMode] = useState<"new" | "existing">("new");
   const [existing, setExisting] = useState<ContactPerson | null>(null);
   const [affiliation, setAffiliation] = useState<AffiliationFieldValues>(
     emptyAffiliationValues,
@@ -96,7 +105,7 @@ export function AddOrganizationContact({
       phone: person.phone,
       telegram: person.telegram,
     },
-    existing === null,
+    mode === "new" && existing === null,
   );
   // Уже связанный с этой организацией человек второй связи не получит — не предлагаем его.
   const duplicates = (duplicatesQuery.data ?? []).filter(
@@ -109,23 +118,25 @@ export function AddOrganizationContact({
   );
 
   const mutation = useMutation({
-    mutationFn: async () => {
-      const contact =
-        existing ?? (await createContactPerson(trimmed(person), csrfToken));
-
-      return createAffiliation(
+    mutationFn: () =>
+      createAffiliation(
         {
-          contactId: contact.id,
+          ...(existing
+            ? { contactId: existing.id }
+            : { newContact: trimmed(person) }),
           organization,
-          ...affiliationPayload(affiliation),
+          ...affiliationPayload(affiliation, existing ?? person),
         },
         csrfToken,
-      );
-    },
+      ),
     onSuccess: onSaved,
   });
 
-  const canSubmit = existing !== null || person.full_name.trim().length > 0;
+  const canSubmit =
+    existing !== null ||
+    (mode === "new" &&
+      person.full_name.trim().length > 0 &&
+      isValidPhone(person.phone));
 
   return (
     <Modal
@@ -150,7 +161,37 @@ export function AddOrganizationContact({
           </p>
         </div>
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
-          {existing ? (
+          <div className="flex gap-4 text-sm" role="radiogroup">
+            {(["new", "existing"] as const).map((value) => (
+              <label className="flex items-center gap-2" key={value}>
+                <input
+                  checked={mode === value}
+                  name="add-organization-contact-mode"
+                  onChange={() => {
+                    setMode(value);
+                    setExisting(null);
+                  }}
+                  type="radio"
+                />
+                {value === "new" ? text.modeNew : text.modeExisting}
+              </label>
+            ))}
+          </div>
+          {mode === "existing" ? (
+            <Field
+              htmlFor="add-organization-contact-existing"
+              label={text.contact}
+              required
+            >
+              <ExistingContactSelect
+                id="add-organization-contact-existing"
+                locale={locale}
+                onChange={setExisting}
+                organization={organization}
+                value={existing}
+              />
+            </Field>
+          ) : existing ? (
             <div className="bg-secondary/70 flex items-center justify-between gap-3 rounded-lg p-3">
               <div className="min-w-0 text-sm">
                 <p className="text-muted-foreground text-xs">{text.picked}</p>
@@ -185,6 +226,7 @@ export function AddOrganizationContact({
             locale={locale}
             onChange={setAffiliation}
             organization={organization}
+            person={existing ?? person}
             values={affiliation}
           />
         </div>
@@ -252,7 +294,15 @@ export function PersonFields({
       className={fieldInputClass}
       id={`${idPrefix}-${name}`}
       maxLength={maxLength}
-      onChange={(event) => onChange({ ...values, [name]: event.target.value })}
+      onChange={(event) =>
+        onChange({
+          ...values,
+          [name]:
+            name === "phone"
+              ? sanitizePhone(event.target.value)
+              : event.target.value,
+        })
+      }
       required={name === "full_name"}
       type={type}
       value={values[name]}
@@ -267,8 +317,12 @@ export function PersonFields({
       <Field htmlFor={`${idPrefix}-email`} label={text.email}>
         {input("email", "email", 254)}
       </Field>
-      <Field htmlFor={`${idPrefix}-phone`} label={text.phone}>
-        {input("phone", "text", 50)}
+      <Field
+        hint={phoneHint(values.phone, locale)}
+        htmlFor={`${idPrefix}-phone`}
+        label={text.phone}
+      >
+        {input("phone", "tel", 50)}
       </Field>
       <Field
         hint={text.telegramHint}

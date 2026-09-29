@@ -263,10 +263,13 @@ function RequestState({
 function ClientDetails({
   client,
   locale,
+  onCreateInteraction,
   text,
 }: {
   client: B2CClient;
   locale: "ru" | "en";
+  /** Не задан — нет права создавать взаимодействия. */
+  onCreateInteraction?: () => void;
   text: Text;
 }) {
   const rows: OrganizationInspectorRow[] = [
@@ -313,6 +316,16 @@ function ClientDetails({
         rows={rows}
         title={client.full_name}
       />
+      {onCreateInteraction ? (
+        <Button
+          className="mt-5 w-full"
+          onClick={onCreateInteraction}
+          size="m"
+          type="button"
+        >
+          {text.createInteraction}
+        </Button>
+      ) : null}
       <B2CRegistrationAddress clientId={client.id} />
       <OrganizationContacts
         organization={{ id: client.id, type: "b2c_client" }}
@@ -338,6 +351,8 @@ export function B2CClientsWorkspace() {
   const [rank, setRank] = useState<RankFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [creatingFor, setCreatingFor] = useState<B2CClient | null>(null);
+  // Форма из инспектора: инспектор на это время закрыт, после формы — открывается снова
+  const [returnToId, setReturnToId] = useState<string | null>(null);
   const canCreateInteraction =
     user !== null && can(user, "interactions.create");
   const canReadInteractions = user !== null && can(user, "interactions.read");
@@ -346,6 +361,16 @@ export function B2CClientsWorkspace() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<{ client: B2CClient | null } | null>(null);
   const closeForm = useCallback(() => setForm(null), []);
+  const createFromInspector = (client: B2CClient) => {
+    setReturnToId(client.id);
+    setSelectedId(null);
+    setCreatingFor(client);
+  };
+  const closeCreating = () => {
+    setCreatingFor(null);
+    if (returnToId) setSelectedId(returnToId);
+    setReturnToId(null);
+  };
 
   useEffect(() => {
     const timeoutId = window.setTimeout(
@@ -441,8 +466,8 @@ export function B2CClientsWorkspace() {
           csrfToken={csrfToken}
           currentUser={user}
           key={creatingFor.id}
-          onClose={() => setCreatingFor(null)}
-          onCreated={() => setCreatingFor(null)}
+          onClose={closeCreating}
+          onCreated={closeCreating}
           onCreatedAction={{
             label: text.openInteraction,
             onClick: (interactionId) =>
@@ -576,6 +601,11 @@ export function B2CClientsWorkspace() {
             <ClientDetails
               client={clientQuery.data}
               locale={locale}
+              onCreateInteraction={
+                canCreateInteraction
+                  ? () => createFromInspector(clientQuery.data!)
+                  : undefined
+              }
               text={text}
             />
           ) : clientQuery.isError ? (

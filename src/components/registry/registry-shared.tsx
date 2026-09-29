@@ -192,13 +192,15 @@ export function RegistryHeader({
 
 /**
  * Удаление в два шага: первая кнопка только спрашивает подтверждение, чтобы
- * запись не пропала от случайного клика.
+ * запись не пропала от случайного клика. `description` — что именно пропадёт.
  */
 export function ConfirmDeleteButton({
+  description,
   isPending,
   locale,
   onConfirm,
 }: {
+  description?: string;
   isPending: boolean;
   locale: Locale;
   onConfirm: () => void;
@@ -221,7 +223,7 @@ export function ConfirmDeleteButton({
     );
   }
 
-  return (
+  const buttons = (
     <div className="flex flex-wrap items-center gap-2">
       <span className="text-sm">{common.deleteConfirm}</span>
       <Button disabled={isPending} onClick={onConfirm} size="m" type="button">
@@ -237,6 +239,15 @@ export function ConfirmDeleteButton({
       >
         {common.cancel}
       </Button>
+    </div>
+  );
+
+  if (!description) return buttons;
+
+  return (
+    <div className="space-y-2">
+      <p className="text-muted-foreground text-sm">{description}</p>
+      {buttons}
     </div>
   );
 }

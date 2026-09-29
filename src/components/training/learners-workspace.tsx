@@ -1,7 +1,7 @@
 "use client";
 
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { UserRound } from "lucide-react";
+import { FileUp, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -11,6 +11,7 @@ import {
   registryPaginationLabels,
   registryTableLabels,
 } from "@/components/registry/registry-shared";
+import { Button } from "@/components/ui/button";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { TableToolbar } from "@/components/ui/table-toolbar";
@@ -22,6 +23,8 @@ import {
   learnersQueryKey,
 } from "@/lib/api/training/learners";
 import { formatDate } from "@/lib/format-date";
+import { can } from "@/lib/permissions";
+import { useAuth } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
 import type { Learner } from "@/types/training";
 
@@ -39,6 +42,7 @@ const copy = {
     tableCaption: "Обучающиеся",
     loading: "Загружаем обучающихся…",
     error: "Не удалось загрузить обучающихся.",
+    upload: "Загрузка обучающихся",
   },
   en: {
     title: "Learners",
@@ -53,6 +57,7 @@ const copy = {
     tableCaption: "Learners",
     loading: "Loading learners…",
     error: "Learners could not be loaded.",
+    upload: "Upload learners",
   },
 } as const;
 
@@ -62,6 +67,8 @@ export function LearnersWorkspace() {
   const text = copy[locale];
   const common = registryCopy[locale];
   const router = useRouter();
+  const { user } = useAuth();
+  const canUpload = user !== null && can(user, "catalog.import");
   const table = useTableQueryState({ direction: "asc", field: "last_name" });
 
   const params = {
@@ -129,7 +136,20 @@ export function LearnersWorkspace() {
 
   return (
     <div className="space-y-5">
-      <RegistryHeader description={text.description} title={text.title} />
+      <RegistryHeader
+        action={
+          canUpload ? (
+            <Button asChild size="m">
+              <Link href="/training/learners/import">
+                <FileUp aria-hidden="true" className="size-4" />
+                {text.upload}
+              </Link>
+            </Button>
+          ) : undefined
+        }
+        description={text.description}
+        title={text.title}
+      />
 
       <TableToolbar
         search={{

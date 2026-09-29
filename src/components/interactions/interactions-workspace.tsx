@@ -162,6 +162,7 @@ export function InteractionsWorkspace({
   const canReadDocuments =
     user !== null && can(user, "contracts.read") && can(user, "licenses.read");
   const canReadTraining = user !== null && can(user, "training.read");
+  const canDelete = user !== null && can(user, "interactions.delete");
   // Ссылка из уведомления задаёт только начальный выбор: дальше пользователь
   // ходит по странице сам, и адрес за ним не следит.
   const searchParams = useSearchParams();
@@ -300,10 +301,25 @@ export function InteractionsWorkspace({
           <InteractionCardDialog
             canSeeDocuments={canReadDocuments}
             canSeeTraining={canReadTraining}
+            csrfToken={csrfToken}
             interaction={viewingInteraction}
             key={viewingInteraction.id}
             onClose={() => setViewingInteraction(null)}
             onCreateChat={canChat ? setCreatingChatForInteraction : undefined}
+            onDeleted={
+              canDelete
+                ? (deleted) => {
+                    setViewingInteraction(null);
+                    // Удалили открытое взаимодействие — доски у него больше нет
+                    if (deleted.id === selectedInteractionId) {
+                      setSelectedInteractionId(null);
+                      setSelectedInteraction(null);
+                      setInstanceId(null);
+                      setSelectedRow(null);
+                    }
+                  }
+                : undefined
+            }
             onEdit={
               canUpdate
                 ? (interaction) => {

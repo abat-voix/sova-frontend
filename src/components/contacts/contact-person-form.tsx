@@ -21,6 +21,7 @@ import {
   createContactPerson,
   updateContactPerson,
 } from "@/lib/api/catalog/contact-persons";
+import { isValidPhone } from "@/lib/inn-phone";
 import { useLocale } from "@/providers/locale-provider";
 import type {
   ContactPerson,
@@ -117,7 +118,11 @@ export function ContactPersonForm({
               {common.cancel}
             </Button>
             <Button
-              disabled={!values.full_name.trim() || mutation.isPending}
+              disabled={
+                !values.full_name.trim() ||
+                !isValidPhone(values.phone) ||
+                mutation.isPending
+              }
               size="m"
               type="submit"
             >
