@@ -8,6 +8,7 @@ import {
 } from "@/lib/api/http";
 import type { PaginatedResponse } from "@/types/api";
 import type {
+  LearnerPayload,
   TrainingApplication,
   TrainingApplicationLearner,
   WriteTrainingApplication,
@@ -64,6 +65,20 @@ export function addApplicationLearner(
   return postJson<TrainingApplicationLearner>(
     apiEndpoints.training.applicationLearners.list,
     payload,
+    csrfToken,
+  );
+}
+
+/** Новый обучающийся сразу участником заявки — одной транзакцией на бэкенде. */
+export function addNewApplicationLearner(
+  applicationId: string,
+  learner: LearnerPayload,
+  isPaid: boolean,
+  csrfToken: string,
+) {
+  return postJson<TrainingApplicationLearner>(
+    apiEndpoints.training.applicationLearners.list,
+    { application: applicationId, is_paid: isPaid, new_learner: learner },
     csrfToken,
   );
 }

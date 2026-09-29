@@ -29,6 +29,8 @@ export const kamPermissions: PolicyAction[] = [
   "catalog.delete",
   "training.read",
   "training.update",
+  "training.personal_data.read",
+  "training.personal_data.update",
   "notifications.use",
   "messaging.use",
   "realtime.connect",

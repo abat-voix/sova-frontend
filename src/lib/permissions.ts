@@ -48,6 +48,7 @@ export type PolicyAction =
   | "training.read"
   | "training.update"
   | "training.personal_data.read"
+  | "training.personal_data.update"
   | "notifications.use"
   | "messaging.use"
   | "realtime.connect";

@@ -5,6 +5,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -126,5 +127,113 @@ describe("TrainingStreamApplications", () => {
         { method: "DELETE", url: "/api/training/applications/a1/" },
       ]),
     );
+  });
+});
+
+describe("TrainingStreamApplications new learner", () => {
+  function stubNewLearner(onPost: (body: Record<string, unknown>) => Response) {
+    const posts: Record<string, unknown>[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (init?.method === "POST") {
+          const body = JSON.parse(String(init.body));
+          posts.push({ ...body, url });
+          return onPost(body);
+        }
+        return new Response(
+          JSON.stringify({
+            count: 1,
+            next: null,
+            previous: null,
+            results: [application],
+          }),
+          { headers: { "content-type": "application/json" }, status: 200 },
+        );
+      }),
+    );
+    return posts;
+  }
+
+  const created = () =>
+    new Response(JSON.stringify({ id: "al1" }), {
+      headers: { "content-type": "application/json" },
+      status: 201,
+    });
+
+  async function openNewLearner() {
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Добавить участника" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Новый обучающийся" }));
+    const dialog = screen.getByRole("dialog", { name: "Новый обучающийся" });
+    fireEvent.change(within(dialog).getByLabelText(/Фамилия/), {
+      target: { value: "Иванов" },
+    });
+    fireEvent.change(within(dialog).getByLabelText(/^Имя/), {
+      target: { value: "Иван" },
+    });
+    fireEvent.change(within(dialog).getByLabelText("Email"), {
+      target: { value: "ivan@example.com" },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Сохранить" }));
+    return dialog;
+  }
+
+  it("creates a learner right inside the application", async () => {
+    const posts = stubNewLearner(created);
+    renderApplications();
+
+    await openNewLearner();
+
+    await waitFor(() =>
+      expect(posts).toEqual([
+        {
+          application: "a1",
+          is_paid: false,
+          new_learner: {
+            email: "ivan@example.com",
+            first_name: "Иван",
+            is_active: true,
+            last_name: "Иванов",
+            middle_name: "",
+            phone: "",
+          },
+          url: "/api/training/application-learners/",
+        },
+      ]),
+    );
+  });
+
+  it("adds the existing learner when the contacts are taken", async () => {
+    const posts = stubNewLearner((body) =>
+      body.new_learner
+        ? new Response(
+            JSON.stringify({
+              code: "learner_exists",
+              detail: "Обучающийся с такими контактами уже есть: Иванов Иван.",
+              learner: "l7",
+            }),
+            { headers: { "content-type": "application/json" }, status: 409 },
+          )
+        : created(),
+    );
+    renderApplications();
+
+    const dialog = await openNewLearner();
+    fireEvent.click(
+      await within(dialog).findByRole("button", {
+        name: "Добавить найденного",
+      }),
+    );
+
+    await waitFor(() => expect(posts).toHaveLength(2));
+    expect(posts[1]).toEqual({
+      application: "a1",
+      is_paid: false,
+      learner: "l7",
+      url: "/api/training/application-learners/",
+    });
   });
 });

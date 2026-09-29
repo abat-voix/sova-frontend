@@ -1,9 +1,14 @@
 "use client";
 
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { FileUp, UserRound } from "lucide-react";
+import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { FileUp, Plus, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 import {
   registryCopy,
@@ -11,12 +16,14 @@ import {
   registryPaginationLabels,
   registryTableLabels,
 } from "@/components/registry/registry-shared";
+import { LearnerFormDialog } from "@/components/training/learner-form";
 import { Button } from "@/components/ui/button";
 import { DataTable, type DataTableColumn } from "@/components/ui/data-table";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { TableToolbar } from "@/components/ui/table-toolbar";
 import { useTableQueryState } from "@/hooks/use-table-query-state";
 import {
+  createLearner,
   getLearners,
   learnerHref,
   learnersPageSize,
@@ -32,7 +39,7 @@ const copy = {
   ru: {
     title: "Обучающиеся",
     description:
-      "Обучающиеся из файла «Пользователи». Контакты показаны маской; полные персональные данные видит только администратор платформы.",
+      "Обучающиеся из файла «Пользователи» и добавленные вручную. Контакты показаны маской; полные персональные данные открываются на странице обучающегося с записью в журнал.",
     searchLabel: "Поиск обучающихся",
     searchPlaceholder: "Фамилия, имя или отчество",
     name: "ФИО",
@@ -43,11 +50,13 @@ const copy = {
     loading: "Загружаем обучающихся…",
     error: "Не удалось загрузить обучающихся.",
     upload: "Загрузка обучающихся",
+    create: "Создать обучающегося",
+    createTitle: "Новый обучающийся",
   },
   en: {
     title: "Learners",
     description:
-      "Learners from the users file. Contacts are masked; full personal data is visible to the platform administrator only.",
+      "Learners from the users file and added manually. Contacts are masked; full personal data opens on the learner page and is logged.",
     searchLabel: "Search learners",
     searchPlaceholder: "Last, first or middle name",
     name: "Full name",
@@ -58,6 +67,8 @@ const copy = {
     loading: "Loading learners…",
     error: "Learners could not be loaded.",
     upload: "Upload learners",
+    create: "Create learner",
+    createTitle: "New learner",
   },
 } as const;
 
@@ -67,8 +78,11 @@ export function LearnersWorkspace() {
   const text = copy[locale];
   const common = registryCopy[locale];
   const router = useRouter();
-  const { user } = useAuth();
+  const { csrfToken, user } = useAuth();
   const canUpload = user !== null && can(user, "catalog.import");
+  const canCreate = user !== null && can(user, "training.update");
+  const queryClient = useQueryClient();
+  const [isCreating, setIsCreating] = useState(false);
   const table = useTableQueryState({ direction: "asc", field: "last_name" });
 
   const params = {
@@ -138,13 +152,32 @@ export function LearnersWorkspace() {
     <div className="space-y-5">
       <RegistryHeader
         action={
-          canUpload ? (
-            <Button asChild size="m">
-              <Link href="/training/learners/import">
-                <FileUp aria-hidden="true" className="size-4" />
-                {text.upload}
-              </Link>
-            </Button>
+          canUpload || canCreate ? (
+            <div className="flex flex-wrap gap-2">
+              {canCreate ? (
+                <Button
+                  onClick={() => setIsCreating(true)}
+                  size="m"
+                  type="button"
+                >
+                  <Plus aria-hidden="true" className="size-4" />
+                  {text.create}
+                </Button>
+              ) : null}
+              {canUpload ? (
+                <Button
+                  asChild
+                  colorScheme="neutral"
+                  size="m"
+                  variant="outline"
+                >
+                  <Link href="/training/learners/import">
+                    <FileUp aria-hidden="true" className="size-4" />
+                    {text.upload}
+                  </Link>
+                </Button>
+              ) : null}
+            </div>
           ) : undefined
         }
         description={text.description}
@@ -186,6 +219,21 @@ export function LearnersWorkspace() {
         rows={learnersQuery.data?.results ?? []}
         sort={table.sort}
       />
+
+      {isCreating ? (
+        <LearnerFormDialog
+          initial={null}
+          onClose={() => setIsCreating(false)}
+          onSaved={(saved) => {
+            void queryClient.invalidateQueries({
+              queryKey: ["training", "learners"],
+            });
+            router.push(learnerHref((saved as Learner).id));
+          }}
+          onSubmit={(payload) => createLearner(payload, csrfToken)}
+          title={text.createTitle}
+        />
+      ) : null}
     </div>
   );
 }
