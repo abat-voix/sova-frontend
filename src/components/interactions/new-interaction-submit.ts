@@ -15,6 +15,7 @@ import {
   createInteractionProgram,
 } from "@/lib/api/interactions/interactions";
 import type { CreationPlan } from "@/components/interactions/new-interaction-plan";
+import { attachContractToNewInteraction } from "@/lib/api/interactions/contracts";
 
 export type CreationOutcome = {
   /** Ключ узла черновика → id созданной записи. */
@@ -43,8 +44,27 @@ export async function runCreationPlan(
 
   if (plan.interaction) {
     try {
-      const interaction = await createInteraction(plan.interaction, csrfToken);
-      interactionId = interaction.id;
+      if (plan.contractId !== null) {
+        // Взаимодействие из договора реестра: состав переходит с договора.
+        const contract = await attachContractToNewInteraction(
+          plan.contractId,
+          {
+            // Пустой комментарий не отправляем: останется комментарий из реестра.
+            ...(plan.interaction.comment
+              ? { comment: plan.interaction.comment }
+              : {}),
+            is_active: plan.interaction.is_active ?? true,
+          },
+          csrfToken,
+        );
+        interactionId = contract.interaction!.id;
+      } else {
+        const interaction = await createInteraction(
+          plan.interaction,
+          csrfToken,
+        );
+        interactionId = interaction.id;
+      }
     } catch (error) {
       return { assignedResponsibleIds, createdIds, error, interactionId: null };
     }

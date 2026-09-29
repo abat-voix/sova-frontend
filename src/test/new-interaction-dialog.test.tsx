@@ -38,6 +38,21 @@ const catalog: Record<string, unknown> = {
     previous: null,
     results: [{ full_name: "Иванов И. И.", id: "c-1" }],
   },
+  // Договор реестра без взаимодействия: организация — у самого договора.
+  "/api/interactions/contracts/": {
+    count: 1,
+    next: null,
+    previous: null,
+    results: [
+      {
+        contract_number: "Д-РЕЕСТР/1",
+        id: "contract-1",
+        interaction: null,
+        organization: { id: "u-2", name: "Университет из реестра" },
+        b2c_client: null,
+      },
+    ],
+  },
   "/api/catalog/directions/": page([{ id: "dir-1", name: "Инфраструктура" }]),
   "/api/catalog/programs/": page([{ id: "prog-1", name: "Основы DevOps" }]),
   "/api/catalog/products/": page([
@@ -100,8 +115,12 @@ function stubFetch(
         }
 
         nextId += 1;
+        // Создание из договора отвечает договором с новым взаимодействием.
+        const responseBody = path.endsWith("/attach-to-new-interaction/")
+          ? { id: "contract-1", interaction: { id: `new-${nextId}` } }
+          : { id: `new-${nextId}` };
 
-        return new Response(JSON.stringify({ id: `new-${nextId}` }), {
+        return new Response(JSON.stringify(responseBody), {
           headers: { "content-type": "application/json" },
           status: 201,
         });
@@ -224,6 +243,46 @@ describe("NewInteractionDialog", () => {
       {
         body: { comment: "Пилот", is_active: true, organization: "u-1" },
         url: "/api/interactions/interactions/",
+      },
+    ]);
+  });
+
+  it("creates an interaction from a registry contract", async () => {
+    const urls: string[] = [];
+    const calls = stubFetch(undefined, urls);
+    const { onCreated } = renderDialog("head");
+
+    await pick("Договор из реестра", /Д-РЕЕСТР\/1/);
+
+    // Проверяем: в списке только договоры без взаимодействия, организация
+    // подставилась из договора, дерево каталога скрыто
+    const contractsUrl = urls.find((url) =>
+      url.startsWith("/api/interactions/contracts/?"),
+    );
+    expect(
+      new URL(contractsUrl!, "http://localhost").searchParams.get(
+        "is_attached",
+      ),
+    ).toBe("false");
+    expect(screen.getByText("Университет из реестра")).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Контрагент" })).toBeDisabled();
+    expect(
+      screen.queryByRole("button", { name: "Добавить направление" }),
+    ).not.toBeInTheDocument();
+
+    await pick("Ответственные", "Ольга Филинова");
+    await waitFor(() => expect(submitButton()).toBeEnabled());
+    fireEvent.click(submitButton());
+
+    await waitFor(() => expect(onCreated).toHaveBeenCalledWith("new-1"));
+    expect(calls).toEqual([
+      {
+        body: { is_active: true },
+        url: "/api/interactions/contracts/contract-1/attach-to-new-interaction/",
+      },
+      {
+        body: { manager: 7 },
+        url: "/api/interactions/interactions/new-1/assign-responsible/",
       },
     ]);
   });
