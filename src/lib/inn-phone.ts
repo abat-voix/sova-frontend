@@ -66,3 +66,13 @@ export function phoneHint(value: string, locale: "ru" | "en") {
   const hints = innPhoneHints[locale];
   return isValidPhone(value) ? hints.phone : hints.invalidPhone;
 }
+
+/** Ошибка под полем ИНН, если значение неверное. */
+export function innError(value: string, locale: "ru" | "en") {
+  return isValidInn(value) ? undefined : innPhoneHints[locale].invalidInn;
+}
+
+/** Ошибка под полем телефона, если значение неверное. */
+export function phoneError(value: string, locale: "ru" | "en") {
+  return isValidPhone(value) ? undefined : innPhoneHints[locale].invalidPhone;
+}

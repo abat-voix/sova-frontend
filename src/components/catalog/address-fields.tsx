@@ -67,49 +67,54 @@ export type AddressFieldsLabels = Record<AddressField, string> & {
 
 /**
  * Поля адреса: набор частей задаёт раздел. Одинаковые у организации и
- * B2C-клиента, отличаются только составом.
+ * B2C-клиента, отличаются только составом. `errors` — ошибки бэкенда по
+ * частям адреса, `onEdit` сообщает, какую часть поменяли, — чтобы снять её
+ * ошибку.
  */
 export function AddressFields({
   draft,
+  errors = {},
   fields,
   idPrefix,
   labels,
   onChange,
+  onEdit,
 }: {
   draft: AddressDraft;
+  errors?: Partial<Record<AddressField, string[]>>;
   fields: AddressField[];
   idPrefix: string;
   labels: AddressFieldsLabels;
   onChange: (draft: AddressDraft) => void;
+  onEdit?: (field: AddressField) => void;
 }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       {fields.map((field) => {
         const id = `${idPrefix}-${field.replaceAll("_", "-")}`;
         const isCoordinates = field === "coordinates";
-        const invalid = isCoordinates && hasInvalidCoordinates(draft);
+        const fieldErrors =
+          isCoordinates && hasInvalidCoordinates(draft)
+            ? [labels.coordinatesError]
+            : (errors[field] ?? []);
 
         return (
           <Field
-            hint={
-              isCoordinates
-                ? invalid
-                  ? labels.coordinatesError
-                  : labels.coordinatesHint
-                : undefined
-            }
+            errors={fieldErrors}
+            hint={isCoordinates ? labels.coordinatesHint : undefined}
             htmlFor={id}
             key={field}
             label={labels[field]}
           >
             <input
-              aria-invalid={invalid || undefined}
+              aria-invalid={fieldErrors.length > 0 || undefined}
               className={fieldInputClass}
               id={id}
               inputMode={isCoordinates ? "decimal" : undefined}
-              onChange={(event) =>
-                onChange({ ...draft, [field]: event.target.value })
-              }
+              onChange={(event) => {
+                onEdit?.(field);
+                onChange({ ...draft, [field]: event.target.value });
+              }}
               placeholder={isCoordinates ? "55.752040, 37.617810" : undefined}
               value={draft[field]}
             />

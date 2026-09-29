@@ -4,10 +4,10 @@ import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 
 import {
-  apiErrorMessage,
   Field,
   fieldInputClass,
   registryCopy,
+  useServerFieldErrors,
 } from "@/components/registry/registry-shared";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -16,9 +16,11 @@ import {
   updateB2CClient,
 } from "@/lib/api/catalog/b2c-clients";
 import {
+  innError,
   innHint,
   isValidInn,
   isValidPhone,
+  phoneError,
   phoneHint,
   sanitizeInn,
   sanitizePhone,
@@ -28,6 +30,16 @@ import { useLocale } from "@/providers/locale-provider";
 import type { B2CClient } from "@/types/catalog";
 
 const formHeadingId = "b2c-client-form-title";
+
+// Поля, ошибки бэкенда по которым показываются под самими полями
+const shownFields = [
+  "full_name",
+  "inn",
+  "email",
+  "phone",
+  "address.region",
+  "address.city",
+];
 
 const copy = {
   ru: {
@@ -78,6 +90,7 @@ export function B2CClientForm({
   // Открытая часть адреса; улица и дом — отдельно, только администратору
   const [region, setRegion] = useState(client?.address?.region ?? "");
   const [city, setCity] = useState(client?.address?.city ?? "");
+  const serverErrors = useServerFieldErrors();
 
   const mutation = useMutation({
     mutationFn: () => {
@@ -98,8 +111,13 @@ export function B2CClientForm({
         ? updateB2CClient(client.id, payload, csrfToken)
         : createB2CClient(payload, csrfToken);
     },
+    onMutate: () => serverErrors.capture(null),
+    onError: serverErrors.capture,
     onSuccess: onSaved,
   });
+  const generalError = mutation.isError
+    ? serverErrors.rest(mutation.error, shownFields, common.unknownError)
+    : null;
 
   const canSubmit =
     fullName.trim() !== "" &&
@@ -113,29 +131,46 @@ export function B2CClientForm({
     value: string,
     onChange: (value: string) => void,
     options: {
+      /** Ключ поля в ответе бэкенда — его ошибки показываются под полем. */
+      field?: string;
+      /** Ошибка проверки на фронте; пока она есть, ошибки бэкенда не видны. */
+      error?: string;
       hint?: string;
       inputMode?: "numeric" | "tel";
       required?: boolean;
       type?: string;
     } = {},
-  ) => (
-    <Field
-      hint={options.hint}
-      htmlFor={id}
-      label={label}
-      required={options.required}
-    >
-      <input
-        className={fieldInputClass}
-        id={id}
-        inputMode={options.inputMode}
-        onChange={(event) => onChange(event.target.value)}
+  ) => {
+    const errors = options.error
+      ? [options.error]
+      : options.field
+        ? (serverErrors.errors[options.field] ?? [])
+        : [];
+
+    return (
+      <Field
+        errors={errors}
+        hint={options.hint}
+        htmlFor={id}
+        label={label}
         required={options.required}
-        type={options.type ?? "text"}
-        value={value}
-      />
-    </Field>
-  );
+      >
+        <input
+          aria-invalid={errors.length > 0 || undefined}
+          className={fieldInputClass}
+          id={id}
+          inputMode={options.inputMode}
+          onChange={(event) => {
+            if (options.field) serverErrors.clear(options.field);
+            onChange(event.target.value);
+          }}
+          required={options.required}
+          type={options.type ?? "text"}
+          value={value}
+        />
+      </Field>
+    );
+  };
 
   return (
     <Modal
@@ -162,6 +197,7 @@ export function B2CClientForm({
         </div>
         <div className="space-y-4 overflow-y-auto px-5 py-4">
           {input("b2c-client-full-name", text.fullName, fullName, setFullName, {
+            field: "full_name",
             required: true,
           })}
           <div className="grid gap-4 sm:grid-cols-2">
@@ -170,9 +206,15 @@ export function B2CClientForm({
               text.inn,
               inn,
               (value) => setInn(sanitizeInn(value)),
-              { hint: innHint(inn, locale), inputMode: "numeric" },
+              {
+                error: innError(inn, locale),
+                field: "inn",
+                hint: innHint(inn, locale),
+                inputMode: "numeric",
+              },
             )}
             {input("b2c-client-email", text.email, email, setEmail, {
+              field: "email",
               type: "email",
             })}
             {input(
@@ -180,10 +222,19 @@ export function B2CClientForm({
               text.phone,
               phone,
               (value) => setPhone(sanitizePhone(value)),
-              { hint: phoneHint(phone, locale), type: "tel" },
+              {
+                error: phoneError(phone, locale),
+                field: "phone",
+                hint: phoneHint(phone, locale),
+                type: "tel",
+              },
             )}
-            {input("b2c-client-region", text.region, region, setRegion)}
-            {input("b2c-client-city", text.city, city, setCity)}
+            {input("b2c-client-region", text.region, region, setRegion, {
+              field: "address.region",
+            })}
+            {input("b2c-client-city", text.city, city, setCity, {
+              field: "address.city",
+            })}
           </div>
           <label className="flex items-center gap-2 text-sm">
             <input
@@ -196,9 +247,9 @@ export function B2CClientForm({
           <p className="text-muted-foreground text-xs">{text.requiredHint}</p>
         </div>
         <div className="space-y-3 border-t px-5 py-4">
-          {mutation.isError ? (
+          {generalError ? (
             <p className="text-sm text-[var(--atmr-brand-orange)]">
-              {apiErrorMessage(mutation.error, common.unknownError)}
+              {generalError}
             </p>
           ) : null}
           <div className="flex justify-end gap-2">

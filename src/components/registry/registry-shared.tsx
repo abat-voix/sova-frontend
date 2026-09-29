@@ -108,17 +108,58 @@ export function apiErrorMessage(error: unknown, fallback: string) {
   return error.detail ?? fallback;
 }
 
-export const fieldInputClass =
-  "border-border bg-background text-foreground placeholder:text-muted-foreground focus-visible:ring-ring mt-1 flex h-10 w-full rounded-lg border px-3 py-2 text-sm outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50";
+/**
+ * Ошибки полей бэкенда для формы, которая показывает их под своими полями:
+ * `capture` запоминает их из ответа, `clear` снимает ошибку, когда поле
+ * меняют, `rest` — текст для общей строки: ошибки полей, которых в форме нет,
+ * и `detail`.
+ */
+export function useServerFieldErrors() {
+  const [errors, setErrors] = useState<Record<string, string[]>>({});
 
+  return {
+    errors,
+    capture: (error: unknown) =>
+      setErrors(error instanceof ApiError ? error.fieldErrors : {}),
+    clear: (field: string) =>
+      setErrors((current) => {
+        if (!(field in current)) return current;
+        const next = { ...current };
+        delete next[field];
+        return next;
+      }),
+    rest: (error: unknown, shownFields: string[], fallback: string) => {
+      if (!(error instanceof ApiError)) return fallback;
+
+      const messages = Object.entries(error.fieldErrors)
+        .filter(([field]) => !shownFields.includes(field))
+        .flatMap(([, fieldMessages]) => fieldMessages);
+      if (messages.length > 0) return messages.join(" ");
+      if (error.detail) return error.detail;
+
+      return Object.keys(error.fieldErrors).length > 0 ? null : fallback;
+    },
+  };
+}
+
+export const fieldInputClass =
+  "border-border bg-background text-foreground placeholder:text-muted-foreground focus-visible:ring-ring mt-1 flex h-10 w-full rounded-lg border px-3 py-2 text-sm outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50 aria-[invalid=true]:border-[var(--atmr-brand-orange)]";
+
+/**
+ * Поле формы с подписью. `errors` показываются вместо подсказки и выделены
+ * цветом; у самого инпута стоит выставить `aria-invalid`, чтобы подсветилась
+ * рамка.
+ */
 export function Field({
   children,
+  errors = [],
   hint,
   htmlFor,
   label,
   required = false,
 }: {
   children: ReactNode;
+  errors?: string[];
   hint?: string;
   htmlFor: string;
   label: string;
@@ -131,7 +172,16 @@ export function Field({
         {required ? " *" : ""}
       </label>
       {children}
-      {hint ? (
+      {errors.length > 0 ? (
+        errors.map((message) => (
+          <p
+            className="mt-1 text-xs text-[var(--atmr-brand-orange)]"
+            key={message}
+          >
+            {message}
+          </p>
+        ))
+      ) : hint ? (
         <p className="text-muted-foreground mt-1 text-xs">{hint}</p>
       ) : null}
     </div>
