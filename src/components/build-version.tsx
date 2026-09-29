@@ -5,7 +5,7 @@ const revision = process.env.NEXT_PUBLIC_BUILD_SHA?.trim().slice(0, 7) || "";
 
 export function BuildVersion() {
   const { t } = useLocale();
-  const label = version === "dev" ? version : `v${version}`;
+  const label = version;
   const title = revision
     ? `${t("buildVersion")} ${label} (${revision})`
     : `${t("buildVersion")} ${label}`;
