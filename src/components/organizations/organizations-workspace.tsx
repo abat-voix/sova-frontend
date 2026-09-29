@@ -840,16 +840,23 @@ export function OrganizationsWorkspace() {
             organizations={mapQuery.data}
             selectedId={selectedId}
           />
+          {/*
+            Карточка организации растёт вместе с данными: контакты и реквизиты
+            тянули бы строку сетки, а вместе с ней и карту. Панель ограничена
+            высотой окна и прокручивает содержимое сама.
+          */}
           <aside
             aria-label={text.selectedOrganization}
-            className="bg-card hidden rounded-xl border p-5 shadow-sm lg:block"
+            className="bg-card hidden max-h-[calc(100svh-7rem)] flex-col overflow-hidden rounded-xl border p-5 shadow-sm lg:sticky lg:top-24 lg:flex lg:self-start"
           >
             {selectedId ? (
               <>
-                <p className="text-muted-foreground mb-5 text-xs font-medium tracking-[0.08em] uppercase">
+                <p className="text-muted-foreground mb-5 shrink-0 text-xs font-medium tracking-[0.08em] uppercase">
                   {text.selectedOrganization}
                 </p>
-                {renderSelected(panelHeadingId)}
+                <div className="-mr-2 min-h-0 flex-1 overflow-y-auto pr-2">
+                  {renderSelected(panelHeadingId)}
+                </div>
               </>
             ) : (
               <div className="flex min-h-80 flex-col items-center justify-center text-center">
