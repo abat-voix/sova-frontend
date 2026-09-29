@@ -47,6 +47,7 @@ export type PolicyAction =
   | "integrations.manage"
   | "training.read"
   | "training.update"
+  | "training.import"
   | "training.personal_data.read"
   | "training.personal_data.update"
   | "notifications.use"

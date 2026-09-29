@@ -79,7 +79,7 @@ export function LearnersWorkspace() {
   const common = registryCopy[locale];
   const router = useRouter();
   const { csrfToken, user } = useAuth();
-  const canUpload = user !== null && can(user, "catalog.import");
+  const canUpload = user !== null && can(user, "training.import");
   const canCreate = user !== null && can(user, "training.update");
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);

@@ -7,8 +7,10 @@ import {
   patchJson,
   postFormData,
   postJson,
+  putJson,
 } from "@/lib/api/http";
 import type { PaginatedResponse } from "@/types/api";
+import type { CatalogImportMappingField } from "@/types/catalog-import";
 import type {
   Learner,
   LearnerDetail,
@@ -88,6 +90,39 @@ export function uploadLearners(
   return postFormData<LearnerImportResult>(
     apiEndpoints.training.learners.import,
     body,
+    csrfToken,
+  );
+}
+
+/**
+ * Заголовки и маппинг файла «Пользователи» — свои эндпоинты раздела под
+ * `training.import`, а не общие импорта справочников (там права администратора).
+ */
+export async function readLearnerImportHeaders(file: File, csrfToken: string) {
+  const body = new FormData();
+  body.set("file", file);
+  const response = await postFormData<{ headers: string[] }>(
+    apiEndpoints.training.learners.importHeaders,
+    body,
+    csrfToken,
+  );
+  return response.headers;
+}
+
+export function getLearnerImportMapping() {
+  return getJson<CatalogImportMappingField[]>(
+    apiEndpoints.training.learners.importMapping,
+  );
+}
+
+/** Заменяет маппинг файла «Пользователи» целиком; пустая колонка — поле не задано. */
+export function saveLearnerImportMapping(
+  mappings: Record<string, string>,
+  csrfToken: string,
+) {
+  return putJson<CatalogImportMappingField[]>(
+    apiEndpoints.training.learners.importMapping,
+    { mappings },
     csrfToken,
   );
 }

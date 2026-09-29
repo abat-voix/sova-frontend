@@ -10,7 +10,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const navigation = vi.hoisted(() => ({ search: "" }));
 const auth = vi.hoisted(() => ({
-  permissions: ["catalog.import", "integrations.manage", "training.read"],
+  permissions: ["training.import", "integrations.manage", "training.read"],
 }));
 
 vi.mock("next/navigation", () => ({
@@ -23,7 +23,7 @@ vi.mock("@/providers/auth-provider", () => ({
       id: 1,
       isSuperuser: false,
       permissions: auth.permissions,
-      role: "platform_admin",
+      role: "kam",
     },
   }),
 }));
@@ -50,9 +50,9 @@ function stubApi() {
           name: "DevOps-01",
           program: { id: "p", name: "P" },
         });
-      if (url === "/api/catalog/imports/headers/")
+      if (url === "/api/training/learners/import/headers/")
         return json({ headers: ["Фамилия", "Имя"] });
-      if (url.startsWith("/api/catalog/import-mappings/by-type/learner/"))
+      if (url === "/api/training/learners/import/mapping/")
         return json([
           {
             target_field: "last_name",
@@ -99,7 +99,11 @@ afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
   navigation.search = "";
-  auth.permissions = ["catalog.import", "integrations.manage", "training.read"];
+  auth.permissions = [
+    "training.import",
+    "integrations.manage",
+    "training.read",
+  ];
 });
 
 describe("learner import workspace", () => {

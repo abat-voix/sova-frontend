@@ -61,7 +61,7 @@ afterEach(() => {
 
 describe("learners workspace", () => {
   it("links to the learners upload with the import permission", () => {
-    auth.permissions = ["training.read", "catalog.import"];
+    auth.permissions = ["training.read", "training.import"];
     renderWorkspace();
 
     expect(
