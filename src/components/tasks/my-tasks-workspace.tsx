@@ -5,6 +5,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import { BoardDetailsDrawer } from "@/components/interactions/board-details-drawer";
+import { CreateInteractionChatDialog } from "@/components/interactions/create-interaction-chat-dialog";
+import { InteractionCardDialog } from "@/components/interactions/interaction-card-dialog";
 import {
   InteractionList,
   interactionTitle,
@@ -72,7 +74,12 @@ function isoDate(daysAgo: number) {
 
 const taskQueryParam = "task";
 
-export function MyTasksWorkspace() {
+export function MyTasksWorkspace({
+  onOpenConversation,
+}: {
+  /** Открыть мессенджер на чате взаимодействия. Без него пунктов чата нет. */
+  onOpenConversation?: (conversationId: string) => void;
+} = {}) {
   const { locale, t } = useLocale();
   const { csrfToken, user } = useAuth();
   const text = copy[locale];
@@ -87,6 +94,24 @@ export function MyTasksWorkspace() {
   const canCreateInteraction =
     user !== null && can(user, "interactions.create");
   const canExecute = user !== null && can(user, "processes.execute");
+  // Те же права, что и в «Взаимодействиях»: меню карточки одно и то же.
+  const canUpdateInteraction =
+    user !== null && can(user, "interactions.update");
+  const canDeleteInteraction =
+    user !== null && can(user, "interactions.delete");
+  const canChat =
+    user !== null &&
+    can(user, "interactions.chat") &&
+    Boolean(onOpenConversation);
+  const canReadDocuments =
+    user !== null && can(user, "contracts.read") && can(user, "licenses.read");
+  const canReadTraining = user !== null && can(user, "training.read");
+  const [editingInteraction, setEditingInteraction] =
+    useState<Interaction | null>(null);
+  const [viewingInteraction, setViewingInteraction] =
+    useState<Interaction | null>(null);
+  const [creatingChatForInteraction, setCreatingChatForInteraction] =
+    useState<Interaction | null>(null);
   const [scope, setScope] = useState<ActionInstanceScope>(
     user?.role === "observer" ? "all" : "mine",
   );
@@ -236,6 +261,63 @@ export function MyTasksWorkspace() {
           />
         ) : null}
 
+        {editingInteraction && user ? (
+          <NewInteractionDialog
+            key={editingInteraction.id}
+            csrfToken={csrfToken}
+            currentUser={user}
+            editInteraction={editingInteraction}
+            onClose={() => setEditingInteraction(null)}
+            onCreated={() => setEditingInteraction(null)}
+            onUpdated={() => setEditingInteraction(null)}
+          />
+        ) : null}
+
+        {viewingInteraction ? (
+          <InteractionCardDialog
+            canSeeDocuments={canReadDocuments}
+            canSeeTraining={canReadTraining}
+            csrfToken={csrfToken}
+            interaction={viewingInteraction}
+            key={viewingInteraction.id}
+            onClose={() => setViewingInteraction(null)}
+            onCreateChat={canChat ? setCreatingChatForInteraction : undefined}
+            onDeleted={
+              canDeleteInteraction
+                ? (deleted) => {
+                    setViewingInteraction(null);
+                    // Удалили выбранное взаимодействие — фильтра по нему больше нет
+                    if (deleted.id === selectedInteractionId) {
+                      clearInteraction();
+                    }
+                  }
+                : undefined
+            }
+            onEdit={
+              canUpdateInteraction
+                ? (interaction) => {
+                    setViewingInteraction(null);
+                    setEditingInteraction(interaction);
+                  }
+                : undefined
+            }
+            onOpenChat={canChat ? onOpenConversation : undefined}
+          />
+        ) : null}
+
+        {creatingChatForInteraction && onOpenConversation ? (
+          <CreateInteractionChatDialog
+            csrfToken={csrfToken}
+            interactionId={creatingChatForInteraction.id}
+            key={creatingChatForInteraction.id}
+            onClose={() => setCreatingChatForInteraction(null)}
+            onCreated={(conversationId) => {
+              setCreatingChatForInteraction(null);
+              onOpenConversation(conversationId);
+            }}
+          />
+        ) : null}
+
         {pending ? (
           <CompleteActionDialog
             action={pending.action}
@@ -309,8 +391,12 @@ export function MyTasksWorkspace() {
               {text.allInteractions}
             </Button>
             <InteractionList
+              onCreateChat={canChat ? setCreatingChatForInteraction : undefined}
+              onEdit={canUpdateInteraction ? setEditingInteraction : undefined}
+              onOpenChat={canChat ? onOpenConversation : undefined}
               onResolve={setSelectedInteraction}
               onSelect={handleSelectInteraction}
+              onView={setViewingInteraction}
               selectedId={selectedInteractionId}
             />
           </div>

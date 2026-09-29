@@ -540,7 +540,7 @@ export function CrmShell(props: CrmShellProps) {
           ) : activeSection === "interactions" ? (
             <InteractionsWorkspace onOpenConversation={openConversation} />
           ) : activeSection === "myTasks" ? (
-            <MyTasksWorkspace />
+            <MyTasksWorkspace onOpenConversation={openConversation} />
           ) : activeSection === "notifications" ? (
             <NotificationsWorkspace />
           ) : activeSection === "organizations" ? (
