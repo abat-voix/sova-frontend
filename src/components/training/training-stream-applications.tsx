@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, X } from "lucide-react";
+import { Plus, UserPlus, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -12,6 +12,7 @@ import {
   fieldInputClass,
   registryCopy,
 } from "@/components/registry/registry-shared";
+import { LearnerFormDialog } from "@/components/training/learner-form";
 import { applicationStatusLabels } from "@/components/training/training-labels";
 import { Button } from "@/components/ui/button";
 import { EntitySelect } from "@/components/ui/entity-select";
@@ -19,6 +20,7 @@ import { StatusChip } from "@/components/ui/status-chip";
 import type { LookupOption } from "@/lib/api/catalog/lookups";
 import {
   addApplicationLearner,
+  addNewApplicationLearner,
   cancelTrainingApplication,
   createTrainingApplication,
   deleteTrainingApplication,
@@ -60,6 +62,8 @@ const copy = {
     addLearner: "Добавить участника",
     add: "Добавить",
     learnerPlaceholder: "Найдите обучающегося по ФИО",
+    newLearner: "Новый обучающийся",
+    addExisting: "Добавить найденного",
     remove: "Убрать из заявки",
     created: "Заявка создана.",
     cancelled: "Заявка отменена.",
@@ -96,6 +100,8 @@ const copy = {
     addLearner: "Add participant",
     add: "Add",
     learnerPlaceholder: "Find a learner by name",
+    newLearner: "New learner",
+    addExisting: "Add the existing learner",
     remove: "Remove from application",
     created: "Application created.",
     cancelled: "Application cancelled.",
@@ -138,6 +144,21 @@ function AddParticipant({
   const invalidate = useInvalidate(streamId);
   const [learner, setLearner] = useState<LookupOption | null>(null);
   const [isPaid, setIsPaid] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const finish = () => {
+    toast.success(text.added);
+    invalidate();
+    onDone();
+  };
+  // Найденный по контактам дубль добавляется тем же запросом, что и выбранный в поиске
+  const existingMutation = useMutation({
+    mutationFn: (learnerId: string) =>
+      addApplicationLearner(
+        { application: applicationId, is_paid: isPaid, learner: learnerId },
+        csrfToken,
+      ),
+    onSuccess: finish,
+  });
   const mutation = useMutation({
     mutationFn: () =>
       addApplicationLearner(
@@ -148,11 +169,7 @@ function AddParticipant({
         },
         csrfToken,
       ),
-    onSuccess: () => {
-      toast.success(text.added);
-      invalidate();
-      onDone();
-    },
+    onSuccess: finish,
   });
 
   return (
@@ -166,6 +183,37 @@ function AddParticipant({
         search={searchLearners}
         value={learner}
       />
+      <Button
+        colorScheme="neutral"
+        onClick={() => setIsCreating(true)}
+        size="s"
+        type="button"
+        variant="ghost"
+      >
+        <UserPlus aria-hidden="true" className="size-3.5" />
+        {text.newLearner}
+      </Button>
+      {isCreating ? (
+        <LearnerFormDialog
+          initial={null}
+          onClose={() => setIsCreating(false)}
+          onSaved={finish}
+          onSubmit={(payload) =>
+            addNewApplicationLearner(applicationId, payload, isPaid, csrfToken)
+          }
+          renderExisting={(learnerId) => (
+            <Button
+              disabled={existingMutation.isPending}
+              onClick={() => existingMutation.mutate(learnerId)}
+              size="s"
+              type="button"
+            >
+              {text.addExisting}
+            </Button>
+          )}
+          title={text.newLearner}
+        />
+      ) : null}
       <label className="flex items-center gap-2 text-sm">
         <input
           checked={isPaid}

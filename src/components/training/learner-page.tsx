@@ -1,30 +1,38 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { LoaderCircle, ShieldAlert } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { LoaderCircle, Pencil, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import {
   DetailRows,
   registryCopy,
 } from "@/components/registry/registry-shared";
 import { BackLink } from "@/components/training/back-link";
+import { LearnerFormDialog } from "@/components/training/learner-form";
+import {
+  LearnerPersonalDataForm,
+  personalDataLabels,
+} from "@/components/training/learner-personal-data-form";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { StatusChip } from "@/components/ui/status-chip";
 import {
   getLearner,
   getLearnerPersonalData,
+  updateLearner,
 } from "@/lib/api/training/learners";
 import { trainingStreamHref } from "@/lib/api/training/streams";
 import { formatDate } from "@/lib/format-date";
 import { can } from "@/lib/permissions";
 import { useAuth } from "@/providers/auth-provider";
 import { useLocale } from "@/providers/locale-provider";
-import type { LearnerPersonalData } from "@/types/training";
+import type { LearnerDetail, LearnerPayload } from "@/types/training";
 
 const personalDataHeadingId = "learner-personal-data-title";
+const editLoadingHeadingId = "learner-edit-loading-title";
 
 const copy = {
   ru: {
@@ -48,6 +56,14 @@ const copy = {
       "Просмотр записан в журнал доступа к персональным данным.",
     personalDataError: "Не удалось загрузить персональные данные.",
     loadingPersonalData: "Загружаем персональные данные…",
+    edit: "Изменить",
+    editTitle: "Изменить обучающегося",
+    editNote:
+      "Полные контакты загружены для правки — это записано в журнал доступа к персональным данным.",
+    saved: "Изменения сохранены.",
+    loadingEdit: "Загружаем контакты для правки…",
+    editLoadError: "Не удалось загрузить контакты для правки.",
+    retry: "Повторить",
   },
   en: {
     back: "All learners",
@@ -69,39 +85,117 @@ const copy = {
     personalDataNote: "This view is recorded in the personal data access log.",
     personalDataError: "Personal data could not be loaded.",
     loadingPersonalData: "Loading personal data…",
+    edit: "Edit",
+    editTitle: "Edit learner",
+    editNote:
+      "Full contacts were loaded for editing — this is recorded in the personal data access log.",
+    saved: "Changes saved.",
+    loadingEdit: "Loading contacts for editing…",
+    editLoadError: "Contacts for editing could not be loaded.",
+    retry: "Retry",
   },
 } as const;
 
-/** Подписи полей персональных данных — как колонки файла «Пользователи». */
-const personalDataLabels: [keyof LearnerPersonalData, string][] = [
-  ["email", "Email"],
-  ["phone", "Телефон"],
-  ["gender", "Пол"],
-  ["birth_date", "Дата рождения"],
-  ["last_name_dative", "Фамилия (дательный падеж)"],
-  ["first_name_dative", "Имя (дательный падеж)"],
-  ["middle_name_dative", "Отчество (дательный падеж)"],
-  ["snils", "СНИЛС"],
-  ["passport_series", "Серия паспорта"],
-  ["passport_number", "Номер паспорта"],
-  ["passport_issued_by", "Кем выдан паспорт"],
-  ["passport_issued_at", "Дата выдачи паспорта"],
-  ["passport_division_code", "Код подразделения"],
-  ["registration_region", "Регион регистрации"],
-  ["registration_locality", "Населённый пункт регистрации"],
-  ["registration_street", "Улица регистрации"],
-  ["registration_house", "Дом регистрации"],
-  ["registration_apartment", "Квартира регистрации"],
-  ["registration_postcode", "Индекс регистрации"],
-  ["education_level", "Образование"],
-  ["diploma_qualification", "Профессия по диплому"],
-  ["diploma_institution", "Учебное заведение по диплому"],
-  ["diploma_last_name", "Фамилия, указанная в дипломе"],
-  ["diploma_series", "Серия диплома"],
-  ["diploma_number", "Номер диплома"],
-  ["diploma_registration_number", "Регистрационный номер диплома"],
-  ["diploma_issued_at", "Дата выдачи диплома"],
-];
+/**
+ * Правка карточки: полные контакты берутся из `personal-data/` (запись в
+ * журнал), на бэкенд уходят только изменённые поля.
+ */
+function EditLearnerDialog({
+  learner,
+  onClose,
+}: {
+  learner: LearnerDetail;
+  onClose: () => void;
+}) {
+  const { locale } = useLocale();
+  const { csrfToken } = useAuth();
+  const text = copy[locale];
+  const common = registryCopy[locale];
+  const queryClient = useQueryClient();
+  // Не кэшируем: каждая выдача персональных данных — отдельная запись в журнале
+  const query = useQuery({
+    queryKey: ["training", "learners", "personal-data", learner.id],
+    queryFn: () => getLearnerPersonalData(learner.id),
+    gcTime: 0,
+  });
+  // Окно видно сразу: пока грузятся контакты — индикатор, при сбое — причина и повтор
+  if (!query.data)
+    return (
+      <Modal
+        closeLabel={common.cancel}
+        labelledBy={editLoadingHeadingId}
+        onClose={onClose}
+      >
+        <div className="border-b px-5 py-4 pr-14">
+          <h2 className="text-lg font-medium" id={editLoadingHeadingId}>
+            {text.editTitle}
+          </h2>
+        </div>
+        <div className="space-y-3 px-5 py-4">
+          {query.isError ? (
+            <>
+              <p className="text-sm text-[var(--atmr-brand-orange)]">
+                {text.editLoadError}
+              </p>
+              <Button
+                colorScheme="neutral"
+                onClick={() => void query.refetch()}
+                size="m"
+                type="button"
+                variant="outline"
+              >
+                {text.retry}
+              </Button>
+            </>
+          ) : (
+            <p className="text-muted-foreground flex items-center gap-2 text-sm">
+              <LoaderCircle
+                aria-hidden="true"
+                className="size-4 animate-spin"
+              />
+              {text.loadingEdit}
+            </p>
+          )}
+        </div>
+      </Modal>
+    );
+
+  const initial: LearnerPayload = {
+    email: query.data.email,
+    first_name: learner.first_name,
+    is_active: learner.is_active,
+    last_name: learner.last_name,
+    middle_name: learner.middle_name,
+    phone: query.data.phone,
+  };
+
+  return (
+    <LearnerFormDialog
+      initial={initial}
+      note={text.editNote}
+      onClose={onClose}
+      onSaved={() => {
+        toast.success(text.saved);
+        void queryClient.invalidateQueries({
+          queryKey: ["training", "learners"],
+        });
+        onClose();
+      }}
+      onSubmit={(payload) =>
+        updateLearner(
+          learner.id,
+          Object.fromEntries(
+            (Object.keys(payload) as (keyof LearnerPayload)[])
+              .filter((key) => payload[key] !== initial[key])
+              .map((key) => [key, payload[key]]),
+          ),
+          csrfToken,
+        )
+      }
+      title={text.editTitle}
+    />
+  );
+}
 
 function PersonalDataModal({
   learnerId,
@@ -111,6 +205,9 @@ function PersonalDataModal({
   onClose: () => void;
 }) {
   const { locale } = useLocale();
+  const { user } = useAuth();
+  const canUpdate = user !== null && can(user, "training.personal_data.update");
+  const [isEditing, setIsEditing] = useState(false);
   const text = copy[locale];
   const common = registryCopy[locale];
   // Не кэшируем: каждая выдача персональных данных — отдельная запись в журнале
@@ -120,6 +217,16 @@ function PersonalDataModal({
     gcTime: 0,
   });
 
+  // Правка — отдельным окном поверх просмотра, по уже загруженным данным
+  if (isEditing && query.data)
+    return (
+      <LearnerPersonalDataForm
+        data={query.data}
+        learnerId={learnerId}
+        onClose={() => setIsEditing(false)}
+      />
+    );
+
   return (
     <Modal
       closeLabel={common.close}
@@ -127,9 +234,23 @@ function PersonalDataModal({
       onClose={onClose}
     >
       <div className="border-b px-5 py-4 pr-14">
-        <h2 className="text-lg font-medium" id={personalDataHeadingId}>
-          {text.personalData}
-        </h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-lg font-medium" id={personalDataHeadingId}>
+            {text.personalData}
+          </h2>
+          {canUpdate && query.data ? (
+            <Button
+              colorScheme="neutral"
+              onClick={() => setIsEditing(true)}
+              size="s"
+              type="button"
+              variant="outline"
+            >
+              <Pencil aria-hidden="true" className="size-3.5" />
+              {text.edit}
+            </Button>
+          ) : null}
+        </div>
         <p className="text-muted-foreground mt-1 flex items-center gap-2 text-xs">
           <ShieldAlert aria-hidden="true" className="size-4" />
           {text.personalDataNote}
@@ -160,13 +281,17 @@ function PersonalDataModal({
 
 /**
  * Страница обучающегося: контакты (маской), участие в потоках с оплатой и
- * зачислением; полные персональные данные — администратору, с журналом.
+ * зачислением; полные персональные данные и правка — с записью в журнал.
  */
 export function LearnerPage({ learnerId }: { learnerId: string }) {
   const { locale } = useLocale();
   const { user } = useAuth();
   const canReadPersonalData =
     user !== null && can(user, "training.personal_data.read");
+  // Правка открывает полные контакты — нужно и право на ПД
+  const canEdit =
+    canReadPersonalData && user !== null && can(user, "training.update");
+  const [isEditing, setIsEditing] = useState(false);
   const text = copy[locale];
   const common = registryCopy[locale];
   const [showPersonalData, setShowPersonalData] = useState(false);
@@ -202,18 +327,32 @@ export function LearnerPage({ learnerId }: { learnerId: string }) {
 
       <header className="bg-card flex flex-wrap items-start justify-between gap-3 rounded-xl border p-5">
         <h1 className="text-2xl font-medium">{learner.full_name}</h1>
-        {canReadPersonalData ? (
-          <Button
-            colorScheme="neutral"
-            onClick={() => setShowPersonalData(true)}
-            size="m"
-            type="button"
-            variant="outline"
-          >
-            <ShieldAlert aria-hidden="true" className="size-4" />
-            {text.personalData}
-          </Button>
-        ) : null}
+        <div className="flex flex-wrap gap-2">
+          {canEdit ? (
+            <Button
+              colorScheme="neutral"
+              onClick={() => setIsEditing(true)}
+              size="m"
+              type="button"
+              variant="outline"
+            >
+              <Pencil aria-hidden="true" className="size-4" />
+              {text.edit}
+            </Button>
+          ) : null}
+          {canReadPersonalData ? (
+            <Button
+              colorScheme="neutral"
+              onClick={() => setShowPersonalData(true)}
+              size="m"
+              type="button"
+              variant="outline"
+            >
+              <ShieldAlert aria-hidden="true" className="size-4" />
+              {text.personalData}
+            </Button>
+          ) : null}
+        </div>
       </header>
 
       <div className="grid items-start gap-5 lg:grid-cols-[22rem_minmax(0,1fr)]">
@@ -297,6 +436,12 @@ export function LearnerPage({ learnerId }: { learnerId: string }) {
         <PersonalDataModal
           learnerId={learner.id}
           onClose={() => setShowPersonalData(false)}
+        />
+      ) : null}
+      {isEditing ? (
+        <EditLearnerDialog
+          learner={learner}
+          onClose={() => setIsEditing(false)}
         />
       ) : null}
     </div>

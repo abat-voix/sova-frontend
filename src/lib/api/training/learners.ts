@@ -1,12 +1,21 @@
 import type { LookupOption } from "@/lib/api/catalog/lookups";
 import { apiEndpoints } from "@/lib/api/endpoints";
-import { buildQuery, getJson, postFormData } from "@/lib/api/http";
+import {
+  ApiError,
+  buildQuery,
+  getJson,
+  patchJson,
+  postFormData,
+  postJson,
+} from "@/lib/api/http";
 import type { PaginatedResponse } from "@/types/api";
 import type {
   Learner,
   LearnerDetail,
   LearnerImportResult,
+  LearnerPayload,
   LearnerPersonalData,
+  LearnerPersonalDataPayload,
 } from "@/types/training";
 
 export const learnersPageSize = 20;
@@ -47,7 +56,7 @@ export function getLearner(id: string) {
   return getJson<LearnerDetail>(apiEndpoints.training.learners.detail(id));
 }
 
-/** Полные персональные данные: только администратор, выдача пишется в журнал. */
+/** Полные персональные данные: КАМу, руководителю и админу; выдача пишется в журнал. */
 export function getLearnerPersonalData(id: string) {
   return getJson<LearnerPersonalData>(
     apiEndpoints.training.learners.personalData(id),
@@ -86,4 +95,46 @@ export function uploadLearners(
 /** Страница обучающегося в разделе «Обучение». */
 export function learnerHref(id: string) {
   return `/training/learners/${id}`;
+}
+
+/** Новый обучающийся; тот же email или телефон у другого — 409 `learner_exists`. */
+export function createLearner(payload: LearnerPayload, csrfToken: string) {
+  return postJson<Learner>(
+    apiEndpoints.training.learners.list,
+    payload,
+    csrfToken,
+  );
+}
+
+export function updateLearner(
+  id: string,
+  payload: Partial<LearnerPayload>,
+  csrfToken: string,
+) {
+  return patchJson<Learner>(
+    apiEndpoints.training.learners.detail(id),
+    payload,
+    csrfToken,
+  );
+}
+
+/** Правка ПД: изменённые поля пишутся в журнал доступа. */
+export function updateLearnerPersonalData(
+  id: string,
+  payload: LearnerPersonalDataPayload,
+  csrfToken: string,
+) {
+  return patchJson<LearnerPersonalData>(
+    apiEndpoints.training.learners.personalData(id),
+    payload,
+    csrfToken,
+  );
+}
+
+/** Id найденного обучающегося из 409 `learner_exists`, иначе `null`. */
+export function existingLearnerId(error: unknown): string | null {
+  if (!(error instanceof ApiError) || error.code !== "learner_exists")
+    return null;
+  const learner = (error.body as { learner?: unknown } | null)?.learner;
+  return typeof learner === "string" ? learner : null;
 }

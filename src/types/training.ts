@@ -69,6 +69,16 @@ export type Learner = {
   updated_at: string;
 };
 
+/** Запись карточки обучающегося: нужен email или телефон. */
+export type LearnerPayload = {
+  last_name: string;
+  first_name: string;
+  middle_name: string;
+  email: string;
+  phone: string;
+  is_active: boolean;
+};
+
 export type LearnerParticipation = {
   id: string;
   application: string;
@@ -114,6 +124,11 @@ export type LearnerPersonalData = {
   diploma_registration_number: string;
   diploma_issued_at: string | null;
 };
+
+/** Правка ПД: только изменённые поля; контакты — в карточке (`LearnerPayload`). */
+export type LearnerPersonalDataPayload = Partial<
+  Omit<LearnerPersonalData, "id" | "learner" | "email" | "phone">
+>;
 
 /** Участник заявки: факт оплаты и вычисленное зачисление. */
 export type TrainingApplicationLearner = {
